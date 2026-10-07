@@ -1,0 +1,30 @@
+# Dependencies & Build Artifacts
+node_modules/
+dist/
+dist-ssr/
+
+# Python & Environment
+venv/
+**/venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Databases & Runtime Data
+*.db
+*.sqlite3
+
+# Environment Variables & Secrets
+.env
+.env*.local
+!.env.example
+
+# Operating System & IDE Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
