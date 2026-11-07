@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import { config, validateProductionConfig } from './config.js';
-import { getDatabase } from './db/database.js';
+import { config, validateProductionConfig, isProductionOrStaging } from './config.js';
+import { getDatabase, closeDatabase } from './db/database.js';
 import { seedDatabase } from './db/seed.js';
 
 import healthRouter from './routes/health.js';
@@ -71,9 +71,9 @@ app.use(errorHandler);
 // Auto-seed on startup if needed and listen
 export async function startServer(port = config.port) {
   validateProductionConfig();
-  // Initialize database schema and seed default data
+  // Initialize database schema and seed default data in development only
   await getDatabase();
-  if (process.env.NODE_ENV !== 'production' && process.env.ENVIRONMENT !== 'production') {
+  if (!isProductionOrStaging()) {
     await seedDatabase();
   }
 
@@ -96,7 +96,7 @@ if (process.argv[1] && process.argv[1].endsWith('server.js')) {
       const deadline = setTimeout(() => process.exit(1), 10000);
       deadline.unref();
       server.close(async () => {
-        try { const db = await getDatabase(); if (db.end) await db.end(); process.exit(0); }
+        try { await closeDatabase(); process.exit(0); }
         catch { process.exit(1); }
       });
     };

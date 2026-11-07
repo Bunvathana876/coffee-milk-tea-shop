@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 
 // Keep the API suite isolated from any configured PostgreSQL database.
 process.env.NODE_ENV = 'test';
+process.env.ENVIRONMENT = 'test';
 process.env.ALLOW_IN_MEMORY_DB = 'true';
 process.env.DATABASE_URL = 'postgresql://127.0.0.1:1/isolated';
 const { startServer } = await import('../src/server.js');

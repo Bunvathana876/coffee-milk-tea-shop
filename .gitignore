@@ -50,3 +50,6 @@ Thumbs.db
 
 # Local archives
 archive/
+
+# Neon local workspace metadata
+.neon

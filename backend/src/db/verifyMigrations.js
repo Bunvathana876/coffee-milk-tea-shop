@@ -2,7 +2,15 @@ import { migrationFiles } from '../../scripts/prepareMigrations.js';
 
 export async function verifyMigrations(db) {
   const files = await migrationFiles();
-  const result = await db.query('SELECT version, name, checksum FROM schema_migrations');
+  let result;
+  try {
+    result = await db.query('SELECT version, name, checksum FROM schema_migrations');
+  } catch (err) {
+    if (err.code === '42P01') {
+      throw new Error('Database migration tracking table (schema_migrations) does not exist. Run the approved migration process.');
+    }
+    throw err;
+  }
   for (const file of files) {
     const applied = result.rows.find(row => row.version === file.version);
     if (!applied || applied.name !== file.name || applied.checksum !== file.checksum) {

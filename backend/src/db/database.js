@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { config } from '../config.js';
+import { config, isProductionOrStaging } from '../config.js';
 import { verifyMigrations } from './verifyMigrations.js';
 
 const { Pool } = pg;
@@ -366,13 +366,54 @@ class MemoryPgDb {
 
 const memoryDb = new MemoryPgDb();
 
+export function buildPoolConfig(databaseUrl = config.databaseUrl) {
+  const poolConfig = {
+    connectionString: databaseUrl,
+    connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT_MS || '10000', 10),
+    idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS || '30000', 10),
+    max: parseInt(process.env.DB_POOL_MAX || '10', 10),
+  };
+
+  try {
+    const parsed = new URL(databaseUrl);
+    const isLoopback = ['127.0.0.1', 'localhost', '::1'].includes(parsed.hostname);
+    const sslMode = parsed.searchParams.get('sslmode');
+
+    // For non-loopback hosts without explicit sslmode parameter in staging/production,
+    // enforce secure TLS with certificate validation.
+    if (!isLoopback && !sslMode && isProductionOrStaging()) {
+      poolConfig.ssl = { rejectUnauthorized: true };
+    }
+  } catch {
+    // If URL parsing fails, pg will handle validation
+  }
+
+  // Security rule: Never disable certificate verification
+  if (poolConfig.ssl && typeof poolConfig.ssl === 'object' && poolConfig.ssl.rejectUnauthorized === false) {
+    poolConfig.ssl.rejectUnauthorized = true;
+  }
+
+  return poolConfig;
+}
+
+export async function closeDatabase() {
+  if (pool) {
+    const currentPool = pool;
+    pool = null;
+    isConnectedToPostgres = false;
+    await currentPool.end();
+  }
+}
+
 export async function getDatabase() {
   if (pool) return pool;
   if (isTestMemoryDatabase) return memoryDb;
 
-  const nextPool = new Pool({
-    connectionString: config.databaseUrl,
-    connectionTimeoutMillis: 2500,
+  const poolConfig = buildPoolConfig(config.databaseUrl);
+  const nextPool = new Pool(poolConfig);
+
+  nextPool.on('error', (err) => {
+    console.error('Unexpected idle PostgreSQL client error:', err.code || err.name || 'UnknownError');
   });
 
   try {
@@ -380,7 +421,7 @@ export async function getDatabase() {
     client.release();
     isConnectedToPostgres = true;
     console.log('🐘 Connected to PostgreSQL.');
-    if (process.env.NODE_ENV === 'production' || process.env.ENVIRONMENT === 'production') {
+    if (isProductionOrStaging()) {
       await verifyMigrations(nextPool);
     } else {
       await initSchema(nextPool);
@@ -389,12 +430,14 @@ export async function getDatabase() {
     return pool;
   } catch (err) {
     isConnectedToPostgres = false;
-    await nextPool.end();
+    await nextPool.end().catch(() => {});
     if (process.env.NODE_ENV === 'test' && process.env.ALLOW_IN_MEMORY_DB === 'true') {
       isTestMemoryDatabase = true;
       console.warn('PostgreSQL unavailable; using isolated in-memory database for tests only.');
       return memoryDb;
     }
+    const reason = err.code || err.name || 'UnknownError';
+    console.error(`PostgreSQL connection failed [${reason}].`);
     throw new Error('PostgreSQL initialization failed; server was not started. Check database configuration and availability.');
   }
 }
@@ -446,6 +489,9 @@ export async function withTransaction(work) {
 }
 
 export async function initSchema(db) {
+  if (isProductionOrStaging()) {
+    throw new Error('Automatic schema modification is prohibited in staging and production environments.');
+  }
   const schemaSql = `
     CREATE TABLE IF NOT EXISTS categories (
       id SERIAL PRIMARY KEY,

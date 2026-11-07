@@ -47,13 +47,20 @@ export const config = {
   },
 };
 
-/** Fail before connecting to the database or seeding accounts in production. */
+/** Check whether environment is staging or production. */
+export function isProductionOrStaging(env = process.env) {
+  const nodeEnv = (env.NODE_ENV || '').toLowerCase();
+  const environment = (env.ENVIRONMENT || '').toLowerCase();
+  return nodeEnv === 'production' || nodeEnv === 'staging' || environment === 'production' || environment === 'staging';
+}
+
+/** Fail before connecting to the database or seeding accounts in production or staging. */
 export function validateProductionConfig(env = process.env) {
-  if (env.NODE_ENV !== 'production' && env.ENVIRONMENT !== 'production') return;
+  if (!isProductionOrStaging(env)) return;
 
   const errors = [];
   if (env.NODE_ENV === 'test') {
-    errors.push('NODE_ENV=test cannot be combined with production');
+    errors.push('NODE_ENV=test cannot be combined with production or staging');
   }
   const required = ['DATABASE_URL', 'JWT_SECRET', 'ADMIN_INITIAL_EMAIL', 'ADMIN_INITIAL_PASSWORD', 'CORS_ORIGINS'];
   for (const name of required) {
@@ -106,6 +113,7 @@ export function validateProductionConfig(env = process.env) {
   }
 
   if (errors.length > 0) {
-    throw new Error(`Invalid production configuration: ${errors.join('; ')}.`);
+    const isStaging = (env.ENVIRONMENT || env.NODE_ENV || '').toLowerCase() === 'staging';
+    throw new Error(`Invalid ${isStaging ? 'staging' : 'production'} configuration: ${errors.join('; ')}.`);
   }
 }

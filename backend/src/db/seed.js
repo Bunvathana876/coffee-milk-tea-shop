@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { getDatabase, dbQuery } from './database.js';
-import { config } from '../config.js';
+import { config, isProductionOrStaging } from '../config.js';
 
 export const SEED_CATEGORIES = [
   {
@@ -192,6 +192,9 @@ export const SEED_PRODUCTS = [
 ];
 
 export async function seedDatabase() {
+  if (isProductionOrStaging()) {
+    throw new Error('Automatic database seeding is prohibited in staging and production environments.');
+  }
   await getDatabase();
 
   // 1. Seed Categories
