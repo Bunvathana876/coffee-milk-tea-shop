@@ -1,33 +1,18 @@
-FROM python:3.11-slim
-
-# Prevent Python from writing bytecode (.pyc) and enable unbuffered logging
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+FROM node:22-alpine
 
 WORKDIR /app
 
-# Install curl for container health check
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Copy dependency specifications first to leverage Docker layer caching
+COPY package*.json ./
 
-# Install python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install project dependencies
+RUN npm install
 
-# Create directory for persistent SQLite database
-RUN mkdir -p /app/data
-
-# Copy backend application source code
+# Copy application source code
 COPY . .
 
-# Expose FastAPI server port
+# Expose backend API port
 EXPOSE 8000
 
-# Container healthcheck against /api/health endpoint
-HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/api/health || exit 1
-
-# Launch FastAPI with uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-
+# Start server in watch mode for development hot-reloading
+CMD ["npm", "run", "dev"]

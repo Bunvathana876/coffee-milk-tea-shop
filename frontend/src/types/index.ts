@@ -39,6 +39,7 @@ export interface DrinkCustomization {
   size: DrinkSize;
   sugar_level: SugarLevel;
   ice_level: IceLevel;
+  toppings?: string[];
   quantity: number;
   unit_price_usd: number;
   subtotal_usd: number;
@@ -52,6 +53,7 @@ export interface CartItem {
   size: DrinkSize;
   sugarLevel: SugarLevel;
   iceLevel: IceLevel;
+  toppings?: string[];
   unitPriceUsd: number;
   quantity: number;
   subtotalUsd: number;
@@ -87,6 +89,28 @@ export interface OrderItem {
   size: string;
   sugar_level: string;
   ice_level: string;
+  toppings?: string;
+}
+
+export interface CreateOrderItemPayload {
+  product_id?: number | null;
+  product_name: string;
+  quantity: number;
+  unit_price_usd: number;
+  subtotal_usd: number;
+  size: string;
+  sugar_level: string;
+  ice_level: string;
+  toppings?: string[];
+}
+
+export interface CreateOrderPayload {
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string | null;
+  notes?: string | null;
+  payment_method?: string;
+  items: CreateOrderItemPayload[];
 }
 
 export interface Order {
@@ -94,11 +118,14 @@ export interface Order {
   order_number: string;
   customer_name: string;
   customer_phone: string;
+  customer_email?: string | null;
+  notes?: string | null;
+  payment_method?: string;
   subtotal_usd: number;
   total_usd: number;
   total_khr: number;
-  payment_status: 'pending' | 'paid' | 'failed';
-  order_status: 'pending' | 'preparing' | 'completed' | 'cancelled';
+  payment_status: 'pending' | 'paid' | 'failed' | string;
+  order_status: 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled' | string;
   created_at: string;
   items?: OrderItem[];
 }
@@ -110,3 +137,16 @@ export interface HealthCheckResponse {
   version: string;
   environment: string;
 }
+
+export {
+  OPENAPI_ENDPOINTS,
+  type AdminOrderListResponse as OpenApiAdminOrderListResponse,
+  type CategoryResponse as OpenApiCategoryResponse,
+  type ProductResponse as OpenApiProductResponse,
+  type OrderCreate as OpenApiOrderCreate,
+  type OrderResponse as OpenApiOrderResponse,
+  type OrderItemCreate as OpenApiOrderItemCreate,
+  type OrderItemResponse as OpenApiOrderItemResponse,
+  type DashboardSummaryResponse as OpenApiDashboardSummaryResponse,
+  type SalesReportResponse as OpenApiSalesReportResponse,
+} from './openapi.generated';

@@ -1,0 +1,126 @@
+services:
+  # ============================================================================
+  # 1. PostgreSQL 16 Database Service
+  # ============================================================================
+  db:
+    image: postgres:16-alpine
+    container_name: brew_boba_db
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-coffee_shop}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_dev_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-coffee_shop}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - app_network
+
+  # ============================================================================
+  # 2. Node.js Express REST API Backend
+  # ============================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: brew_boba_backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8001}:8000"
+    environment:
+      PORT: 8000
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_dev_password}@db:5432/${POSTGRES_DB:-coffee_shop}
+      JWT_SECRET: ${JWT_SECRET:-super-secret-coffee-jwt-key-change-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      USD_TO_KHR_RATE: ${USD_TO_KHR_RATE:-4100}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000}
+      ADMIN_INITIAL_EMAIL: ${ADMIN_INITIAL_EMAIL:-admin@coffeeshop.com}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-admin123}
+      ADMIN_INITIAL_NAME: ${ADMIN_INITIAL_NAME:-Store Administrator}
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/api/health > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - app_network
+
+  # ============================================================================
+  # 3. React 19 + Vite Frontend Storefront
+  # ============================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: brew_boba_frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8001}
+      VITE_USD_TO_KHR: ${VITE_USD_TO_KHR:-4100}
+      VITE_PROXY_TARGET: http://backend:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5173 > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - app_network
+
+  # Standalone management website; all API requests use the shared backend.
+  management-portal:
+    build:
+      context: ./management-portal
+      dockerfile: Dockerfile
+    container_name: brew_boba_management_portal
+    restart: unless-stopped
+    ports:
+      - "${MANAGEMENT_PORTAL_PORT:-5175}:5175"
+    environment:
+      VITE_PROXY_TARGET: http://backend:8000
+    volumes:
+      - ./management-portal:/app
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5175/login > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - app_network
+
+volumes:
+  postgres_data:
+    name: brew_boba_postgres_data
+
+networks:
+  app_network:
+    name: brew_boba_network
+    driver: bridge

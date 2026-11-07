@@ -12,8 +12,8 @@ export const initialCartState: CartState = {
 export function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const { productId, productName, image, size, sugarLevel, iceLevel, unitPriceUsd, quantity } = action.payload;
-      const itemId = generateCartItemId(productId, size, sugarLevel, iceLevel);
+      const { productId, productName, image, size, sugarLevel, iceLevel, toppings = [], unitPriceUsd, quantity } = action.payload;
+      const itemId = generateCartItemId(productId, size, sugarLevel, iceLevel, toppings);
 
       const existingIndex = state.items.findIndex((item) => item.id === itemId);
 
@@ -42,6 +42,7 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
           size,
           sugarLevel,
           iceLevel,
+          toppings,
           unitPriceUsd,
           quantity,
           subtotalUsd: calculateItemSubtotal(unitPriceUsd, quantity),

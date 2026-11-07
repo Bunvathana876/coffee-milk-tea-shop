@@ -10,9 +10,12 @@ export function generateCartItemId(
   productId: number,
   size: DrinkSize,
   sugarLevel: SugarLevel,
-  iceLevel: IceLevel
+  iceLevel: IceLevel,
+  toppings: string[] = []
 ): string {
-  return `${productId}-${size}-${sugarLevel}-${iceLevel}`.toLowerCase().replace(/\s+/g, '-');
+  const sortedToppings = [...toppings].sort().join(',');
+  const toppingsPart = sortedToppings ? `-${sortedToppings}` : '';
+  return `${productId}-${size}-${sugarLevel}-${iceLevel}${toppingsPart}`.toLowerCase().replace(/\s+/g, '-');
 }
 
 /**

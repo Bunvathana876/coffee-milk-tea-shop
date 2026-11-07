@@ -1,30 +1,52 @@
-# Dependencies & Build Artifacts
-node_modules/
-dist/
-dist-ssr/
+# Dependencies & Package Managers
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Python & Environment
+# Build Outputs & Bundles
+**/dist/
+**/build/
+dist-ssr/
+*.tsbuildinfo
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Knowledge Graph
+graphify-out/
+
+# Database Backups & Dumps
+backups/
+*.dump
+*.backup
+*.db
+*.sqlite
+*.sqlite3
+
+# Python & Virtual Environments
 venv/
 **/venv/
 __pycache__/
-**/__pycache__/
+/**/__pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
 .coverage
 htmlcov/
 
-# Databases & Runtime Data
-*.db
-*.sqlite3
-
-# Environment Variables & Secrets
-.env
-.env*.local
-!.env.example
-
 # Operating System & IDE Files
 .DS_Store
 Thumbs.db
 .vscode/
+!.vscode/extensions.json
 .idea/
+.codex/
+*.swp
+*.swo
+
+# Local archives
+archive/

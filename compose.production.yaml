@@ -1,0 +1,33 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.production
+    env_file: ${PRODUCTION_ENV_FILE:?Set a protected production environment file}
+    environment:
+      NODE_ENV: production
+      ENVIRONMENT: production
+      PORT: 8000
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:8000/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks: [private]
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.production
+    ports: ["127.0.0.1:8080:8080"]
+    restart: unless-stopped
+    networks: [private]
+  management-portal:
+    build:
+      context: ./management-portal
+      dockerfile: Dockerfile.production
+    ports: ["127.0.0.1:8081:8080"]
+    restart: unless-stopped
+    networks: [private]
+networks:
+  private: {}
