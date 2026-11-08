@@ -1,18 +1,23 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+@import './styles/storefront.css';
 
 @theme {
-  --font-serif: "Fraunces", Georgia, serif;
-  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-serif: 'Fraunces', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 
-  /* Brand Palette — Warm Coffee & Tea House */
-  --color-cream: #fbf8f5;
-  --color-cream-deep: #f3ece4;
-  --color-espresso: #4a2c1d;
-  --color-espresso-dark: #2a160d;
-  --color-ink: #231812;
+  /* Brew & Boba — espresso, cream, teal, and warm retro accents */
+  --color-teal: #2f9793;
+  --color-orange: #db7429;
+  --color-gold: #e7be75;
+  --color-cream-card: #fffaf3;
+  --color-cream: #f8f2e9;
+  --color-cream-deep: #eee4d6;
+  --color-espresso: #2e1d17;
+  --color-espresso-dark: #241610;
+  --color-ink: #191714;
   --color-ink-soft: #5e4f44;
-  --color-caramel: #c87a32;
-  --color-caramel-soft: #f4c48e;
+  --color-caramel: #a34e1d;
+  --color-caramel-soft: #e7be75;
   --color-sage: #536f57;
   --color-sage-soft: #edf3ee;
   --color-orange-accent: #dd5e28;
@@ -25,8 +30,8 @@
   --color-card-foreground: #231812;
   --color-border: #e8ddd2;
   --color-sidebar-border: #e8ddd2;
-  --color-primary: #4a2c1d;
-  --color-primary-foreground: #fbf8f5;
+  --color-primary: #2e1d17;
+  --color-primary-foreground: #f8f2e9;
   --color-muted: #f3ece4;
   --color-muted-foreground: #5e4f44;
 }

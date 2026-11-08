@@ -104,10 +104,10 @@ export const MenuPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <div className="menu-page space-y-6 sm:space-y-8">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-20 lg:bottom-6 right-6 z-50 bg-espresso-dark text-cream px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 ring-1 ring-white/10 border border-espresso/30 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div role="status" className="fixed bottom-6 right-6 z-50 bg-espresso-dark text-cream px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 ring-1 ring-white/10 border border-espresso/30 animate-in fade-in slide-in-from-bottom-2 duration-200">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
           <span className="text-sm font-medium">{toastMessage}</span>
           <button
@@ -125,11 +125,11 @@ export const MenuPage: React.FC = () => {
       <div className="space-y-1.5 pt-1">
         <div className="inline-flex items-center gap-1.5 text-xs font-bold text-caramel uppercase tracking-wider">
           <Sparkles className="w-3.5 h-3.5 text-caramel" />
-          <span>Artisan Drink Selection</span>
+              <span>Your next good cup</span>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
           <h1 className="text-3xl sm:text-5xl font-serif font-black text-ink tracking-tight">
-            Drink Menu
+            A cup for every mood.
           </h1>
           <span className="text-xs sm:text-sm text-ink-soft font-medium">
             Showing {displayedProducts.length} {displayedProducts.length === 1 ? 'drink' : 'drinks'}
@@ -138,7 +138,7 @@ export const MenuPage: React.FC = () => {
       </div>
 
       {/* Sticky Search & Category Bar */}
-      <div className="sticky top-16 sm:top-18 z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3.5 bg-cream/90 backdrop-blur-xl space-y-3 border-b border-line/70 shadow-2xs">
+      <div className="menu-filter-bar sticky z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3.5 bg-cream/95 backdrop-blur-xl space-y-3 border-b border-line/70">
         <div className="flex items-center gap-2.5">
           {/* Search Box */}
           <div className="relative flex-1">
