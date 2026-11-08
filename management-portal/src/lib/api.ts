@@ -102,14 +102,79 @@ export class ApiError extends Error {
   }
 }
 
+export interface ApiUrlResolverOptions {
+  envUrl?: string
+  isProd?: boolean
+}
+
+export type ApiResolverInput = ApiUrlResolverOptions | string
+
+export function getApiBaseUrl(options?: ApiResolverInput): string {
+  const opts: ApiUrlResolverOptions = typeof options === 'string' ? { envUrl: options } : (options ?? {})
+
+  const envUrl = opts.envUrl !== undefined
+    ? opts.envUrl
+    : (
+      typeof import.meta !== 'undefined' && import.meta?.env?.VITE_API_URL
+        ? import.meta.env.VITE_API_URL
+        : (typeof process !== 'undefined' ? process.env?.VITE_API_URL : undefined)
+    )
+
+  const isProd = opts.isProd !== undefined
+    ? opts.isProd
+    : (
+      typeof import.meta !== 'undefined' && import.meta?.env
+        ? Boolean(import.meta.env.PROD)
+        : (typeof process !== 'undefined' ? process.env?.NODE_ENV === 'production' : false)
+    )
+
+  const clean = typeof envUrl === 'string' ? envUrl.trim().replace(/^["']|["']$/g, '').replace(/\/+$/, '') : ''
+
+  if (isProd) {
+    if (!clean) {
+      throw new ApiError('Configuration error: VITE_API_URL must be configured in production builds.', 0)
+    }
+    try {
+      const parsed = new URL(clean)
+      if (parsed.protocol !== 'https:' && parsed.hostname !== 'localhost' && parsed.hostname !== '127.0.0.1') {
+        throw new Error('Production API URL must use HTTPS.')
+      }
+    } catch (cause) {
+      throw new ApiError(`Invalid VITE_API_URL configuration: ${cause instanceof Error ? cause.message : 'Invalid URL'}.`, 0)
+    }
+  }
+
+  return clean
+}
+
+export function resolveApiUrl(path: string, options?: ApiResolverInput): string {
+  const base = getApiBaseUrl(options)
+  const cleanPath = path.startsWith('/') ? path : `/${path}`
+
+  if (!base) {
+    return cleanPath
+  }
+
+  const baseEndsWithApi = base.toLowerCase().endsWith('/api')
+  const pathStartsWithApi = cleanPath.toLowerCase().startsWith('/api/') || cleanPath.toLowerCase() === '/api'
+
+  if (baseEndsWithApi && pathStartsWithApi) {
+    const strippedBase = base.slice(0, -4)
+    return `${strippedBase}${cleanPath}`
+  }
+
+  return `${base}${cleanPath}`
+}
+
 function notifyInvalidSession() {
   if (typeof window !== 'undefined') window.dispatchEvent(new Event(SESSION_INVALID_EVENT))
 }
 
 async function readError(response: Response): Promise<string> {
   try {
-    const body = await response.json() as { detail?: string }
+    const body = await response.json() as { detail?: string; message?: string }
     if (typeof body.detail === 'string') return body.detail
+    if (typeof body.message === 'string') return body.message
   } catch {
     // Keep the HTTP status when the server did not send a JSON error.
   }
@@ -117,28 +182,32 @@ async function readError(response: Response): Promise<string> {
 }
 
 async function request<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
+  const resolvedUrl = resolveApiUrl(path)
   let response: Response
   const headers = new Headers(options.headers)
   headers.set('Accept', 'application/json')
   if (options.body) headers.set('Content-Type', 'application/json')
   if (token) headers.set('Authorization', `Bearer ${token}`)
   try {
-    response = await fetch(path, {
+    response = await fetch(resolvedUrl, {
       ...options,
       headers,
     })
-  } catch {
+  } catch (err) {
+    if (err instanceof ApiError) throw err
     throw new ApiError('The café API is unavailable. Check that the backend is running.', 0)
   }
 
   if (!response.ok) {
     const message = await readError(response)
-    if (token && (response.status === 401 || (response.status === 403 && path === '/api/admin/auth/me'))) {
+    const isMeRequest = path.endsWith('/api/admin/auth/me')
+    if (token && (response.status === 401 || (response.status === 403 && isMeRequest))) {
       notifyInvalidSession()
     }
-    if (token && response.status === 403 && path !== '/api/admin/auth/me') {
+    if (token && response.status === 403 && !isMeRequest) {
       try {
-        const profileResponse = await fetch('/api/admin/auth/me', {
+        const profileUrl = resolveApiUrl('/api/admin/auth/me')
+        const profileResponse = await fetch(profileUrl, {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (!profileResponse.ok) notifyInvalidSession()

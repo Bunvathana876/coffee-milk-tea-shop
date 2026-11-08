@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { ApiError, createCategory, createProduct, getCategories, getDashboardSummary, getOrder, getOrders, getProducts, getSalesReport, getStaffProfile, loginStaff, updateOrderStatus } from './api'
+import { ApiError, createCategory, createProduct, getApiBaseUrl, getCategories, getDashboardSummary, getOrder, getOrders, getProducts, getSalesReport, getStaffProfile, loginStaff, resolveApiUrl, updateOrderStatus } from './api'
 
 function jsonResponse(body: object, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -123,4 +123,99 @@ test('API failure and empty success body surface errors without mock data', asyn
   globalThis.fetch = async () => new Response('', { status: 200, headers: { 'Content-Type': 'application/json' } })
   try { await assert.rejects(getCategories('token'), error => error instanceof ApiError && error.status === 0) }
   finally { globalThis.fetch = original }
+})
+
+test('URL resolver preserves relative paths in development for Vite proxy', () => {
+  const url = resolveApiUrl('/api/admin/auth/login', { isProd: false, envUrl: '' })
+  assert.equal(url, '/api/admin/auth/login')
+
+  const urlWithNoLeadingSlash = resolveApiUrl('api/admin/categories', { isProd: false, envUrl: '' })
+  assert.equal(urlWithNoLeadingSlash, '/api/admin/categories')
+})
+
+test('URL resolver targets custom base URL in development when provided', () => {
+  const url = resolveApiUrl('/api/admin/auth/login', { isProd: false, envUrl: 'http://localhost:8001' })
+  assert.equal(url, 'http://localhost:8001/api/admin/auth/login')
+})
+
+test('URL resolver normalizes production Render staging URL without duplicating /api or slashes', () => {
+  const stagingUrl = 'https://brew-boba-cafe-api-staging.onrender.com'
+
+  // Standard production URL
+  assert.equal(
+    resolveApiUrl('/api/admin/auth/login', { isProd: true, envUrl: stagingUrl }),
+    'https://brew-boba-cafe-api-staging.onrender.com/api/admin/auth/login'
+  )
+
+  // Trailing slash on base
+  assert.equal(
+    resolveApiUrl('/api/admin/auth/me', { isProd: true, envUrl: `${stagingUrl}/` }),
+    'https://brew-boba-cafe-api-staging.onrender.com/api/admin/auth/me'
+  )
+
+  // /api suffix on base - must not produce /api/api
+  assert.equal(
+    resolveApiUrl('/api/admin/products', { isProd: true, envUrl: `${stagingUrl}/api` }),
+    'https://brew-boba-cafe-api-staging.onrender.com/api/admin/products'
+  )
+
+  // /api/ suffix on base
+  assert.equal(
+    resolveApiUrl('/api/admin/categories', { isProd: true, envUrl: `${stagingUrl}/api/` }),
+    'https://brew-boba-cafe-api-staging.onrender.com/api/admin/categories'
+  )
+
+  // Query parameters are preserved
+  assert.equal(
+    resolveApiUrl('/api/admin/orders?status=pending&limit=50', { isProd: true, envUrl: stagingUrl }),
+    'https://brew-boba-cafe-api-staging.onrender.com/api/admin/orders?status=pending&limit=50'
+  )
+})
+
+test('URL resolver validates configuration in production', () => {
+  // Missing VITE_API_URL in production
+  assert.throws(
+    () => getApiBaseUrl({ isProd: true, envUrl: '' }),
+    error => error instanceof ApiError && /VITE_API_URL must be configured/.test(error.message)
+  )
+
+  // Insecure non-HTTPS URL in production
+  assert.throws(
+    () => getApiBaseUrl({ isProd: true, envUrl: 'http://insecure-api.example.com' }),
+    error => error instanceof ApiError && /HTTPS/.test(error.message)
+  )
+
+  // Malformed URL in production
+  assert.throws(
+    () => getApiBaseUrl({ isProd: true, envUrl: 'not a valid url ://' }),
+    error => error instanceof ApiError && /Invalid VITE_API_URL/.test(error.message)
+  )
+})
+
+test('secondary /api/admin/auth/me revalidation request uses resolved target', async () => {
+  const original = globalThis.fetch
+  const originalEnvUrl = process.env.VITE_API_URL
+  process.env.VITE_API_URL = 'https://brew-boba-cafe-api-staging.onrender.com'
+
+  const requestedUrls: string[] = []
+  globalThis.fetch = async (input) => {
+    requestedUrls.push(String(input))
+    if (String(input).endsWith('/dashboard/summary')) {
+      return jsonResponse({ detail: 'Forbidden' }, 403)
+    }
+    return jsonResponse({ id: 1, email: 'admin@cafe.test', role: 'admin', is_active: true })
+  }
+
+  try {
+    await assert.rejects(getDashboardSummary('test-token'), error => error instanceof ApiError && error.status === 403)
+    assert.deepEqual(requestedUrls, [
+      'https://brew-boba-cafe-api-staging.onrender.com/api/admin/auth/me',
+      'https://brew-boba-cafe-api-staging.onrender.com/api/admin/dashboard/summary',
+      'https://brew-boba-cafe-api-staging.onrender.com/api/admin/auth/me',
+    ])
+  } finally {
+    globalThis.fetch = original
+    if (originalEnvUrl !== undefined) process.env.VITE_API_URL = originalEnvUrl
+    else delete process.env.VITE_API_URL
+  }
 })
