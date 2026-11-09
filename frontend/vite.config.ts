@@ -13,6 +13,9 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
+    // v0 uses changing sandbox hostnames; limit access to its preview domains.
+    // Do not replace with allowedHosts: true.
+    allowedHosts: ['.v0.build', '.vercel.run'],
     port: 5173,
     watch: {
       usePolling: true,
