@@ -209,3 +209,103 @@ test('6. Corrupted LocalStorage Handling & Safe Recovery', () => {
   assert.equal(isValidCartItem({ id: '', productId: 1 }), false);
   assert.equal(isValidCartItem({ id: '1', productId: 1, quantity: 0 }), false);
 });
+
+test('7. Cart Reducer: Clear Cart & Totals Reset', () => {
+  let state = initialCartState;
+  state = cartReducer(state, {
+    type: 'ADD_ITEM',
+    payload: {
+      productId: 1,
+      productName: 'Signature Boba',
+      image: null,
+      size: 'Medium',
+      sugarLevel: '70%',
+      iceLevel: 'Less Ice',
+      unitPriceUsd: 3.5,
+      quantity: 2,
+    },
+  });
+  assert.equal(state.items.length, 1);
+  assert.equal(state.totalQuantity, 2);
+  assert.equal(state.totalPriceUsd, 7.0);
+
+  // Clear cart action
+  state = cartReducer(state, { type: 'CLEAR_CART' });
+  assert.deepEqual(state, initialCartState);
+  assert.equal(state.items.length, 0);
+  assert.equal(state.totalQuantity, 0);
+  assert.equal(state.totalPriceUsd, 0);
+});
+
+test('8. Customization with Toppings Unique ID & Pricing', () => {
+  let state = initialCartState;
+
+  // Add Milk Tea with Brown Sugar Pearls
+  state = cartReducer(state, {
+    type: 'ADD_ITEM',
+    payload: {
+      productId: 2,
+      productName: 'Classic Milk Tea',
+      image: null,
+      size: 'Large',
+      sugarLevel: '50%',
+      iceLevel: 'Normal Ice',
+      toppings: ['Brown Sugar Pearls'],
+      unitPriceUsd: 3.5,
+      quantity: 1,
+    },
+  });
+
+  // Add same drink and size, but different toppings (Grass Jelly)
+  state = cartReducer(state, {
+    type: 'ADD_ITEM',
+    payload: {
+      productId: 2,
+      productName: 'Classic Milk Tea',
+      image: null,
+      size: 'Large',
+      sugarLevel: '50%',
+      iceLevel: 'Normal Ice',
+      toppings: ['Grass Jelly'],
+      unitPriceUsd: 3.5,
+      quantity: 1,
+    },
+  });
+
+  assert.equal(state.items.length, 2, 'Different toppings must result in distinct cart entries');
+  assert.notEqual(state.items[0].id, state.items[1].id);
+  assert.equal(state.totalQuantity, 2);
+  assert.equal(state.totalPriceUsd, 7.0);
+});
+
+test('9. Order Payload and Idempotency Digest Determinism', async () => {
+  const payload1 = {
+    customer_name: 'Sopheak Chan',
+    customer_phone: '012345678',
+    customer_email: null,
+    notes: '[STORE PICKUP: BKK1 Branch]',
+    payment_method: 'khqr',
+    items: [
+      { product_id: 1, quantity: 2, size: 'Medium', sugar_level: '50%', ice_level: 'Normal Ice', toppings: [] },
+    ],
+  };
+
+  const payload2 = {
+    customer_name: 'Sopheak Chan',
+    customer_phone: '012345678',
+    customer_email: null,
+    notes: '[STORE PICKUP: BKK1 Branch]',
+    payment_method: 'khqr',
+    items: [
+      { product_id: 1, quantity: 2, size: 'Medium', sugar_level: '50%', ice_level: 'Normal Ice', toppings: [] },
+    ],
+  };
+
+  const digest1 = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(payload1)));
+  const fp1 = Array.from(new Uint8Array(digest1), b => b.toString(16).padStart(2, '0')).join('');
+
+  const digest2 = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(payload2)));
+  const fp2 = Array.from(new Uint8Array(digest2), b => b.toString(16).padStart(2, '0')).join('');
+
+  assert.equal(fp1, fp2, 'Identical orders must generate matching idempotency fingerprints');
+});

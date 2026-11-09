@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Coffee,
   ShoppingBag,
   User,
   Search,
@@ -151,13 +150,23 @@ export const Navbar: React.FC = () => {
           </nav>
           <Link
             to="/"
-            className="cafe-brand"
+            className="cafe-brand group"
             aria-label="Brew & Boba Café home"
           >
-            <Coffee size={26} strokeWidth={1.6} aria-hidden="true" />
-            <span>
-              Brew <i>&amp;</i> Boba
-              <small>COFFEE · TEA · YOUR DAILY PAUSE</small>
+            <span className="cafe-brand-badge">
+              <img
+                src="/brand/brew-boba-cup-icon.webp"
+                alt="Brew & Boba Café cup icon"
+                width="42"
+                height="42"
+                className="w-full h-full object-contain transition-transform duration-200 group-hover:scale-105"
+              />
+            </span>
+            <span className="cafe-brand-copy">
+              <span className="cafe-brand-name">
+                Brew <i>&amp;</i> Boba
+              </span>
+              <small>COFFEE · BOBA · YOUR DAILY PAUSE</small>
             </span>
           </Link>
           <div className="nav-controls">
@@ -195,7 +204,7 @@ export const Navbar: React.FC = () => {
               aria-label={`Open shopping cart with ${totalQuantity} items`}
             >
               <ShoppingBag size={18} />
-              <span>{totalQuantity}</span>
+              <span className="nav-cart-badge">{totalQuantity}</span>
             </button>
             <Link to="/menu" className="nav-order">
               Order Now <ArrowUpRight size={17} />
@@ -211,7 +220,7 @@ export const Navbar: React.FC = () => {
               }}
             >
               <summary aria-label="Toggle navigation menu">
-                <Menu size={23} />
+                <Menu size={22} />
               </summary>
               <nav
                 aria-label="Mobile navigation"
@@ -223,31 +232,52 @@ export const Navbar: React.FC = () => {
                     mobileMenu.current.open = false;
                 }}
               >
-                <Link to="/">Home</Link>
-                <Link to="/menu">Menu</Link>
-                <Link to="/about">About</Link>
-                <Link to="/orders">Orders</Link>
-                <Link to="/cart">Cart ({totalQuantity})</Link>
-                <Link to="/rewards">Rewards</Link>
-                <Link to="/profile">Profile</Link>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (mobileMenu.current) mobileMenu.current.open = false;
-                    setStoreModalOpen(true);
-                  }}
-                >
-                  Pickup store
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (mobileMenu.current) mobileMenu.current.open = false;
-                    setSearchModalOpen(true);
-                  }}
-                >
-                  Search drinks
-                </button>
+                <div className="mobile-menu-header">
+                  <div className="flex items-center gap-2">
+                    <img
+                      src="/brand/brew-boba-cup-icon.webp"
+                      alt=""
+                      width="26"
+                      height="26"
+                      className="w-6.5 h-6.5 object-contain"
+                    />
+                    <span className="font-serif font-black text-ink text-sm tracking-tight">
+                      Brew &amp; Boba
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-black text-cobalt uppercase tracking-wider bg-butter/40 px-2.5 py-0.5 rounded-full border border-butter/60">
+                    Order Ahead
+                  </span>
+                </div>
+                <div className="mobile-menu-links">
+                  <Link to="/">Home</Link>
+                  <Link to="/menu">Menu</Link>
+                  <Link to="/about">About</Link>
+                  <Link to="/orders">Orders</Link>
+                  <Link to="/cart">Cart ({totalQuantity})</Link>
+                  <Link to="/rewards">Rewards</Link>
+                  <Link to="/profile">Profile</Link>
+                </div>
+                <div className="mobile-menu-actions">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (mobileMenu.current) mobileMenu.current.open = false;
+                      setStoreModalOpen(true);
+                    }}
+                  >
+                    Pickup store
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (mobileMenu.current) mobileMenu.current.open = false;
+                      setSearchModalOpen(true);
+                    }}
+                  >
+                    Search drinks
+                  </button>
+                </div>
               </nav>
             </details>
           </div>

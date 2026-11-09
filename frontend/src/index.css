@@ -2,38 +2,55 @@
 @import './styles/storefront.css';
 
 @theme {
-  --font-serif: 'Fraunces', Georgia, serif;
+  --font-serif: 'Fredoka', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-display: 'Fredoka', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-rounded: 'Fredoka', 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 
-  /* Brew & Boba — espresso, cream, teal, and warm retro accents */
-  --color-teal: #2f9793;
-  --color-orange: #db7429;
-  --color-gold: #e7be75;
-  --color-cream-card: #fffaf3;
-  --color-cream: #f8f2e9;
-  --color-cream-deep: #eee4d6;
-  --color-espresso: #2e1d17;
-  --color-espresso-dark: #241610;
-  --color-ink: #191714;
-  --color-ink-soft: #5e4f44;
-  --color-caramel: #a34e1d;
-  --color-caramel-soft: #e7be75;
-  --color-sage: #536f57;
-  --color-sage-soft: #edf3ee;
-  --color-orange-accent: #dd5e28;
-  --color-orange-accent-soft: #fdeee7;
-  --color-matcha: #527a55;
-  --color-line: #e8ddd2;
+  /* Brew & Boba Café — Cozy Retro Blue brand palette */
+  --color-cobalt: #1345a3;
+  --color-cobalt-dark: #0f3682;
+  --color-cobalt-light: #e8f0fe;
+  --color-cobalt-soft: #d0e1fd;
+
+  --color-cream: #fff8df;
+  --color-cream-card: #fffdf5;
+  --color-cream-deep: #f6ecc8;
+
+  --color-butter: #f5e4ad;
+  --color-butter-deep: #ebd899;
+
+  --color-ink: #17294d;
+  --color-ink-dark: #0d1a33;
+  --color-ink-soft: #3d4f75;
+  --color-ink-muted: #6e7e9e;
+
+  --color-line: #ecdcb9;
+  --color-line-dark: #d5c39c;
+
+  /* Compatibility mappings for components using prior token names */
+  --color-espresso: #1345a3;
+  --color-espresso-dark: #0f3682;
+  --color-teal: #1345a3;
+  --color-gold: #f5e4ad;
+  --color-orange: #1345a3;
+  --color-caramel: #1345a3;
+  --color-caramel-soft: #f5e4ad;
+  --color-sage: #3d4f75;
+  --color-sage-soft: #e8f0fe;
+  --color-orange-accent: #1345a3;
+  --color-orange-accent-soft: #e8f0fe;
+  --color-matcha: #2e7d32;
 
   /* shadcn UI compatibility tokens aligned with brand palette */
   --color-card: #ffffff;
-  --color-card-foreground: #231812;
-  --color-border: #e8ddd2;
-  --color-sidebar-border: #e8ddd2;
-  --color-primary: #2e1d17;
-  --color-primary-foreground: #f8f2e9;
-  --color-muted: #f3ece4;
-  --color-muted-foreground: #5e4f44;
+  --color-card-foreground: #17294d;
+  --color-border: #ecdcb9;
+  --color-sidebar-border: #ecdcb9;
+  --color-primary: #1345a3;
+  --color-primary-foreground: #fff8df;
+  --color-muted: #f6ecc8;
+  --color-muted-foreground: #3d4f75;
 }
 
 html {
@@ -48,6 +65,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+::selection {
+  background-color: var(--color-butter);
+  color: var(--color-cobalt);
+}
+
 /* Custom aesthetic scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -57,14 +79,14 @@ body {
   background: var(--color-cream-deep);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-line);
+  background: var(--color-line-dark);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #cbb9a7;
+  background: var(--color-cobalt);
 }
 
-/* Scrollbar-none utility for clean horizontal scrollers (menu categories, etc.) */
+/* Scrollbar-none utility for clean horizontal scrollers */
 .scrollbar-none {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */

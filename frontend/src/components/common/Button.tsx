@@ -19,19 +19,19 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles =
-    'inline-flex items-center justify-center font-bold tracking-tight rounded-2xl transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-espresso focus-visible:ring-offset-2 focus-visible:ring-offset-cream';
+    'inline-flex items-center justify-center font-bold tracking-tight rounded-full transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt focus-visible:ring-offset-2 focus-visible:ring-offset-cream';
 
   const variants = {
     primary:
-      'bg-espresso hover:bg-espresso-dark text-cream shadow-md shadow-espresso/15 hover:shadow-lg hover:shadow-espresso/25 border border-espresso/20',
+      'bg-cobalt hover:bg-cobalt-dark text-white shadow-md shadow-cobalt/20 hover:shadow-lg hover:shadow-cobalt/30 border border-cobalt/20',
     accent:
-      'bg-caramel hover:bg-caramel-soft text-espresso-dark font-black shadow-md shadow-caramel/20 hover:shadow-lg hover:shadow-caramel/25 border border-caramel/30',
+      'bg-butter hover:bg-[#faeec7] text-ink-dark font-black shadow-md shadow-amber-900/10 hover:shadow-lg border border-butter-deep',
     secondary:
-      'bg-cream-deep hover:bg-[#ebdccf] text-ink border border-line shadow-2xs',
+      'bg-cream-deep hover:bg-[#ede1b8] text-ink border border-line shadow-2xs',
     outline:
-      'border-2 border-espresso text-espresso hover:bg-cream-deep active:bg-[#ebdccf]',
+      'border-2 border-cobalt text-cobalt hover:bg-cobalt-light active:bg-cobalt-soft',
     ghost:
-      'bg-transparent hover:bg-cream-deep text-ink hover:text-espresso border border-transparent',
+      'bg-transparent hover:bg-cream-deep text-ink hover:text-cobalt border border-transparent',
     danger:
       'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200',
   };

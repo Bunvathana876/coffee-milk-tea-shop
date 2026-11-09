@@ -24,14 +24,14 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
   const { isAuthenticated, openAuthModalWith } = useAuth();
 
   return (
-    <div className="bg-white rounded-3xl border border-line p-5 sm:p-6 shadow-xs space-y-5 sticky top-24">
+    <div className="cart-summary-sticky space-y-5">
       {/* Summary Header */}
       <div className="flex items-center justify-between border-b border-line pb-3.5">
         <h3 className="font-serif font-black text-lg text-ink flex items-center gap-2">
-          <ShoppingBag className="w-4.5 h-4.5 text-caramel" />
+          <ShoppingBag className="w-5 h-5 text-cobalt" />
           <span>Order Summary</span>
         </h3>
-        <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-cream-deep text-ink">
+        <span className="text-xs font-bold px-3 py-1 rounded-full bg-cream-deep text-cobalt border border-line">
           {totalQuantity} {totalQuantity === 1 ? 'drink' : 'drinks'}
         </span>
       </div>
@@ -62,9 +62,9 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
       </div>
 
       {/* Final Total Box */}
-      <div className="pt-3 border-t border-line flex items-baseline justify-between bg-cream-deep/50 -mx-5 sm:-mx-6 px-5 sm:px-6 py-4">
+      <div className="pt-3 border-t border-line flex items-baseline justify-between bg-cream-deep/60 -mx-6 px-6 py-4 rounded-xl border border-line/50">
         <div>
-          <span className="text-[11px] font-bold text-caramel uppercase tracking-wider block">
+          <span className="text-[11px] font-bold text-cobalt uppercase tracking-wider block">
             Total Due
           </span>
           <span className="text-[10px] text-ink-soft">
@@ -72,10 +72,10 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
           </span>
         </div>
         <div className="text-right">
-          <div className="text-2xl sm:text-3xl font-serif font-black text-ink tracking-tight leading-none">
+          <div className="text-2xl sm:text-3xl font-serif font-black text-cobalt tracking-tight leading-none">
             {formatUsd(totalPriceUsd)}
           </div>
-          <div className="text-xs font-bold text-caramel mt-1">
+          <div className="text-xs font-bold text-ink-soft mt-1">
             {formatKhr(totalPriceKhr)}
           </div>
         </div>
@@ -83,7 +83,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
 
       {/* ABA Bakong KHQR Callout */}
       <div className="p-3.5 rounded-2xl bg-cream-deep border border-line flex items-center gap-3 text-xs text-ink">
-        <div className="w-8 h-8 rounded-xl bg-espresso text-caramel flex items-center justify-center shrink-0 shadow-2xs">
+        <div className="w-8 h-8 rounded-xl bg-cobalt text-butter flex items-center justify-center shrink-0 shadow-2xs">
           <QrCode className="w-4 h-4" />
         </div>
         <div className="leading-snug">
@@ -103,6 +103,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
               icon={<ArrowRight className="w-4 h-4" />}
             >
               <span>Proceed to Checkout</span>
+              <span>{formatUsd(totalPriceUsd)}</span>
             </Button>
           </Link>
         ) : (
@@ -115,6 +116,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
                 icon={<ArrowRight className="w-4 h-4" />}
               >
                 <span>Checkout as Guest</span>
+                <span>{formatUsd(totalPriceUsd)}</span>
               </Button>
             </Link>
             <p className="text-xs text-ink-soft text-center pt-1">
@@ -122,7 +124,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
               <button
                 type="button"
                 onClick={() => openAuthModalWith({ mode: 'login', redirectTo: '/checkout' })}
-                className="font-bold text-espresso underline underline-offset-4 cursor-pointer hover:text-caramel transition-colors"
+                className="font-bold text-cobalt underline underline-offset-4 cursor-pointer hover:text-cobalt-dark transition-colors"
               >
                 Sign in to collect stamps
               </button>

@@ -1,23 +1,38 @@
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 const project = fileURLToPath(new URL('../', import.meta.url));
 const require = createRequire(project + '/package.json');
 const { JSDOM } = require('jsdom');
 // Public catalog reads only. All application requests below are intercepted locally.
 const liveFetch = globalThis.fetch;
-const products = await (
-  await liveFetch(
-    'https://brew-boba-cafe-api-staging.onrender.com/api/products',
-  )
-).json();
-const categories = await (
-  await liveFetch(
-    'https://brew-boba-cafe-api-staging.onrender.com/api/categories',
-  )
-).json();
+let products = [];
+let categories = [];
+try {
+  const [pRes, cRes] = await Promise.all([
+    liveFetch('https://brew-boba-cafe-api-staging.onrender.com/api/products', { signal: AbortSignal.timeout(12000) }),
+    liveFetch('https://brew-boba-cafe-api-staging.onrender.com/api/categories', { signal: AbortSignal.timeout(12000) }),
+  ]);
+  if (pRes.ok && cRes.ok) {
+    products = await pRes.json();
+    categories = await cRes.json();
+  }
+} catch {
+  // Staging API may be asleep or offline; fallback to verified test fixtures
+}
+if (!Array.isArray(products) || products.length === 0 || !Array.isArray(categories) || categories.length === 0) {
+  categories = [
+    { id: 1, name: 'Coffee', description: 'Handcrafted espresso and cold brews', product_count: 1 },
+    { id: 2, name: 'Milk Tea', description: 'Freshly brewed milk teas with chewy pearls', product_count: 1 },
+    { id: 3, name: 'Matcha', description: 'Sweet bites and matcha to pair with your cup', product_count: 0 },
+  ];
+  products = [
+    { id: 101, name: 'Classic Milk Tea', category_id: 2, category_name: 'Milk Tea', category: { id: 2, name: 'Milk Tea' }, base_price_usd: 2.5, price_usd: 2.5, price_khr: 10000, is_available: true, is_featured: true, image: '/images/boba-900.webp', description: 'Traditional black tea blended with milk' },
+    { id: 102, name: 'Iced Americano', category_id: 1, category_name: 'Coffee', category: { id: 1, name: 'Coffee' }, base_price_usd: 2.0, price_usd: 2.0, price_khr: 8000, is_available: true, is_featured: true, image: '/images/coffee-900.webp', description: 'Bold espresso with water and ice' },
+  ];
+}
 assert(products.length > 0 && categories.length > 0);
 const selectedProduct =
   products.find((p) => p.is_available && p.category_id === categories[1]?.id) ||
@@ -210,6 +225,38 @@ for (const selector of ['.cafe-hero', '.cafe-header', '.menu-filter-bar', 'prefe
   assert(compiledStyles.includes(selector), 'Production CSS includes ' + selector);
 }
 const results = ['Production CSS contains storefront, menu, navigation and reduced-motion styles'];
+
+const requiredHomepageAssets = [
+  'images/cafe-640.webp',
+  'images/cafe-1200.webp',
+  'images/cafe-1800.webp',
+  'images/coffee-900.webp',
+  'images/slow-moments-1200.webp',
+  'images/boba-900.webp',
+  'brand/brew-boba-primary.webp',
+  'brand/brew-boba-mascot-badge.webp',
+  'brand/brew-boba-outline-badge.webp',
+  'brand/brew-boba-cup-badge.webp',
+  'brand/brew-boba-cup-icon.webp',
+  'brand/hero-fusion-cup.png',
+  'brand/hero-crafted-custom.png',
+  'brand/menu-drinks-icon.png',
+  'brand/menu-crafted-icon.png',
+  'brand/about-cafe-team.webp',
+  'brand/about-story-team.webp',
+  'brand/about-story-coffee.webp',
+  'brand/about-story-cup.webp',
+];
+for (const relPath of requiredHomepageAssets) {
+  const publicPath = join(project, 'public', relPath);
+  const distPath = join(project, 'dist', relPath);
+  assert(existsSync(publicPath), `Public asset ${relPath} must exist on disk`);
+  assert(statSync(publicPath).size > 0, `Public asset ${relPath} must have non-zero file size`);
+  assert(existsSync(distPath), `Built distribution asset ${relPath} must exist in dist`);
+  assert(statSync(distPath).size > 0, `Built distribution asset ${relPath} must have non-zero file size`);
+}
+results.push('Local homepage image assets and brand badges verified in public and dist');
+
 try {
   const { default: App } = await vite.ssrLoadModule('/src/App.tsx');
   root = createRoot(document.getElementById('root'));
@@ -223,12 +270,37 @@ try {
   assert(
     document.querySelector('.hero-title').textContent.includes('Good days'),
   );
-  assert(
-    document
-      .querySelector('.cafe-hero-photo')
-      .getAttribute('srcset')
-      .includes('640w'),
-  );
+  const cafeHeroImg = document.querySelector('.cafe-hero-photo');
+  assert(cafeHeroImg, 'Hero photo exists');
+  assert.equal(cafeHeroImg.getAttribute('src'), '/images/cafe-1800.webp');
+  assert(cafeHeroImg.getAttribute('srcset').includes('640w'));
+  assert(cafeHeroImg.getAttribute('srcset').includes('1200w'));
+  assert(cafeHeroImg.getAttribute('srcset').includes('1800w'));
+
+  const storyImg = document.querySelector('.story-image-frame img');
+  assert(storyImg, 'Story arched photo exists');
+  assert.equal(storyImg.getAttribute('src'), '/images/coffee-900.webp');
+
+  const ctaImg = document.querySelector('.experience-image img');
+  assert(ctaImg, 'Experience CTA photo exists');
+  assert.equal(ctaImg.getAttribute('src'), '/images/slow-moments-1200.webp');
+
+  const mascotLogo = document.querySelector('.hero-mascot-img');
+  assert(mascotLogo, 'Hero mascot logo exists');
+  assert.equal(mascotLogo.getAttribute('src'), '/brand/brew-boba-primary.webp');
+
+  const fusionCupIcon = document.querySelector('.hero-eyebrow img.hero-badge-icon');
+  assert(fusionCupIcon, 'Fusion cup hero badge icon exists');
+  assert.equal(fusionCupIcon.getAttribute('src'), '/brand/hero-fusion-cup.png');
+
+  const craftedPillIcon = document.querySelector('.hero-floating-pill-left img.hero-pill-icon');
+  assert(craftedPillIcon, 'Crafted your way floating badge icon exists');
+  assert.equal(craftedPillIcon.getAttribute('src'), '/brand/hero-crafted-custom.png');
+
+  const storySeal = document.querySelector('.story-seal img');
+  assert(storySeal, 'Story mascot outline badge exists');
+  assert.equal(storySeal.getAttribute('src'), '/brand/brew-boba-outline-badge.webp');
+
   assert.equal(
     document.querySelectorAll('.category-row').length,
     categories.length,
@@ -253,12 +325,12 @@ try {
   await waitFor(
     () =>
       [...document.querySelectorAll('button')].some((el) =>
-        /Add to order/i.test(el.textContent),
+        /Add to (cart|order)/i.test(el.textContent),
       ),
     'customization modal',
   );
   const add = [...document.querySelectorAll('button')].find((el) =>
-    /Add to order/i.test(el.textContent),
+    /Add to (cart|order)/i.test(el.textContent),
   );
   await click(add);
   await waitFor(
@@ -398,13 +470,23 @@ try {
   );
   assert(document.getElementById('story-title')?.textContent?.includes('Good Coffee'));
   assert(document.body.textContent.includes('Better Moments'));
+  const storyTeamImg = document.querySelector('.story-team-illustration');
+  assert(storyTeamImg, 'About story team illustration must exist');
+  assert.equal(storyTeamImg.getAttribute('src'), '/brand/about-story-team.webp');
+  const storyCoffeeImg = document.querySelector('.story-feature-img');
+  assert(storyCoffeeImg, 'About story coffee icon must exist');
+  assert.equal(storyCoffeeImg.getAttribute('src'), '/brand/about-story-coffee.webp');
+  const storyCupImg = document.querySelector('.about-quote-cup-img');
+  assert(storyCupImg, 'About story quote cup illustration must exist');
+  assert.equal(storyCupImg.getAttribute('src'), '/brand/about-story-cup.webp');
   assert(document.body.textContent.includes('Made With Care'));
   assert(document.body.textContent.includes('Your Drink, Your Way'));
   assert(document.body.textContent.includes('Moments Worth Sharing'));
   assert(document.getElementById('experience-gallery-title'));
   assert(
-    document.body.textContent.includes('Your Next Favorite Drink') &&
-    document.body.textContent.includes('Is Waiting'),
+    (document.body.textContent.includes('YOUR NEXT FAVORITE SIP') ||
+      document.body.textContent.includes('Your Next Favorite')) &&
+    /Waiting/i.test(document.body.textContent),
   );
   assert.equal(
     document.querySelector('.desktop-links a[aria-current="page"]')?.getAttribute('href'),
@@ -415,9 +497,24 @@ try {
       (a) => a.getAttribute('href') === '/about',
     ),
   );
-  const heroImg = document.querySelector('.about-hero-photo');
-  assert(heroImg && heroImg.getAttribute('srcset')?.includes('640w'));
-  assert(heroImg.getAttribute('fetchpriority') === 'high');
+  const heroImg =
+    document.querySelector('.about-hero-illustration') ||
+    document.querySelector('.about-hero-photo');
+  assert(heroImg, 'About hero image must be present');
+  assert.equal(
+    heroImg.getAttribute('fetchpriority'),
+    'high',
+    'About hero image must have fetchpriority="high"',
+  );
+  assert(
+    document.body.textContent.includes('GOOD DRINKS.') &&
+      document.body.textContent.includes('BETTER MOMENTS.'),
+    'About hero must feature the storytelling card headline',
+  );
+  assert(
+    document.body.textContent.includes('YOUR CUP. YOUR PACE.'),
+    'About hero must feature the storytelling card pace marker',
+  );
   const galleryImgs = document.querySelectorAll('.about-gallery-media img');
   assert(galleryImgs.length >= 3);
   assert([...galleryImgs].every((img) => img.getAttribute('loading') === 'lazy'));

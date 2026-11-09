@@ -131,43 +131,95 @@ export function HomePage() {
         />
         <div className="cafe-hero-shade" />
         <div className="cafe-hero-content cafe-container">
-          <p className="eyebrow hero-enter">
-            A little brew. A little boba. A lot of joy.
-          </p>
-          <h1 id="hero-title" className="hero-title">
-            <span>Good days</span>
-            <span>start with a</span>
-            <span>
-              <em>great</em> cup.
-            </span>
-          </h1>
-          <p className="hero-description hero-enter">
-            For the coffee faithful. The boba curious.
-            <br />
-            And everyone who could use a little pause.
-          </p>
-          <div className="hero-actions hero-enter">
-            <Link to="/menu" className="cafe-button cafe-button-gold">
-              Order Now <ArrowUpRight size={19} />
-            </Link>
-            <a href="#drinks" className="cafe-button cafe-button-light">
-              Explore Menu <ArrowRight size={19} />
+          <div className="hero-text-col">
+            <div className="hero-eyebrow-wrap hero-enter">
+              <p className="eyebrow hero-eyebrow">
+                <img
+                  src="/brand/hero-fusion-cup.png"
+                  alt=""
+                  aria-hidden="true"
+                  width="22"
+                  height="22"
+                  className="hero-badge-icon"
+                />
+                <span>Specialty Coffee &amp; Artisanal Boba · Two Worlds, One Cup</span>
+              </p>
+            </div>
+            <h1 id="hero-title" className="hero-title">
+              <span className="hero-title-line">Good drinks.</span>
+              <span className="hero-title-line">
+                <em>Good days.</em>
+              </span>
+            </h1>
+            <p className="hero-description hero-enter">
+              Coffee, boba, and all the little moments in between.
+            </p>
+            <div className="hero-actions hero-enter">
+              <Link to="/menu" className="cafe-button cafe-button-dark hero-btn-menu">
+                <span>Explore Menu</span>
+                <ArrowUpRight size={19} />
+              </Link>
+              <Link to="/about" className="cafe-button cafe-button-light hero-btn-story">
+                <span>Our Story</span>
+                <ArrowRight size={19} />
+              </Link>
+            </div>
+            <a href="#drinks" className="hero-scroll">
+              <span>Find your kind of cup</span>
+              <ArrowDown size={18} />
             </a>
           </div>
-          <a href="#drinks" className="hero-scroll">
-            <span>Find your kind of cup</span>
-            <ArrowDown size={18} />
-          </a>
-        </div>
-        <div className="hero-stamp" aria-hidden="true">
-          <span>Coffee &amp; tea</span>
-          <Coffee size={38} strokeWidth={1.4} />
-          <strong>
-            Better
-            <br />
-            together.
-          </strong>
-          <span>Brew &amp; Boba Café</span>
+
+          <div className="hero-artwork-col">
+            <div className="hero-mascot-card">
+              <div className="hero-mascot-halo" aria-hidden="true" />
+              <div className="hero-floating-pill hero-floating-pill-left" aria-hidden="true">
+                <img
+                  src="/brand/hero-crafted-custom.png"
+                  alt=""
+                  aria-hidden="true"
+                  width="22"
+                  height="22"
+                  className="hero-pill-icon"
+                />
+                <span>Crafted Your Way</span>
+              </div>
+              <div className="hero-floating-pill hero-floating-pill-right" aria-hidden="true">
+                <img
+                  src="/brand/brew-boba-cup-icon.webp"
+                  alt=""
+                  width="18"
+                  height="18"
+                  className="w-4.5 h-4.5 object-contain inline-block mr-1"
+                />
+                <span>Specialty Coffee &amp; Boba</span>
+              </div>
+              <img
+                src="/brand/brew-boba-primary.webp"
+                alt="Brew & Boba boy mascot holding a fresh drink"
+                width="480"
+                height="480"
+                className="hero-mascot-img animate-float"
+                fetchPriority="high"
+              />
+              <div className="hero-stamp" aria-hidden="true">
+                <span>Crafted For You</span>
+                <img
+                  src="/brand/brew-boba-cup-icon.webp"
+                  alt=""
+                  width="28"
+                  height="28"
+                  className="w-7 h-7 object-contain drop-shadow"
+                />
+                <strong>
+                  Better
+                  <br />
+                  Together.
+                </strong>
+                <span>Brew &amp; Boba</span>
+              </div>
+            </div>
+          </div>
         </div>
         <span className="hero-edition" aria-hidden="true">
           The everyday ritual / Brew &amp; Boba
@@ -177,12 +229,44 @@ export function HomePage() {
         className="cafe-ribbon"
         aria-label="Coffee, milk tea, and a cup your way"
       >
-        <span>Coffee with character</span>
-        <Sparkles aria-hidden="true" />
-        <span>Tea with a twist</span>
-        <Sparkles aria-hidden="true" />
-        <span>A cup your way</span>
-        <Sparkles aria-hidden="true" />
+        <div className="marquee-container" aria-hidden="true">
+          <div className="marquee-content">
+            <span>Brewed with Love</span>
+            <Sparkles size={16} />
+            <span>Boba Makes It Better</span>
+            <Sparkles size={16} />
+            <span>Sip Something Good</span>
+            <Sparkles size={16} />
+            <span>Two Worlds, One Happy Cup</span>
+            <Sparkles size={16} />
+            <span>Brewed with Love</span>
+            <Sparkles size={16} />
+            <span>Boba Makes It Better</span>
+            <Sparkles size={16} />
+            <span>Sip Something Good</span>
+            <Sparkles size={16} />
+            <span>Two Worlds, One Happy Cup</span>
+            <Sparkles size={16} />
+          </div>
+          <div className="marquee-content">
+            <span>Brewed with Love</span>
+            <Sparkles size={16} />
+            <span>Boba Makes It Better</span>
+            <Sparkles size={16} />
+            <span>Sip Something Good</span>
+            <Sparkles size={16} />
+            <span>Two Worlds, One Happy Cup</span>
+            <Sparkles size={16} />
+            <span>Brewed with Love</span>
+            <Sparkles size={16} />
+            <span>Boba Makes It Better</span>
+            <Sparkles size={16} />
+            <span>Sip Something Good</span>
+            <Sparkles size={16} />
+            <span>Two Worlds, One Happy Cup</span>
+            <Sparkles size={16} />
+          </div>
+        </div>
       </div>
       <section
         id="drinks"
@@ -212,7 +296,7 @@ export function HomePage() {
           </div>
         </Reveal>
         <div
-          className="cafe-filters"
+          className="cafe-filters scrollbar-none"
           role="group"
           aria-label="Filter featured drinks"
         >
@@ -279,37 +363,49 @@ export function HomePage() {
                 alt="Water poured slowly through a coffee filter at a café counter"
               />
             </div>
-            <span className="story-seal" aria-hidden="true">
-              A little pause.
-              <br />
-              <Sparkles size={28} />A lovely ritual.
-            </span>
+            <div className="story-seal" aria-hidden="true">
+              <img
+                src="/brand/brew-boba-outline-badge.webp"
+                alt="Brew & Boba outline badge"
+                width="110"
+                height="110"
+                className="w-22 h-22 object-contain"
+              />
+            </div>
           </Reveal>
           <Reveal className="story-copy">
             <p className="eyebrow">02 / Two worlds, one café</p>
             <h2 id="story-title">
-              Serious about
+              Good Coffee.
               <br />
-              your cup.
-              <br />
-              <em>
-                Easy about
-                <br />
-                everything else.
-              </em>
+              <em>Better Moments.</em>
             </h2>
             <p>
               Brew &amp; Boba brings two lovely rituals to the same table: the
-              familiar comfort of coffee and the playful possibilities of milk
-              tea.
+              familiar comfort of specialty coffee and the playful possibilities of handcrafted milk tea.
             </p>
             <p>
               Our idea is simple. Find something you love, make it your own, and
               give yourself a moment to enjoy it. A little less rush. A little
               more you.
             </p>
-            <Link to="/menu" className="cafe-button cafe-button-dark">
-              Find your ritual <ArrowUpRight size={19} />
+            <div className="story-perk-card">
+              <img
+                src="/brand/brew-boba-cup-badge.webp"
+                alt="Brew & Boba cup badge"
+                width="52"
+                height="52"
+                className="w-13 h-13 object-contain drop-shadow"
+              />
+              <div>
+                <strong className="block text-ink font-bold text-sm">Made Fresh Your Way</strong>
+                <p className="text-xs text-ink-soft m-0 leading-relaxed">
+                  Adjust size, sweetness, ice level, and toppings for every single cup.
+                </p>
+              </div>
+            </div>
+            <Link to="/about" className="cafe-button cafe-button-dark mt-4">
+              Our Story <ArrowUpRight size={19} />
             </Link>
           </Reveal>
         </div>
@@ -383,18 +479,18 @@ export function HomePage() {
           />
         </div>
         <Reveal className="experience-copy">
-          <p className="eyebrow">04 / Make room for a moment</p>
+          <p className="eyebrow">04 / Freshly Brewed Joy</p>
           <h2 id="experience-title">
-            Less scrolling.
+            YOUR NEXT FAVORITE
             <br />
-            <em>More sipping.</em>
+            <em>SIP IS WAITING.</em>
           </h2>
           <p>
             The first sip. The catch-up. That tiny break between one thing and
             the next. Here’s to making the everyday feel a little more special.
           </p>
-          <Link to="/menu" className="cafe-button cafe-button-cream">
-            Your next cup awaits <ArrowUpRight size={19} />
+          <Link to="/menu" className="cafe-button cafe-button-gold">
+            Explore Our Menu <ArrowUpRight size={19} />
           </Link>
           <span className="experience-note">
             Good company starts with a good cup.
@@ -404,7 +500,13 @@ export function HomePage() {
       <section id="rewards" className="cafe-club cafe-container">
         <Reveal>
           <div className="club-inner">
-            <Sparkles size={42} strokeWidth={1.3} aria-hidden="true" />
+            <img
+              src="/brand/brew-boba-mascot-badge.webp"
+              alt="Brew Club Mascot Badge"
+              width="64"
+              height="64"
+              className="w-16 h-16 object-contain shrink-0 drop-shadow"
+            />
             <div>
               <p className="eyebrow">A little more Brew &amp; Boba</p>
               <h2>Your cup. Your club.</h2>

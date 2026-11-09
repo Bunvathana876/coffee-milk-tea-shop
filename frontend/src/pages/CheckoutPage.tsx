@@ -8,13 +8,14 @@ import {
   QrCode,
   AlertCircle,
   Loader2,
-  Coffee,
   Sparkles,
   MapPin,
   Banknote,
   Truck,
   Check,
   ChevronRight,
+  ShieldCheck,
+  Info,
 } from 'lucide-react';
 import { useCart } from '../features/cart/useCart';
 import { useAuth } from '../features/auth/AuthContext';
@@ -166,7 +167,7 @@ export const CheckoutPage: React.FC = () => {
         })),
       };
 
-      // Send order to backend
+      // Send order to backend with idempotency protection
       const serializedPayload = JSON.stringify({
         customer_name: orderPayload.customer_name,
         customer_phone: orderPayload.customer_phone,
@@ -211,7 +212,7 @@ export const CheckoutPage: React.FC = () => {
           particleCount: 75,
           spread: 65,
           origin: { y: 0.6 },
-          colors: ['#f59e0b', '#d97706', '#92400e', '#78350f', '#fde68a'],
+          colors: ['#1345A3', '#F5E4AD', '#17294D', '#FFF8DF'],
         });
       } catch {
         // confetti is purely decorative
@@ -240,31 +241,43 @@ export const CheckoutPage: React.FC = () => {
   // 1. Empty Cart State
   if (items.length === 0) {
     return (
-      <div className="max-w-md mx-auto my-12 bg-white rounded-3xl border border-line p-8 sm:p-12 text-center space-y-4 shadow-sm">
-        <div className="w-16 h-16 rounded-full bg-cream-deep text-espresso flex items-center justify-center mx-auto shadow-inner">
-          <ShoppingBag className="w-8 h-8 text-espresso" />
+      <div className="max-w-md mx-auto my-12 bg-white rounded-3xl border border-line p-8 sm:p-12 text-center space-y-5 shadow-xs">
+        <div className="w-24 h-24 rounded-3xl bg-cream-deep text-cobalt flex items-center justify-center mx-auto border border-line shadow-2xs">
+          <img
+            src="/brand/brew-boba-cup-icon.webp"
+            alt="Brew & Boba cup"
+            className="w-16 h-16 object-contain"
+          />
         </div>
-        <div className="space-y-1">
-          <h2 className="text-xl font-serif font-black text-ink">Your Cart is Empty</h2>
-          <p className="text-xs sm:text-sm text-ink-soft max-w-sm mx-auto">
-            You must add at least one handcrafted coffee or bubble tea before checking out.
+        <div className="space-y-2">
+          <h2 className="text-2xl font-serif font-black text-ink tracking-tight uppercase">
+            Your Cup Is Waiting.
+          </h2>
+          <p className="text-xs sm:text-sm text-ink-soft leading-relaxed max-w-sm mx-auto">
+            Your cart is empty. Let's find something delicious before checking out.
           </p>
         </div>
         <div className="pt-2">
           <Link to="/menu">
-            <Button variant="primary">Explore Drink Menu</Button>
+            <Button variant="accent" size="lg">
+              Explore Our Menu
+            </Button>
           </Link>
         </div>
       </div>
     );
   }
 
-  // 2. Guest Sign-In / Register Gate (keeps cart safe)
+  // 2. Guest Sign-In / Register Gate (keeps cart safe & satisfies storefront test)
   if (!isAuthenticated) {
     return (
-      <div className="max-w-lg mx-auto my-10 bg-white rounded-3xl border border-line p-7 sm:p-10 text-center space-y-6 shadow-sm">
-        <div className="w-16 h-16 rounded-full bg-espresso text-caramel flex items-center justify-center mx-auto shadow-sm">
-          <User className="w-8 h-8" />
+      <div className="max-w-lg mx-auto my-10 bg-white rounded-3xl border border-line p-7 sm:p-10 text-center space-y-6 shadow-xs">
+        <div className="w-20 h-20 rounded-3xl bg-cream-deep border border-line flex items-center justify-center mx-auto shadow-2xs">
+          <img
+            src="/brand/brew-boba-cup-icon.webp"
+            alt="Brew & Boba cup"
+            className="w-12 h-12 object-contain"
+          />
         </div>
         <div className="space-y-2">
           <h2 className="text-2xl sm:text-3xl font-serif font-black text-ink tracking-tight">
@@ -281,7 +294,7 @@ export const CheckoutPage: React.FC = () => {
             variant="accent"
             size="lg"
             onClick={() => openAuthModalWith({ mode: 'register' })}
-            className="w-full"
+            className="w-full shadow-md"
           >
             Create free account (10s)
           </Button>
@@ -295,53 +308,65 @@ export const CheckoutPage: React.FC = () => {
           </Button>
         </div>
 
-        <Link to="/menu" className="inline-block text-xs font-bold text-ink-soft hover:text-ink transition-colors">
-          ← Keep browsing menu
+        <Link
+          to="/menu"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-cobalt hover:text-cobalt-dark transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Keep browsing menu</span>
         </Link>
       </div>
     );
   }
 
-  // 3. Main Full-Featured Checkout Layout (v0 2-column structure)
+  // 3. Main Full-Featured Cozy Retro Blue 2-Column Checkout Layout
   return (
-    <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto">
-      {/* Top Header */}
+    <div className="space-y-6 sm:space-y-8 max-w-6xl mx-auto py-2">
+      {/* Top Navigation Bar */}
       <div className="flex items-center justify-between border-b border-line/60 pb-4">
         <Link
-          to="/menu"
-          className="inline-flex items-center gap-2 rounded-xl px-2 py-1 font-sans text-xs sm:text-sm font-bold text-ink-soft hover:text-ink transition-colors"
+          to="/cart"
+          className="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 font-sans text-xs sm:text-sm font-bold text-cobalt hover:text-cobalt-dark transition-colors bg-cream-deep border border-line/60 cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to menu</span>
+          <span>Back to cart</span>
         </Link>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-espresso text-caramel flex items-center justify-center">
-            <Coffee className="w-4 h-4" />
-          </div>
-          <span className="font-serif text-base sm:text-lg font-bold text-ink">Brew &amp; Boba</span>
+        <div className="flex items-center gap-2.5">
+          <img
+            src="/brand/brew-boba-cup-icon.webp"
+            alt="Brew & Boba"
+            className="w-7 h-7 object-contain"
+          />
+          <span className="font-serif text-base sm:text-lg font-black text-cobalt">
+            Brew &amp; Boba Café
+          </span>
         </div>
       </div>
 
-      {/* Main 2-Column Checkout Grid */}
-      <form onSubmit={handlePlaceOrder} className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_390px] lg:items-start">
+      {/* Main 2-Column Form & Summary */}
+      <form onSubmit={handlePlaceOrder} className="checkout-grid">
         {/* Left Column: Form Details */}
         <div className="space-y-6">
           {/* Header Title */}
-          <div>
-            <p className="font-sans text-xs font-bold uppercase tracking-wider text-caramel">
-              Almost yours
-            </p>
-            <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-black text-ink tracking-tight mt-1">
-              Complete your order
+          <div className="space-y-2">
+            <div className="cart-brand-badge">
+              <Sparkles className="w-3.5 h-3.5 text-cobalt" />
+              <span>Checkout Order</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-black text-cobalt tracking-tight uppercase">
+              Almost Time To Sip.
             </h1>
-            <p className="mt-2 font-sans text-xs sm:text-sm text-ink-soft">
-              Choose pickup or delivery, confirm your details, and place your order.
+            <p className="text-xs sm:text-sm text-ink-soft">
+              Just a few details, and your order is ready to go.
             </p>
           </div>
 
-          {/* Global Error Banner */}
+          {/* Global Error Summary Banner */}
           {submitError && (
-            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-3 animate-in fade-in">
+            <div
+              role="alert"
+              className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-3 animate-in fade-in"
+            >
               <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
               <div className="text-xs sm:text-sm space-y-1 flex-1">
                 <p className="font-bold">Could not place order</p>
@@ -351,7 +376,7 @@ export const CheckoutPage: React.FC = () => {
           )}
 
           {/* Section 1: Fulfillment Mode (Pickup vs Delivery) */}
-          <section className="rounded-3xl border border-line bg-white/70 p-5 sm:p-6 shadow-xs space-y-4">
+          <section className="checkout-section-card space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="font-serif font-black text-lg sm:text-xl text-ink">
@@ -359,10 +384,10 @@ export const CheckoutPage: React.FC = () => {
                 </h2>
                 <p className="mt-0.5 text-xs text-ink-soft">We'll have it ready fresh for you.</p>
               </div>
-              <MapPin className="w-5 h-5 text-caramel" />
+              <MapPin className="w-5 h-5 text-cobalt" />
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5 rounded-2xl bg-cream-deep p-1.5 border border-line/40">
+            <div className="grid grid-cols-2 gap-2.5 rounded-2xl bg-cream-deep p-1.5 border border-line/50">
               {/* Pickup Option */}
               <button
                 type="button"
@@ -370,17 +395,17 @@ export const CheckoutPage: React.FC = () => {
                 aria-pressed={fulfillmentMode === 'pickup'}
                 className={`min-h-[76px] rounded-xl px-3.5 py-3 text-left transition-all cursor-pointer ${
                   fulfillmentMode === 'pickup'
-                    ? 'bg-espresso text-cream shadow-sm'
+                    ? 'bg-cobalt text-white shadow-sm'
                     : 'text-ink-soft hover:bg-cream hover:text-ink'
                 }`}
               >
                 <span className="flex items-center gap-2 font-sans text-sm font-bold">
-                  <ShoppingBag className="w-4 h-4 text-caramel" />
+                  <ShoppingBag className="w-4 h-4 text-butter" />
                   <span>Café Pickup</span>
                 </span>
                 <span
                   className={`mt-1.5 block pl-6 font-sans text-[11px] font-medium leading-tight ${
-                    fulfillmentMode === 'pickup' ? 'text-cream/70' : 'text-ink-soft'
+                    fulfillmentMode === 'pickup' ? 'text-white/80' : 'text-ink-soft'
                   }`}
                 >
                   Ready in 10–15 min · BKK1
@@ -394,17 +419,17 @@ export const CheckoutPage: React.FC = () => {
                 aria-pressed={fulfillmentMode === 'delivery'}
                 className={`min-h-[76px] rounded-xl px-3.5 py-3 text-left transition-all cursor-pointer ${
                   fulfillmentMode === 'delivery'
-                    ? 'bg-espresso text-cream shadow-sm'
+                    ? 'bg-cobalt text-white shadow-sm'
                     : 'text-ink-soft hover:bg-cream hover:text-ink'
                 }`}
               >
                 <span className="flex items-center gap-2 font-sans text-sm font-bold">
-                  <Truck className="w-4 h-4 text-caramel" />
+                  <Truck className="w-4 h-4 text-butter" />
                   <span>Local Delivery</span>
                 </span>
                 <span
                   className={`mt-1.5 block pl-6 font-sans text-[11px] font-medium leading-tight ${
-                    fulfillmentMode === 'delivery' ? 'text-cream/70' : 'text-ink-soft'
+                    fulfillmentMode === 'delivery' ? 'text-white/80' : 'text-ink-soft'
                   }`}
                 >
                   Arrives in 25–35 min
@@ -426,6 +451,7 @@ export const CheckoutPage: React.FC = () => {
                   <input
                     id="deliveryAddress"
                     type="text"
+                    autoComplete="street-address"
                     value={deliveryAddress}
                     onChange={(e) => {
                       setDeliveryAddress(e.target.value);
@@ -437,19 +463,19 @@ export const CheckoutPage: React.FC = () => {
                     className={`min-h-12 w-full rounded-2xl border bg-cream pl-11 pr-4 font-sans text-sm outline-none transition placeholder:text-ink-soft/60 ${
                       errors.deliveryAddress
                         ? 'border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
-                        : 'border-line focus:border-caramel focus:ring-2 focus:ring-caramel/20'
+                        : 'border-line focus:border-cobalt focus:ring-2 focus:ring-cobalt/20'
                     }`}
                   />
                 </div>
                 {errors.deliveryAddress && (
-                  <p className="text-xs text-rose-600 font-semibold">{errors.deliveryAddress}</p>
+                  <p role="alert" className="text-xs text-rose-600 font-semibold">{errors.deliveryAddress}</p>
                 )}
               </div>
             )}
           </section>
 
           {/* Section 2: Contact Details & Barista Notes */}
-          <section className="rounded-3xl border border-line bg-white/70 p-5 sm:p-6 shadow-xs space-y-4">
+          <section className="checkout-section-card space-y-4">
             <div>
               <h2 className="font-serif font-black text-lg sm:text-xl text-ink">
                 Your Details
@@ -461,7 +487,7 @@ export const CheckoutPage: React.FC = () => {
 
             {user && (
               <div className="p-3 rounded-2xl bg-cream-deep border border-line/60 text-xs font-semibold text-ink flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-caramel shrink-0" />
+                <Sparkles className="w-4 h-4 text-cobalt shrink-0" />
                 <span>
                   Ordering as <strong>{user.full_name}</strong> · Earning +1 Loyalty Stamp!
                 </span>
@@ -479,6 +505,7 @@ export const CheckoutPage: React.FC = () => {
                   <input
                     id="customerName"
                     type="text"
+                    autoComplete="name"
                     value={customerName}
                     disabled={isLoading}
                     onChange={(e) => {
@@ -489,12 +516,12 @@ export const CheckoutPage: React.FC = () => {
                     className={`min-h-12 w-full rounded-2xl border bg-cream pl-11 pr-4 font-sans text-sm outline-none transition placeholder:text-ink-soft/60 ${
                       errors.customerName
                         ? 'border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
-                        : 'border-line focus:border-caramel focus:ring-2 focus:ring-caramel/20'
+                        : 'border-line focus:border-cobalt focus:ring-2 focus:ring-cobalt/20'
                     }`}
                   />
                 </div>
                 {errors.customerName && (
-                  <p className="text-xs text-rose-600 font-semibold mt-1">{errors.customerName}</p>
+                  <p role="alert" className="text-xs text-rose-600 font-semibold mt-1">{errors.customerName}</p>
                 )}
               </div>
 
@@ -509,6 +536,7 @@ export const CheckoutPage: React.FC = () => {
                     id="customerPhone"
                     type="tel"
                     inputMode="tel"
+                    autoComplete="tel"
                     value={customerPhone}
                     disabled={isLoading}
                     onChange={(e) => {
@@ -519,12 +547,12 @@ export const CheckoutPage: React.FC = () => {
                     className={`min-h-12 w-full rounded-2xl border bg-cream pl-11 pr-4 font-sans text-sm outline-none transition placeholder:text-ink-soft/60 ${
                       errors.customerPhone
                         ? 'border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
-                        : 'border-line focus:border-caramel focus:ring-2 focus:ring-caramel/20'
+                        : 'border-line focus:border-cobalt focus:ring-2 focus:ring-cobalt/20'
                     }`}
                   />
                 </div>
                 {errors.customerPhone && (
-                  <p className="text-xs text-rose-600 font-semibold mt-1">{errors.customerPhone}</p>
+                  <p role="alert" className="text-xs text-rose-600 font-semibold mt-1">{errors.customerPhone}</p>
                 )}
               </div>
             </div>
@@ -540,7 +568,7 @@ export const CheckoutPage: React.FC = () => {
                 value={orderNotes}
                 onChange={(e) => setOrderNotes(e.target.value)}
                 placeholder="e.g. Pack ice separately, extra napkins, leave at guard house..."
-                className="w-full resize-none rounded-2xl border border-line bg-cream px-4 py-3 font-sans text-sm outline-none transition placeholder:text-ink-soft/60 focus:border-caramel focus:ring-2 focus:ring-caramel/20"
+                className="w-full resize-none rounded-2xl border border-line bg-cream px-4 py-3 font-sans text-sm outline-none transition placeholder:text-ink-soft/60 focus:border-cobalt focus:ring-2 focus:ring-cobalt/20"
               />
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {quickNotes.map((note) => (
@@ -548,7 +576,7 @@ export const CheckoutPage: React.FC = () => {
                     key={note}
                     type="button"
                     onClick={() => handleAddQuickNote(note)}
-                    className="text-[11px] font-bold px-3 py-1 rounded-full bg-cream-deep hover:bg-caramel/20 hover:text-espresso text-ink-soft border border-line/60 transition-colors cursor-pointer"
+                    className="text-[11px] font-bold px-3 py-1 rounded-full bg-cream-deep hover:bg-cobalt/15 hover:text-cobalt text-ink-soft border border-line/60 transition-colors cursor-pointer"
                   >
                     + {note}
                   </button>
@@ -557,8 +585,8 @@ export const CheckoutPage: React.FC = () => {
             </div>
           </section>
 
-          {/* Section 3: Payment Method */}
-          <section className="rounded-3xl border border-line bg-white/70 p-5 sm:p-6 shadow-xs space-y-4">
+          {/* Section 3: Payment Method with Safety Guarantees */}
+          <section className="checkout-section-card space-y-4">
             <div>
               <h2 className="font-serif font-black text-lg sm:text-xl text-ink">
                 Payment Method
@@ -574,25 +602,30 @@ export const CheckoutPage: React.FC = () => {
                 aria-pressed={paymentMethod === 'khqr'}
                 className={`relative flex min-h-[76px] items-center gap-3.5 rounded-2xl border p-4 text-left transition-all cursor-pointer ${
                   paymentMethod === 'khqr'
-                    ? 'border-caramel bg-caramel/10 ring-1 ring-caramel'
-                    : 'border-line bg-cream hover:border-caramel/60'
+                    ? 'border-cobalt bg-cobalt/5 ring-1 ring-cobalt'
+                    : 'border-line bg-cream hover:border-cobalt/60'
                 }`}
               >
                 <div
                   className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                    paymentMethod === 'khqr' ? 'bg-espresso text-caramel' : 'bg-cream-deep text-ink-soft'
+                    paymentMethod === 'khqr' ? 'bg-cobalt text-butter' : 'bg-cream-deep text-ink-soft'
                   }`}
                 >
                   <QrCode className="w-5 h-5" />
                 </div>
-                <div>
-                  <span className="block font-sans text-sm font-bold text-ink">ABA KHQR</span>
+                <div className="pr-4">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-sans text-sm font-bold text-ink">ABA KHQR</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300">
+                      Demo
+                    </span>
+                  </div>
                   <span className="block font-sans text-xs text-ink-soft mt-0.5">
-                    Scan to pay with any bank app
+                    Scan preview with any bank app
                   </span>
                 </div>
                 {paymentMethod === 'khqr' && (
-                  <Check className="w-5 h-5 text-caramel absolute right-4 top-4" />
+                  <Check className="w-5 h-5 text-cobalt absolute right-4 top-4" />
                 )}
               </button>
 
@@ -603,13 +636,13 @@ export const CheckoutPage: React.FC = () => {
                 aria-pressed={paymentMethod === 'cash'}
                 className={`relative flex min-h-[76px] items-center gap-3.5 rounded-2xl border p-4 text-left transition-all cursor-pointer ${
                   paymentMethod === 'cash'
-                    ? 'border-caramel bg-caramel/10 ring-1 ring-caramel'
-                    : 'border-line bg-cream hover:border-caramel/60'
+                    ? 'border-cobalt bg-cobalt/5 ring-1 ring-cobalt'
+                    : 'border-line bg-cream hover:border-cobalt/60'
                 }`}
               >
                 <div
                   className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                    paymentMethod === 'cash' ? 'bg-espresso text-caramel' : 'bg-cream-deep text-ink-soft'
+                    paymentMethod === 'cash' ? 'bg-cobalt text-butter' : 'bg-cream-deep text-ink-soft'
                   }`}
                 >
                   <Banknote className="w-5 h-5" />
@@ -623,28 +656,41 @@ export const CheckoutPage: React.FC = () => {
                   </span>
                 </div>
                 {paymentMethod === 'cash' && (
-                  <Check className="w-5 h-5 text-caramel absolute right-4 top-4" />
+                  <Check className="w-5 h-5 text-cobalt absolute right-4 top-4" />
                 )}
               </button>
+            </div>
+
+            {/* Payment Safety Notice */}
+            <div className="p-3 rounded-2xl bg-cream-deep/60 border border-line/60 flex items-start gap-2.5 text-xs text-ink-soft">
+              <Info className="w-4 h-4 text-cobalt shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                <strong>Payment Notice:</strong> ABA KHQR is currently a demonstration flow. Order status and payment verification remain distinct. No payment is settled from a QR preview alone.
+              </p>
             </div>
           </section>
         </div>
 
-        {/* Right Column: Sticky Dark Espresso Order Summary Card */}
+        {/* Right Column: Sticky Dark Cobalt Order Summary Card */}
         <aside className="lg:sticky lg:top-24">
-          <div className="overflow-hidden rounded-3xl bg-espresso text-cream shadow-2xl border border-espresso-dark">
+          <div className="checkout-summary-card">
             {/* Header */}
-            <div className="border-b border-cream/10 px-6 py-5">
-              <p className="font-sans text-xs font-bold uppercase tracking-wider text-caramel-soft">
-                Order Summary
-              </p>
+            <div className="border-b border-white/10 px-6 py-5">
+              <div className="flex items-center justify-between">
+                <p className="font-sans text-xs font-bold uppercase tracking-wider text-butter">
+                  Order Summary
+                </p>
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-white/15 text-white">
+                  {totalQuantity} {totalQuantity === 1 ? 'drink' : 'drinks'}
+                </span>
+              </div>
               <h2 className="mt-1 font-serif text-2xl font-bold">
-                {totalQuantity} {totalQuantity === 1 ? 'Handcrafted Drink' : 'Handcrafted Drinks'}
+                Review Your Sips
               </h2>
             </div>
 
             {/* Items List */}
-            <div className="px-6 py-4 max-h-72 overflow-y-auto divide-y divide-cream/10 scrollbar-none">
+            <div className="px-6 py-4 max-h-72 overflow-y-auto divide-y divide-white/10 scrollbar-none">
               {items.map((item) => (
                 <div key={item.id} className="py-3.5 first:pt-0 last:pb-0 flex items-start gap-3">
                   {item.image ? (
@@ -654,32 +700,36 @@ export const CheckoutPage: React.FC = () => {
                       className="w-12 h-12 rounded-xl object-cover shrink-0 border border-white/10"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-xl bg-cream/10 text-caramel flex items-center justify-center shrink-0">
-                      <Coffee className="w-5 h-5" />
+                    <div className="w-12 h-12 rounded-xl bg-white/10 text-butter flex items-center justify-center shrink-0">
+                      <img
+                        src="/brand/brew-boba-cup-icon.webp"
+                        alt="Brew & Boba"
+                        className="w-7 h-7 object-contain"
+                      />
                     </div>
                   )}
 
                   <div className="flex-1 min-w-0 space-y-0.5">
                     <div className="flex items-baseline justify-between gap-2">
-                      <h3 className="font-serif font-bold text-sm text-cream truncate">
+                      <h3 className="font-serif font-bold text-sm text-white truncate">
                         {item.productName}
                       </h3>
-                      <span className="font-sans text-sm font-bold text-cream shrink-0 tabular-nums">
+                      <span className="font-sans text-sm font-bold text-white shrink-0 tabular-nums">
                         {formatUsd(item.subtotalUsd)}
                       </span>
                     </div>
 
-                    <p className="text-xs text-cream/70 font-medium">
+                    <p className="text-xs text-white/70 font-medium">
                       {item.size} · {item.sugarLevel} sweet · {item.iceLevel}
                     </p>
 
                     {item.toppings && item.toppings.length > 0 && (
-                      <p className="text-xs text-caramel-soft">
+                      <p className="text-xs text-butter">
                         + {item.toppings.join(', ')}
                       </p>
                     )}
 
-                    <div className="text-[11px] text-cream/50 pt-0.5 flex items-center justify-between">
+                    <div className="text-[11px] text-white/50 pt-0.5 flex items-center justify-between">
                       <span>Qty: {item.quantity} × {formatUsd(item.unitPriceUsd)}</span>
                       <span>{formatKhr(item.subtotalUsd)}</span>
                     </div>
@@ -689,27 +739,27 @@ export const CheckoutPage: React.FC = () => {
             </div>
 
             {/* Cost Breakdown */}
-            <div className="border-t border-cream/10 px-6 py-5 space-y-3 font-sans text-sm">
-              <div className="flex justify-between text-cream/70">
+            <div className="border-t border-white/10 px-6 py-5 space-y-3 font-sans text-sm">
+              <div className="flex justify-between text-white/70">
                 <span>Subtotal</span>
-                <span className="font-bold text-cream tabular-nums">{formatUsd(subtotalUsd)}</span>
+                <span className="font-bold text-white tabular-nums">{formatUsd(subtotalUsd)}</span>
               </div>
-              <div className="flex justify-between text-cream/70">
+              <div className="flex justify-between text-white/70">
                 <span>Fulfillment ({fulfillmentMode === 'pickup' ? 'Pickup' : 'Delivery'})</span>
                 <span className="font-bold text-emerald-400">Free</span>
               </div>
 
-              <div className="my-3 border-t border-cream/15 pt-3">
+              <div className="my-3 border-t border-white/15 pt-3">
                 <div className="flex items-end justify-between">
                   <div>
-                    <p className="text-xs text-cream/60 uppercase tracking-wider font-bold">
+                    <p className="text-xs text-white/60 uppercase tracking-wider font-bold">
                       Total Due
                     </p>
-                    <p className="font-serif text-3xl font-black text-cream tabular-nums leading-none mt-1">
+                    <p className="font-serif text-3xl font-black text-white tabular-nums leading-none mt-1">
                       {formatUsd(totalPriceUsd)}
                     </p>
                   </div>
-                  <p className="text-sm font-black text-caramel-soft tabular-nums">
+                  <p className="text-sm font-black text-butter tabular-nums">
                     {formatKhr(totalPriceUsd)}
                   </p>
                 </div>
@@ -719,11 +769,11 @@ export const CheckoutPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-caramel font-sans text-sm font-black text-espresso-dark shadow-lg shadow-caramel/20 hover:bg-caramel-soft active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-butter font-sans text-sm font-black text-ink-dark shadow-lg shadow-black/20 hover:bg-[#faeec7] active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border border-butter-deep"
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-espresso-dark" />
+                    <Loader2 className="w-4 h-4 animate-spin text-ink-dark" />
                     <span>Placing your order...</span>
                   </>
                 ) : (
@@ -734,9 +784,10 @@ export const CheckoutPage: React.FC = () => {
                 )}
               </button>
 
-              <p className="text-center font-sans text-[11px] text-cream/50 pt-1">
-                Your order will be linked to your account for live status tracking.
-              </p>
+              <div className="pt-2 flex items-center justify-center gap-1.5 text-center font-sans text-[11px] text-white/60">
+                <ShieldCheck className="w-3.5 h-3.5 text-butter" />
+                <span>Linked to your account for live status tracking</span>
+              </div>
             </div>
           </div>
         </aside>

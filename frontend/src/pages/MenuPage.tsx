@@ -3,12 +3,10 @@ import { useSearchParams } from 'react-router-dom';
 import {
   Search,
   X,
-  CupSoda,
   CheckCircle2,
   RotateCcw,
   Heart,
   ArrowUpDown,
-  Sparkles,
 } from 'lucide-react';
 import { useCategories } from '../hooks/useCategories';
 import { useProducts } from '../hooks/useProducts';
@@ -24,10 +22,10 @@ import type { Product, DrinkCustomization } from '../types';
 type SortKey = 'featured' | 'price-asc' | 'price-desc' | 'name';
 
 const pillClass = (active: boolean) =>
-  `px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer active:scale-95 min-h-[42px] sm:min-h-[44px] ${
+  `px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap flex items-center gap-2 cursor-pointer active:scale-95 min-h-[42px] sm:min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt focus-visible:ring-offset-2 ${
     active
-      ? 'bg-espresso text-cream shadow-md shadow-espresso/20 ring-1 ring-espresso'
-      : 'bg-white/90 text-ink-soft hover:text-ink hover:bg-cream-deep border border-line shadow-2xs'
+      ? 'bg-cobalt text-white shadow-md shadow-cobalt/25 ring-2 ring-cobalt'
+      : 'bg-white/95 text-ink-soft hover:text-cobalt hover:bg-cream-deep hover:border-cobalt/40 border border-line shadow-2xs'
   }`;
 
 export const MenuPage: React.FC = () => {
@@ -107,13 +105,13 @@ export const MenuPage: React.FC = () => {
     <div className="menu-page space-y-6 sm:space-y-8">
       {/* Toast Notification */}
       {toastMessage && (
-        <div role="status" className="fixed bottom-6 right-6 z-50 bg-espresso-dark text-cream px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 ring-1 ring-white/10 border border-espresso/30 animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+        <div role="status" className="fixed bottom-6 right-6 z-50 bg-cobalt-dark text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 ring-2 ring-butter border border-white/20 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <CheckCircle2 className="w-5 h-5 text-butter shrink-0" />
           <span className="text-sm font-medium">{toastMessage}</span>
           <button
             type="button"
             onClick={() => setToastMessage(null)}
-            className="text-cream/70 hover:text-cream p-1 cursor-pointer transition-colors"
+            className="text-white/80 hover:text-white p-1 cursor-pointer transition-colors"
             aria-label="Dismiss"
           >
             <X className="w-4 h-4" />
@@ -121,24 +119,72 @@ export const MenuPage: React.FC = () => {
         </div>
       )}
 
-      {/* Header Area */}
-      <div className="space-y-1.5 pt-1">
-        <div className="inline-flex items-center gap-1.5 text-xs font-bold text-caramel uppercase tracking-wider">
-          <Sparkles className="w-3.5 h-3.5 text-caramel" />
-              <span>Your next good cup</span>
+      {/* Menu Hero Introduction */}
+      <section className="menu-hero" aria-labelledby="menu-hero-title">
+        <div className="menu-hero-inner">
+          <div className="menu-hero-content">
+            <div className="menu-hero-eyebrow">
+              <img
+                src="/brand/hero-fusion-cup.png"
+                alt=""
+                aria-hidden="true"
+                width="18"
+                height="18"
+                className="w-4.5 h-4.5 object-contain"
+              />
+              <span>Fresh Daily · Two Worlds, One Menu</span>
+            </div>
+            <h1 id="menu-hero-title" className="menu-hero-title">
+              FIND YOUR <br className="hidden sm:inline" />
+              <em>HAPPY SIP.</em>
+            </h1>
+            <p className="menu-hero-desc">
+              Specialty espresso, slow-cooked brown sugar boba, velvety matcha, and sparkling fruit teas.
+              Customized to your size, sweetness, and ice for every single cup.
+            </p>
+            <div className="menu-hero-meta">
+              <span className="menu-hero-count">
+                <img
+                  src="/brand/menu-drinks-icon.png"
+                  alt=""
+                  aria-hidden="true"
+                  width="20"
+                  height="20"
+                  className="w-5 h-5 object-contain shrink-0"
+                />
+                <span>
+                  Showing {displayedProducts.length} {displayedProducts.length === 1 ? 'handcrafted drink' : 'handcrafted drinks'}
+                </span>
+              </span>
+            </div>
+          </div>
+          <div className="menu-hero-badge-col" aria-hidden="true">
+            <div className="menu-hero-mascot-card">
+              <img
+                src="/brand/brew-boba-cup-badge.webp"
+                alt=""
+                width="96"
+                height="96"
+                className="menu-hero-mascot-img"
+              />
+              <div className="menu-hero-chip">
+                <img
+                  src="/brand/menu-crafted-icon.png"
+                  alt=""
+                  aria-hidden="true"
+                  width="18"
+                  height="18"
+                  className="w-4.5 h-4.5 object-contain shrink-0"
+                />
+                <span>Crafted For You</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
-          <h1 className="text-3xl sm:text-5xl font-serif font-black text-ink tracking-tight">
-            A cup for every mood.
-          </h1>
-          <span className="text-xs sm:text-sm text-ink-soft font-medium">
-            Showing {displayedProducts.length} {displayedProducts.length === 1 ? 'drink' : 'drinks'}
-          </span>
-        </div>
-      </div>
+      </section>
 
       {/* Sticky Search & Category Bar */}
-      <div className="menu-filter-bar sticky z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3.5 bg-cream/95 backdrop-blur-xl space-y-3 border-b border-line/70">
+      <div className="menu-filter-bar sticky z-30 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5 sm:py-3 bg-cream/95 backdrop-blur-xl space-y-2.5 sm:space-y-3 border-b border-line/70">
         <div className="flex items-center gap-2.5">
           {/* Search Box */}
           <div className="relative flex-1">
@@ -149,13 +195,13 @@ export const MenuPage: React.FC = () => {
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search coffee, boba, matcha, fruit tea..."
               aria-label="Search drinks"
-              className="w-full bg-white/90 border border-line rounded-full pl-11 pr-10 py-2.5 sm:py-3 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:border-caramel focus:ring-2 focus:ring-caramel/20 shadow-2xs transition-all [&::-webkit-search-cancel-button]:hidden"
+              className="w-full bg-cream-card border border-line rounded-full pl-11 pr-10 py-2.5 sm:py-3 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:border-cobalt focus:ring-2 focus:ring-cobalt/20 shadow-2xs transition-all [&::-webkit-search-cancel-button]:hidden"
             />
             {searchInput && (
               <button
                 type="button"
                 onClick={handleClearSearch}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-soft hover:text-ink p-0.5 cursor-pointer transition-colors"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-soft hover:text-ink p-1 cursor-pointer transition-colors"
                 aria-label="Clear search"
               >
                 <X className="w-4 h-4" />
@@ -168,7 +214,7 @@ export const MenuPage: React.FC = () => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortKey)}
-              className="bg-white/90 border border-line rounded-full pl-4 pr-9 py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-ink hover:border-caramel focus:outline-none focus:border-caramel focus:ring-2 focus:ring-caramel/20 cursor-pointer shadow-2xs transition-all appearance-none"
+              className="bg-cream-card border border-line rounded-full pl-4 pr-9 py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-ink hover:border-cobalt focus:outline-none focus:border-cobalt focus:ring-2 focus:ring-cobalt/20 cursor-pointer shadow-2xs transition-all appearance-none"
               aria-label="Sort drinks"
             >
               <option value="featured">Featured</option>
@@ -176,13 +222,13 @@ export const MenuPage: React.FC = () => {
               <option value="price-desc">Price: High to Low</option>
               <option value="name">Name A–Z</option>
             </select>
-            <ArrowUpDown className="w-3.5 h-3.5 text-ink-soft absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ArrowUpDown className="w-3.5 h-3.5 text-cobalt absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
 
         {/* Categories Scroller */}
         <div
-          className="flex items-center gap-2 overflow-x-auto scrollbar-none select-none py-0.5"
+          className="flex items-center gap-2 overflow-x-auto scrollbar-none select-none py-1 scroll-smooth"
           role="tablist"
           aria-label="Categories"
         >
@@ -218,7 +264,7 @@ export const MenuPage: React.FC = () => {
                     {cat.product_count !== null && cat.product_count !== undefined && (
                       <span
                         className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                          isSelected ? 'bg-espresso-dark text-caramel-soft' : 'bg-cream-deep text-ink-soft'
+                          isSelected ? 'bg-butter text-cobalt' : 'bg-cream-deep text-ink-soft'
                         }`}
                       >
                         {cat.product_count}
@@ -236,8 +282,8 @@ export const MenuPage: React.FC = () => {
             onClick={() => handleCategoryClick('Favorites')}
             className={`px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer active:scale-95 min-h-[42px] sm:min-h-[44px] ${
               isFavFilter
-                ? 'bg-rose-600 text-white shadow-md shadow-rose-950/20 ring-1 ring-rose-600'
-                : 'bg-white/90 text-ink-soft hover:text-ink hover:bg-cream-deep border border-line shadow-2xs'
+                ? 'bg-rose-600 text-white shadow-md shadow-rose-950/20 ring-2 ring-rose-600'
+                : 'bg-cream-card text-ink-soft hover:text-ink hover:bg-cream-deep border border-line shadow-2xs'
             }`}
           >
             <Heart className={`w-3.5 h-3.5 ${isFavFilter ? 'fill-white text-white' : 'text-rose-500 fill-rose-500'}`} />
@@ -290,12 +336,18 @@ export const MenuPage: React.FC = () => {
       ) : error ? (
         <ErrorState message={error} onRetry={refetch} />
       ) : displayedProducts.length === 0 ? (
-        <div className="py-16 text-center space-y-4 max-w-sm mx-auto bg-white/70 rounded-3xl border border-line/70 p-8 shadow-xs">
-          <div className="w-16 h-16 rounded-full bg-cream-deep text-espresso flex items-center justify-center mx-auto shadow-inner">
-            <CupSoda className="w-8 h-8 text-espresso" />
+        <div className="py-16 text-center space-y-4 max-w-sm mx-auto bg-cream-card rounded-3xl border border-line p-8 shadow-xs">
+          <div className="w-16 h-16 rounded-full bg-butter/60 border border-butter-deep text-cobalt flex items-center justify-center mx-auto shadow-xs">
+            <img
+              src="/brand/brew-boba-cup-icon.webp"
+              alt="Brew & Boba"
+              width="36"
+              height="36"
+              className="w-9 h-9 object-contain"
+            />
           </div>
           <div className="space-y-1">
-            <h3 className="font-serif font-black text-ink text-xl">No drinks found</h3>
+            <h3 className="font-serif font-black text-cobalt text-xl">No drinks found</h3>
             <p className="text-xs sm:text-sm text-ink-soft">
               {isFavFilter && !searchQuery
                 ? "You haven't saved any favorite drinks yet. Tap the heart on any drink to add it!"

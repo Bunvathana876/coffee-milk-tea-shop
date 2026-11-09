@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, X, Coffee, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
+import { Search, X, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
 import { getProducts } from '../../services/api';
 import { formatUsd, formatKhr } from '../../config/currency';
 import type { Product } from '../../types';
@@ -86,7 +86,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       >
         {/* Search Bar Input */}
         <div className="p-4 sm:p-5 border-b border-line flex items-center gap-3 bg-cream">
-          <Search className="w-5 h-5 text-caramel shrink-0" />
+          <Search className="w-5 h-5 text-cobalt shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -112,9 +112,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         </div>
 
         {/* Quick Suggestion Chips */}
-        <div className="px-5 py-3 border-b border-line/60 bg-cream-deep/40 flex items-center gap-2 overflow-x-auto scrollbar-none text-xs">
+        <div className="px-5 py-3 border-b border-line/60 bg-cream-card flex items-center gap-2 overflow-x-auto scrollbar-none text-xs">
           <span className="font-bold text-ink-soft shrink-0 flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-caramel" />
+            <Sparkles className="w-3 h-3 text-cobalt" />
             Popular:
           </span>
           {POPULAR_SEARCHES.map((item) => (
@@ -122,7 +122,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               key={item}
               type="button"
               onClick={() => setQuery(item)}
-              className="px-2.5 py-1 rounded-full bg-white border border-line hover:border-caramel/50 text-ink-soft hover:text-ink text-xs font-medium shrink-0 transition-colors cursor-pointer"
+              className="px-2.5 py-1 rounded-full bg-white border border-line hover:border-cobalt/50 text-ink-soft hover:text-ink text-xs font-medium shrink-0 transition-colors cursor-pointer"
             >
               {item}
             </button>
@@ -133,13 +133,17 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         <div className="p-4 sm:p-5 max-h-[55vh] overflow-y-auto space-y-2">
           {loading ? (
             <div className="py-12 text-center text-ink-soft flex flex-col items-center gap-2">
-              <Loader2 className="w-6 h-6 animate-spin text-caramel" />
+              <Loader2 className="w-6 h-6 animate-spin text-cobalt" />
               <p className="text-xs font-medium">Brewing drink results...</p>
             </div>
           ) : query.trim() === '' ? (
             <div className="py-10 text-center space-y-2 text-ink-soft">
-              <div className="w-12 h-12 rounded-2xl bg-cream-deep text-caramel flex items-center justify-center mx-auto border border-line">
-                <Coffee className="w-6 h-6" />
+              <div className="w-12 h-12 rounded-2xl bg-cream flex items-center justify-center mx-auto border border-line shadow-2xs">
+                <img
+                  src="/brand/brew-boba-cup-icon.webp"
+                  alt="Brew & Boba"
+                  className="w-7 h-7 object-contain"
+                />
               </div>
               <p className="text-xs sm:text-sm font-semibold text-ink">
                 Type above to explore handcrafted beverages
@@ -173,14 +177,18 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                       className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl object-cover shrink-0 border border-line shadow-2xs group-hover:scale-105 transition-transform"
                     />
                   ) : (
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-cream-deep text-caramel flex items-center justify-center shrink-0 border border-line">
-                      <Coffee className="w-6 h-6" />
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-cream flex items-center justify-center shrink-0 border border-line">
+                      <img
+                        src="/brand/brew-boba-cup-icon.webp"
+                        alt="Brew & Boba"
+                        className="w-7 h-7 object-contain"
+                      />
                     </div>
                   )}
 
                   <div className="space-y-0.5 truncate">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-serif font-bold text-sm sm:text-base text-ink group-hover:text-espresso truncate">
+                      <h4 className="font-serif font-bold text-sm sm:text-base text-ink group-hover:text-cobalt truncate">
                         {product.name}
                       </h4>
                       {product.category_name && (
@@ -202,12 +210,12 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     <div className="font-serif font-black text-ink text-sm sm:text-base leading-tight">
                       {formatUsd(product.base_price_usd)}
                     </div>
-                    <div className="text-[11px] text-caramel font-medium">
+                    <div className="text-[11px] text-cobalt font-medium">
                       {formatKhr(product.base_price_usd)}
                     </div>
                   </div>
 
-                  <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-caramel text-espresso-dark font-black text-xs shadow-2xs group-hover:bg-caramel-soft transition-colors">
+                  <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-cobalt text-white font-black text-xs shadow-2xs group-hover:bg-cobalt-dark transition-colors">
                     <span>Customize</span>
                     <ArrowRight className="w-3 h-3" />
                   </span>
@@ -223,7 +231,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
           <button
             type="button"
             onClick={handleClose}
-            className="font-bold text-caramel hover:text-espresso cursor-pointer"
+            className="font-bold text-cobalt hover:text-cobalt-light cursor-pointer"
           >
             Close
           </button>

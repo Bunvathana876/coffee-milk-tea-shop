@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useId } from 'react';
-import { X, Plus, Minus, Check, Coffee, Sparkles, ChevronRight } from 'lucide-react';
+import { X, Plus, Minus, Check, ChevronRight } from 'lucide-react';
 import type { Product, DrinkSize, SugarLevel, IceLevel, DrinkCustomization } from '../../types';
 import {
   SIZE_OPTIONS,
@@ -29,6 +29,7 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
   onAddToCart,
 }) => {
   const titleId = useId();
+  const [imgError, setImgError] = useState(false);
 
   // Selected Options State
   const [selectedSize, setSelectedSize] = useState<DrinkSize>('Medium');
@@ -37,6 +38,7 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
   const [selectedToppings, setSelectedToppings] = useState<string[]>([]);
   const [quantity, setQuantity] = useState<number>(1);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Real-time price calculations
   const { unitPrice, subtotal } = calculateCustomizedPrice(
@@ -55,6 +57,7 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
   };
 
   const handleConfirm = () => {
+    if (isSubmitting) return;
     if (!selectedSize) {
       setValidationError('Please choose a cup size');
       return;
@@ -68,46 +71,68 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
       return;
     }
 
-    onAddToCart(product, {
-      size: selectedSize,
-      sugar_level: selectedSugar,
-      ice_level: selectedIce,
-      toppings: selectedToppings,
-      quantity,
-      unit_price_usd: unitPrice,
-      subtotal_usd: subtotal,
-    });
-    onClose();
+    setIsSubmitting(true);
+    try {
+      onAddToCart(product, {
+        size: selectedSize,
+        sugar_level: selectedSugar,
+        ice_level: selectedIce,
+        toppings: selectedToppings,
+        quantity,
+        unit_price_usd: unitPrice,
+        subtotal_usd: subtotal,
+      });
+      onClose();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div
-      className="relative flex w-full sm:max-w-[540px] max-h-[92vh] sm:max-h-[88vh] flex-col overflow-hidden rounded-t-[28px] sm:rounded-[28px] border border-line bg-cream shadow-2xl animate-in fade-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200"
+      className="relative flex w-full sm:max-w-[540px] max-h-[92vh] sm:max-h-[88vh] flex-col overflow-hidden rounded-t-[32px] sm:rounded-[32px] border border-line bg-cream shadow-2xl animate-in fade-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* V0-Styled Header with Espresso & Ambient Ring */}
-      <div className="relative flex h-32 sm:h-36 items-end justify-between overflow-hidden bg-espresso px-6 pb-5 text-cream shrink-0">
+      {/* Retro Blue Header with Ambient Rings */}
+      <div className="relative flex h-32 sm:h-36 items-end justify-between overflow-hidden bg-gradient-to-br from-cobalt-dark via-cobalt to-[#0A2660] px-6 pb-5 text-cream shrink-0">
         {/* Ambient Decorative Rings */}
-        <div className="absolute -right-8 -top-14 size-44 rounded-full border-[18px] border-caramel/25 pointer-events-none" />
-        <div className="absolute -bottom-14 left-1/2 size-40 -translate-x-1/2 rounded-full bg-caramel/10 blur-2xl pointer-events-none" />
+        <div className="absolute -right-8 -top-14 size-44 rounded-full border-[18px] border-butter/20 pointer-events-none" />
+        <div className="absolute -bottom-14 left-1/2 size-40 -translate-x-1/2 rounded-full bg-butter/10 blur-2xl pointer-events-none" />
 
         <div className="relative flex items-center gap-3.5 z-10 min-w-0 pr-4">
-          {product.image ? (
+          {product.image && !imgError ? (
             <img
               src={product.image}
               alt=""
-              className="w-12 h-12 rounded-2xl object-cover shrink-0 border border-white/20 shadow-md"
+              width="56"
+              height="56"
+              className="w-14 h-14 rounded-2xl object-cover shrink-0 border-2 border-white/20 shadow-md"
+              onError={() => setImgError(true)}
             />
           ) : (
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-caramel text-espresso-dark shrink-0 shadow-md">
-              <Coffee className="size-6" />
+            <div className="flex size-14 items-center justify-center rounded-2xl bg-butter text-cobalt-dark shrink-0 shadow-md border-2 border-white/25">
+              <img
+                src="/brand/brew-boba-cup-icon.webp"
+                alt="Brew & Boba"
+                width="32"
+                height="32"
+                className="w-8 h-8 object-contain"
+              />
             </div>
           )}
           <div className="min-w-0">
-            <p className="font-sans text-[11px] font-bold uppercase tracking-wider text-caramel-soft">
-              Customize your drink
+            <p className="font-sans text-[11px] font-bold uppercase tracking-wider text-butter flex items-center gap-1.5">
+              <img
+                src="/brand/hero-crafted-custom.png"
+                alt=""
+                aria-hidden="true"
+                width="15"
+                height="15"
+                className="w-3.5 h-3.5 object-contain inline-block"
+              />
+              <span>Customize your drink</span>
             </p>
-            <h2 id={titleId} className="font-serif text-xl sm:text-2xl font-black text-cream leading-tight truncate">
+            <h2 id={titleId} className="font-serif text-xl sm:text-2xl font-black text-white leading-tight truncate">
               {product.name}
             </h2>
           </div>
@@ -117,7 +142,7 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
           type="button"
           onClick={onClose}
           aria-label="Close customizer"
-          className="relative z-10 flex size-10 items-center justify-center rounded-full text-cream/70 transition hover:bg-cream/10 hover:text-cream cursor-pointer"
+          className="relative z-10 flex size-10 items-center justify-center rounded-full text-cream/80 transition hover:bg-cream/15 hover:text-cream cursor-pointer"
         >
           <X className="size-5" />
         </button>
@@ -126,12 +151,19 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
       {/* Scrollable Customization Body */}
       <div className="flex flex-col gap-6 overflow-y-auto px-5 sm:px-8 py-5 flex-1 scrollbar-none">
         {/* Subtle Feature Badge */}
-        <div className="flex items-center justify-between rounded-2xl bg-cream-deep px-4 py-3 border border-line/40">
+        <div className="flex items-center justify-between rounded-2xl bg-cream-deep px-4 py-3 border border-line/50 shadow-2xs">
           <div>
             <p className="font-sans text-xs sm:text-sm font-bold text-ink">Handcrafted your way</p>
             <p className="font-sans text-[11px] text-ink-soft">Freshly tailored upon every single order.</p>
           </div>
-          <Sparkles className="size-4 text-caramel shrink-0" />
+          <img
+            src="/brand/hero-fusion-cup.png"
+            alt=""
+            aria-hidden="true"
+            width="22"
+            height="22"
+            className="w-5.5 h-5.5 object-contain shrink-0"
+          />
         </div>
 
         {/* Validation Warning if any */}
@@ -160,18 +192,18 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
                   }}
                   className={`min-h-16 rounded-2xl border px-3 py-2.5 text-center transition-all cursor-pointer ${
                     selected
-                      ? 'border-espresso bg-espresso text-cream shadow-sm'
-                      : 'border-line bg-white hover:border-caramel/70 text-ink'
+                      ? 'border-cobalt bg-cobalt text-white shadow-sm ring-2 ring-cobalt/30'
+                      : 'border-line bg-white hover:border-cobalt/60 hover:bg-cream-deep/30 text-ink shadow-2xs'
                   }`}
                 >
                   <span className="block font-sans text-sm font-bold">{option.label}</span>
                   <span
                     className={`block font-sans text-[11px] mt-0.5 ${
-                      selected ? 'text-cream/70' : 'text-ink-soft'
+                      selected ? 'text-white/85' : 'text-ink-soft'
                     }`}
                   >
                     {option.description} ·{' '}
-                    <strong className={selected ? 'text-caramel-soft' : 'text-ink'}>
+                    <strong className={selected ? 'text-butter font-bold' : 'text-cobalt font-bold'}>
                       {option.priceAdjustment ? `+${formatUsd(option.priceAdjustment)}` : 'Included'}
                     </strong>
                   </span>
@@ -187,7 +219,7 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
             <legend className="font-sans text-xs sm:text-sm font-bold text-ink uppercase tracking-wider">
               2. Sweetness
             </legend>
-            <span className="rounded-full bg-cream-deep px-3 py-1 font-sans text-xs font-bold text-espresso border border-line/60">
+            <span className="rounded-full bg-butter/40 px-3 py-1 font-sans text-xs font-bold text-cobalt border border-butter/60">
               {selectedSugar}
             </span>
           </div>
@@ -205,8 +237,8 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
                   }}
                   className={`py-3 px-1 rounded-xl text-xs sm:text-sm font-bold transition-all text-center cursor-pointer ${
                     selected
-                      ? 'bg-espresso text-cream shadow-sm'
-                      : 'bg-white border border-line text-ink-soft hover:bg-cream-deep'
+                      ? 'bg-cobalt text-white shadow-sm ring-2 ring-cobalt/30 font-black'
+                      : 'bg-white border border-line text-ink-soft hover:bg-cream-deep hover:text-ink shadow-2xs'
                   }`}
                 >
                   {sugar}
@@ -214,10 +246,10 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
               );
             })}
           </div>
-          <div className="mt-1.5 flex justify-between font-sans text-[11px] text-ink-soft px-1">
-            <span>Less sweet</span>
-            <span>Balanced</span>
-            <span>Sweet</span>
+          <div className="mt-2 flex justify-between font-sans text-[11px] text-ink-soft px-1">
+            <span>0% Unsweetened</span>
+            <span>50% Standard</span>
+            <span>100% Sweet</span>
           </div>
         </fieldset>
 
@@ -227,7 +259,7 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
             <legend className="font-sans text-xs sm:text-sm font-bold text-ink uppercase tracking-wider">
               3. Ice level
             </legend>
-            <span className="text-xs font-bold text-ink-soft">{selectedIce}</span>
+            <span className="text-xs font-bold text-cobalt">{selectedIce}</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {ICE_OPTIONS.map((ice) => {
@@ -243,8 +275,8 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
                   }}
                   className={`min-h-11 rounded-xl border px-3 text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                     selected
-                      ? 'border-espresso bg-espresso text-cream shadow-xs'
-                      : 'border-line bg-white text-ink-soft hover:border-caramel hover:text-ink'
+                      ? 'border-cobalt bg-cobalt text-white shadow-xs ring-2 ring-cobalt/30'
+                      : 'border-line bg-white text-ink-soft hover:border-cobalt hover:text-ink shadow-2xs'
                   }`}
                 >
                   {ice}
@@ -275,15 +307,15 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
                   onClick={() => toggleTopping(topping.name)}
                   className={`flex min-h-12 items-center justify-between rounded-2xl border px-4 text-left transition-all cursor-pointer ${
                     selected
-                      ? 'border-caramel bg-caramel/10'
-                      : 'border-line bg-white hover:border-caramel/70'
+                      ? 'border-cobalt bg-cobalt/10 shadow-2xs ring-1 ring-cobalt/20'
+                      : 'border-line bg-white hover:border-cobalt/60 hover:bg-cream-deep/20 shadow-2xs'
                   }`}
                 >
                   <span className="flex items-center gap-3 font-sans text-xs sm:text-sm font-bold text-ink">
                     <span
                       className={`flex size-5 items-center justify-center rounded-full border transition-colors ${
                         selected
-                          ? 'border-caramel bg-caramel text-espresso-dark'
+                          ? 'border-cobalt bg-cobalt text-white'
                           : 'border-line bg-cream-deep'
                       }`}
                     >
@@ -291,7 +323,7 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
                     </span>
                     <span>{topping.name}</span>
                   </span>
-                  <span className="font-sans text-xs font-bold text-ink-soft">
+                  <span className="font-sans text-xs font-bold text-cobalt">
                     +{formatUsd(topping.price)}
                   </span>
                 </button>
@@ -301,10 +333,10 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
         </fieldset>
       </div>
 
-      {/* V0-Styled Sticky Bottom Bar */}
+      {/* Retro Blue Sticky Bottom Bar */}
       <div className="border-t border-line bg-cream/95 px-5 sm:px-8 py-4 backdrop-blur-md flex items-center gap-3 shrink-0">
         {/* Quantity Stepper */}
-        <div className="flex h-12 items-center rounded-2xl border border-line bg-cream-deep p-1">
+        <div className="flex h-12 items-center rounded-2xl border border-line bg-white p-1 shadow-2xs">
           <button
             type="button"
             aria-label="Decrease quantity"
@@ -328,16 +360,22 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
           </button>
         </div>
 
-        {/* Caramel Add to Order Button */}
+        {/* Cobalt Add to Cart Button */}
         <button
           type="button"
-          disabled={!product.is_available}
+          disabled={!product.is_available || isSubmitting}
           onClick={handleConfirm}
-          className="h-12 flex-1 rounded-2xl bg-caramel hover:bg-caramel-soft font-sans text-sm font-black text-espresso-dark shadow-md shadow-caramel/20 flex items-center justify-between px-5 transition-all cursor-pointer active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-12 flex-1 rounded-full bg-cobalt hover:bg-cobalt-dark font-sans text-sm font-black text-white shadow-lg shadow-cobalt/25 flex items-center justify-between px-6 transition-all cursor-pointer active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span className="flex flex-col items-start leading-tight">
-            <span>{product.is_available ? 'Add to order' : 'Sold out'}</span>
-            <span className="text-[11px] font-semibold opacity-80">
+            <span>
+              {isSubmitting
+                ? 'Adding...'
+                : product.is_available
+                ? 'Add to Cart'
+                : 'Sold out'}
+            </span>
+            <span className="text-[11px] font-semibold text-butter">
               {formatUsd(subtotal)} · {formatKhr(subtotal)}
             </span>
           </span>

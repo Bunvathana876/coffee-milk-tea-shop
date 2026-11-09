@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Coffee, Heart, Plus, ArrowUpRight } from 'lucide-react';
+import { Heart, Plus, ArrowUpRight } from 'lucide-react';
 import { useFavorites } from '../../features/favorites/useFavorites';
 import { formatUsd, formatKhr } from '../../config/currency';
 import type { Product } from '../../types';
@@ -41,14 +41,18 @@ export function ProductCard({ product, onSelect }: ProductCardProps) {
             />
           ) : (
             <span className="drink-placeholder">
-              <Coffee size={52} strokeWidth={1} />
+              <img
+                src="/brand/brew-boba-cup-icon.webp"
+                alt="Brew & Boba"
+                className="w-12 h-12 object-contain"
+              />
               <span>Brew &amp; Boba</span>
             </span>
           )}
           <span className="drink-image-action">
             {product.is_available ? (
               <>
-                Make it yours <ArrowUpRight size={18} />
+                Customize <ArrowUpRight size={17} />
               </>
             ) : (
               'Currently unavailable'
@@ -62,11 +66,13 @@ export function ProductCard({ product, onSelect }: ProductCardProps) {
           aria-pressed={favorited}
           className="drink-favorite"
         >
-          <Heart size={18} className={favorited ? 'fill-current' : ''} />
+          <Heart size={18} className={favorited ? 'fill-rose-500 text-rose-500' : ''} />
         </button>
-        <span className="drink-availability">
-          {product.is_available ? 'On the menu' : 'Sold out'}
-        </span>
+        {!product.is_available && (
+          <span className="drink-availability drink-avail-sold">
+            Sold out
+          </span>
+        )}
       </div>
       <div className="drink-info">
         <p className="drink-category">
@@ -87,8 +93,9 @@ export function ProductCard({ product, onSelect }: ProductCardProps) {
             disabled={!canSelect}
             aria-label={`Customize and add ${product.name} to cart`}
           >
-            <Plus size={17} />
-            <span>{product.is_available ? 'Add' : 'Sold out'}</span>
+            <Plus size={16} />
+            <span className="hidden sm:inline">{product.is_available ? 'Customize' : 'Sold out'}</span>
+            <span className="sm:hidden">{product.is_available ? 'Add' : 'Sold out'}</span>
           </button>
         </div>
       </div>

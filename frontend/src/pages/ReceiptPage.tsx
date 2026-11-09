@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   Printer,
   Download,
-  Coffee,
   Clock,
   Loader2,
   AlertCircle,
@@ -44,7 +43,7 @@ export const ReceiptPage: React.FC = () => {
           particleCount: 80,
           spread: 70,
           origin: { y: 0.5 },
-          colors: ['#f59e0b', '#d97706', '#92400e', '#78350f', '#fde68a'],
+          colors: ['#1345A3', '#F5E4AD', '#FFF8DF', '#17294D', '#2563EB'],
         });
       } catch {
         // confetti is purely decorative
@@ -133,8 +132,8 @@ export const ReceiptPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="max-w-md mx-auto py-20 text-center space-y-4">
-        <Loader2 className="w-10 h-10 text-amber-800 animate-spin mx-auto" />
-        <p className="text-sm text-stone-600 font-medium">Preparing your café receipt...</p>
+        <Loader2 className="w-10 h-10 text-cobalt animate-spin mx-auto" />
+        <p className="text-sm text-ink-muted font-medium">Preparing your café receipt...</p>
       </div>
     );
   }
@@ -231,13 +230,13 @@ export const ReceiptPage: React.FC = () => {
         </div>
 
         {/* Demo Mode Notice Banner */}
-        <div className="bg-amber-50 border border-amber-300/80 rounded-2xl p-4 flex items-start gap-3">
-          <HelpCircle className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
-          <div className="text-xs text-amber-950 space-y-0.5 flex-1">
+        <div className="bg-butter/25 border border-butter rounded-2xl p-4 flex items-start gap-3">
+          <HelpCircle className="w-5 h-5 text-cobalt shrink-0 mt-0.5" />
+          <div className="text-xs text-ink space-y-0.5 flex-1">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-bold">Portfolio Demonstration Receipt</span>
+              <span className="font-bold text-cobalt-dark">Portfolio Demonstration Receipt</span>
             </div>
-            <p className="text-amber-900/90 leading-relaxed">
+            <p className="text-ink-soft leading-relaxed">
               Server payment status: <strong>{paymentStatus.toUpperCase()}</strong>.
               {order.payment_method === 'cash'
                 ? 'Cash is due at pickup or delivery; this page does not confirm collection.'
@@ -272,8 +271,12 @@ export const ReceiptPage: React.FC = () => {
 
             {/* --- CAFÉ RECEIPT HEADER --- */}
             <div className="text-center space-y-1.5 pb-5 border-b-2 border-dashed border-stone-200">
-              <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-900 flex items-center justify-center mx-auto mb-2 print:border print:border-stone-400">
-                <Coffee className="w-5 h-5 text-amber-800" />
+              <div className="w-12 h-12 rounded-2xl bg-cream flex items-center justify-center mx-auto mb-2 border border-line print:border print:border-stone-400 shadow-2xs">
+                <img
+                  src="/brand/brew-boba-cup-icon.webp"
+                  alt="Brew & Boba"
+                  className="w-8 h-8 object-contain"
+                />
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight uppercase">
                 BREW &amp; BOBA CAFÉ
@@ -396,10 +399,10 @@ export const ReceiptPage: React.FC = () => {
                   </span>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-black text-amber-950 tracking-tight leading-none print:text-black">
+                  <div className="text-2xl font-black text-ink tracking-tight leading-none print:text-black">
                     {formatUsd(order.total_usd)}
                   </div>
-                  <div className="text-sm font-bold text-amber-800 mt-1 print:text-stone-800">
+                  <div className="text-sm font-bold text-cobalt mt-1 print:text-stone-800">
                     {formatKhr(order.total_usd)}
                   </div>
                 </div>

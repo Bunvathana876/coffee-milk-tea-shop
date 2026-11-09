@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, ArrowUp, Coffee, Phone } from 'lucide-react';
-import { STORES } from '../../config/stores';
+import { ArrowRight, ArrowUp, Sparkles } from 'lucide-react';
 
 const COPYRIGHT_YEAR = new Date().getFullYear();
 
@@ -24,11 +23,19 @@ export function Footer() {
         </div>
         <div className="footer-grid">
           <div>
-            <Link to="/" className="footer-brand">
-              <Coffee size={25} strokeWidth={1.5} />
-              Brew &amp; Boba
+            <Link to="/" className="footer-brand group">
+              <span className="footer-brand-badge">
+                <img
+                  src="/brand/brew-boba-mascot-badge.webp"
+                  alt="Brew & Boba Mascot Badge"
+                  width="44"
+                  height="44"
+                  className="w-11 h-11 object-contain drop-shadow transition-transform duration-200 group-hover:scale-105"
+                />
+              </span>
+              <span>Brew &amp; Boba</span>
             </Link>
-            <p>Coffee, tea, and a little everyday joy.</p>
+            <p>Coffee, boba, and all the little moments in between.</p>
           </div>
           <nav aria-label="Footer navigation">
             <Link to="/menu">Menu</Link>
@@ -41,11 +48,11 @@ export function Footer() {
             <Link to="/menu?category=Favorites">Saved drinks</Link>
           </nav>
           <div className="footer-contact">
-            <span>Let’s talk over a cup.</span>
-            <a href={`tel:${STORES[0].phone.replace(/[^+\d]/g, '')}`}>
-              <Phone size={15} />
-              Call the café
-            </a>
+            <span>Everyday coffee &amp; boba rituals.</span>
+            <Link to="/about">
+              <Sparkles size={15} />
+              Our story
+            </Link>
             <Link to="/#mobile-app">Order from your phone</Link>
           </div>
         </div>

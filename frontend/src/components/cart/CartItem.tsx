@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Minus, Trash2, Coffee } from 'lucide-react';
+import { Plus, Minus, Trash2 } from 'lucide-react';
 import type { CartItem as CartItemType } from '../../types';
 import { formatUsd, formatKhr } from '../../config/currency';
 
@@ -17,7 +17,7 @@ export const CartItem: React.FC<CartItemProps> = ({
   onRemove,
 }) => {
   return (
-    <div className="bg-white rounded-3xl border border-line p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:border-caramel/40 hover:shadow-sm">
+    <div className="cart-item-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       {/* Product Image & Details */}
       <div className="flex items-center gap-3.5 sm:gap-4 w-full sm:w-auto">
         {item.image ? (
@@ -27,8 +27,12 @@ export const CartItem: React.FC<CartItemProps> = ({
             className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover shrink-0 border border-line shadow-2xs"
           />
         ) : (
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-cream-deep text-caramel flex items-center justify-center shrink-0 border border-line">
-            <Coffee className="w-8 h-8" />
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-cream-deep text-cobalt flex items-center justify-center shrink-0 border border-line">
+            <img
+              src="/brand/brew-boba-cup-icon.webp"
+              alt="Brew & Boba"
+              className="w-9 h-9 sm:w-11 sm:h-11 object-contain"
+            />
           </div>
         )}
 
@@ -42,7 +46,7 @@ export const CartItem: React.FC<CartItemProps> = ({
             <span className="px-2 py-0.5 rounded-lg bg-cream-deep text-ink-soft font-bold border border-line">
               Size: {item.size}
             </span>
-            <span className="px-2 py-0.5 rounded-lg bg-caramel/15 text-espresso font-bold border border-caramel/25">
+            <span className="px-2 py-0.5 rounded-lg bg-butter/40 text-ink-dark font-bold border border-butter-deep/50">
               {item.sugarLevel} Sweet
             </span>
             <span className="px-2 py-0.5 rounded-lg bg-cream-deep text-ink-soft font-bold border border-line">
@@ -66,12 +70,12 @@ export const CartItem: React.FC<CartItemProps> = ({
 
       {/* Quantity & Subtotal Controls */}
       <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-line">
-        {/* Quantity Toggle Stepper */}
-        <div className="flex items-center border border-line rounded-2xl p-1 bg-cream">
+        {/* Cobalt Quantity Stepper */}
+        <div className="cart-stepper">
           <button
             type="button"
             onClick={() => onDecrease(item.id)}
-            className="w-8 h-8 rounded-xl bg-white text-ink hover:bg-cream-deep flex items-center justify-center shadow-2xs transition-colors cursor-pointer active:scale-90"
+            className="cart-stepper-btn cart-stepper-btn-dec active:scale-90"
             aria-label="Decrease quantity"
             title="Decrease quantity"
           >
@@ -83,7 +87,7 @@ export const CartItem: React.FC<CartItemProps> = ({
           <button
             type="button"
             onClick={() => onIncrease(item.id)}
-            className="w-8 h-8 rounded-xl bg-white text-ink hover:bg-cream-deep flex items-center justify-center shadow-2xs transition-colors cursor-pointer active:scale-90"
+            className="cart-stepper-btn cart-stepper-btn-inc active:scale-90"
             aria-label="Increase quantity"
             title="Increase quantity"
           >
@@ -101,12 +105,12 @@ export const CartItem: React.FC<CartItemProps> = ({
           </div>
         </div>
 
-        {/* Delete Item Button */}
+        {/* Accessible Delete Item Button */}
         <button
           type="button"
           onClick={() => onRemove(item.id)}
           className="p-2 text-ink-soft hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
-          title="Remove from cart"
+          title={`Remove ${item.productName} from cart`}
           aria-label={`Remove ${item.productName} from cart`}
         >
           <Trash2 className="w-4 h-4" />
