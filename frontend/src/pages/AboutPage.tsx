@@ -4,8 +4,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   Coffee,
-  CupSoda,
-  Heart,
   Sliders,
   Sparkles,
   Users,
@@ -71,55 +69,6 @@ export function AboutPage() {
         </span>
       </section>
 
-      {/* Decorative transition ribbon */}
-      <div
-        className="cafe-ribbon"
-        aria-label="Careful brewing, authentic ingredients, and daily comfort"
-      >
-        <span>Honest coffee craft</span>
-        <Sparkles aria-hidden="true" />
-        <span>Hand-steeped loose teas</span>
-        <Sparkles aria-hidden="true" />
-        <span>Slow-cooked brown sugar boba</span>
-        <Sparkles aria-hidden="true" />
-        <span>Your everyday comfort</span>
-        <Sparkles aria-hidden="true" />
-      </div>
-
-      <section className="about-essentials" aria-label="What you will find at Brew and Boba">
-        <div className="cafe-container">
-          <div className="about-essentials-grid">
-            <div className="about-essential">
-              <span className="about-essential-icon" aria-hidden="true">
-                <Coffee size={21} />
-              </span>
-              <div>
-                <h2>Specialty Coffee</h2>
-                <p>Thoughtful espresso and slow brews made with quality beans.</p>
-              </div>
-            </div>
-            <div className="about-essential">
-              <span className="about-essential-icon" aria-hidden="true">
-                <CupSoda size={21} />
-              </span>
-              <div>
-                <h2>Handcrafted Boba</h2>
-                <p>Freshly steeped teas, creamy flavors, and chewy brown sugar pearls.</p>
-              </div>
-            </div>
-            <div className="about-essential">
-              <span className="about-essential-icon" aria-hidden="true">
-                <Heart size={21} />
-              </span>
-              <div>
-                <h2>Made For You</h2>
-                <p>Choose your sweetness, ice, and toppings—then enjoy it your way.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Section B — Our Story */}
       <section
         id="story"
@@ -137,12 +86,6 @@ export function AboutPage() {
                 alt="Water poured slowly through a coffee filter at a café counter"
               />
             </div>
-            <span className="story-seal" aria-hidden="true">
-              Poured with patience.
-              <br />
-              <Sparkles size={28} />
-              Crafted with joy.
-            </span>
           </Reveal>
           <Reveal className="story-copy">
             <p className="eyebrow">01 / The Story</p>
