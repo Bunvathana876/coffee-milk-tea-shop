@@ -13,7 +13,9 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    allowedHosts: ['workspace-hont9xpn.v0.build'],
+    // v0 sandboxes use changing preview subdomains on these two platforms.
+    // Keep this limited to the preview domains; never use allowedHosts: true.
+    allowedHosts: ['.v0.build', '.vercel.run'],
     port: 5173,
     watch: {
       usePolling: true,
