@@ -28,18 +28,18 @@ export function AboutPage() {
         <div className="cafe-hero-shade about-hero-shade" />
         <div className="cafe-hero-content cafe-container">
           <p className="eyebrow hero-enter">
-            Our Story &amp; Philosophy / Brew &amp; Boba Café
+            Coffee, milk tea &amp; a place to pause
           </p>
           <h1 id="about-hero-title" className="hero-title">
-            <span>A Little Coffee.</span>
+            <span>Two drink cultures.</span>
             <span>
-              A Lot of <em>Heart.</em>
+              One happy <em>place.</em>
             </span>
           </h1>
           <p className="hero-description hero-enter">
-            Brew &amp; Boba was created for lovers of honest craft and simple pauses.
-            From an unhurried morning pour-over to a creamy afternoon boba, every cup
-            is poured with care and meant to be savored.
+            Brew &amp; Boba brings specialty coffee and handcrafted milk tea together
+            in one warm neighborhood café. Come for a drink made your way, and stay
+            for the easygoing atmosphere.
           </p>
           <div className="hero-actions hero-enter">
             <a href="#story" className="cafe-button cafe-button-gold">
@@ -69,21 +69,6 @@ export function AboutPage() {
         </span>
       </section>
 
-      {/* Decorative transition ribbon */}
-      <div
-        className="cafe-ribbon"
-        aria-label="Careful brewing, authentic ingredients, and daily comfort"
-      >
-        <span>Honest coffee craft</span>
-        <Sparkles aria-hidden="true" />
-        <span>Hand-steeped loose teas</span>
-        <Sparkles aria-hidden="true" />
-        <span>Slow-cooked brown sugar boba</span>
-        <Sparkles aria-hidden="true" />
-        <span>Your everyday comfort</span>
-        <Sparkles aria-hidden="true" />
-      </div>
-
       {/* Section B — Our Story */}
       <section
         id="story"
@@ -101,12 +86,6 @@ export function AboutPage() {
                 alt="Water poured slowly through a coffee filter at a café counter"
               />
             </div>
-            <span className="story-seal" aria-hidden="true">
-              Poured with patience.
-              <br />
-              <Sparkles size={28} />
-              Crafted with joy.
-            </span>
           </Reveal>
           <Reveal className="story-copy">
             <p className="eyebrow">01 / The Story</p>
@@ -116,19 +95,17 @@ export function AboutPage() {
               <em>Better Moments.</em>
             </h2>
             <p className="about-lead">
-              Brew &amp; Boba is a place for comforting drinks, good conversations,
-              and the little moments that make every day special. From a morning
-              coffee to an afternoon milk tea, we believe a great drink can make
-              an ordinary moment feel extraordinary.
+              We started Brew &amp; Boba with a simple idea: coffee people and boba
+              people should have one place they both love.
             </p>
             <p>
-              We set out to unite two beloved rituals under one roof: the quiet
-              clarity of freshly ground, single-origin espresso and the playful,
-              satisfying joy of handcrafted milk tea with slow-cooked pearls.
+              So we brought the care of a specialty coffee bar together with the
+              fun and creativity of a milk tea shop. We grind, pull, steep, shake,
+              and cook in small batches so every order tastes fresh.
             </p>
             <p>
-              No rush. No shortcuts. Just a welcoming counter where you can pause,
-              breathe, and enjoy a drink tailored exactly to how you like it.
+              Whether you are meeting a friend, opening your laptop, or taking five
+              quiet minutes for yourself, you are always welcome here.
             </p>
             <div className="about-quote-box">
               <p>
@@ -170,12 +147,11 @@ export function AboutPage() {
               <div className="about-value-icon about-value-icon-teal">
                 <Sparkles size={26} aria-hidden="true" />
               </div>
-              <span className="about-value-num">01 / Craft</span>
-              <h3>Made With Care</h3>
+              <span className="about-value-num">01 / Quality</span>
+              <h3>Fresh Is Better</h3>
               <p>
-                Every cup deserves attention to flavor, quality, and detail. From
-                our roasted coffee beans to our freshly steeped tea leaves, we
-                take the time to make every sip memorable.
+                Quality beans, freshly steeped tea, and small-batch pearls give
+                every drink the flavor and texture it deserves.
               </p>
             </Reveal>
 
@@ -183,12 +159,11 @@ export function AboutPage() {
               <div className="about-value-icon about-value-icon-orange">
                 <Sliders size={26} aria-hidden="true" />
               </div>
-              <span className="about-value-num">02 / Freedom</span>
+              <span className="about-value-num">02 / Choice</span>
               <h3>Your Drink, Your Way</h3>
               <p>
-                Customize sweetness, ice, and size to create your favorite drink.
-                Whether you prefer subtle sweetness or full boba indulgence, your
-                cup is always crafted just for you.
+                Adjust the sweetness, ice, size, and toppings. We make every cup
+                to order, exactly how you like it.
               </p>
             </Reveal>
 
@@ -196,12 +171,11 @@ export function AboutPage() {
               <div className="about-value-icon about-value-icon-gold">
                 <Users size={26} aria-hidden="true" />
               </div>
-              <span className="about-value-num">03 / Connection</span>
-              <h3>Moments Worth Sharing</h3>
+              <span className="about-value-num">03 / Community</span>
+              <h3>Everyone Is Welcome</h3>
               <p>
-                Create a welcoming experience that brings people together. Our
-                café is designed to be a comfortable space for conversation,
-                quiet focus, and shared smiles.
+                A comfortable café for conversation, quiet focus, and everyday
+                moments—served with warmth and without the rush.
               </p>
             </Reveal>
           </div>

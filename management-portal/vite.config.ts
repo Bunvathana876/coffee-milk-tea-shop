@@ -7,8 +7,15 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    preview: {
+      host: '0.0.0.0',
+      // v0 uses changing sandbox hostnames; limit access to its preview domains.
+      // Do not replace with allowedHosts: true.
+      allowedHosts: ['.v0.build', '.vercel.run'],
+    },
     server: {
       host: '0.0.0.0',
+      allowedHosts: ['.v0.build', '.vercel.run'],
       port: 5175,
       strictPort: true,
       proxy: {
