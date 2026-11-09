@@ -13,6 +13,7 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
+    allowedHosts: ['workspace-hont9xpn.v0.build'],
     port: 5173,
     watch: {
       usePolling: true,
