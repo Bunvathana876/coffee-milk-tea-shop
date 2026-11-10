@@ -87,10 +87,22 @@ export interface OrderList {
   counts_by_status: Record<OrderStatus, number>
 }
 
+export interface SalesReportStatusBreakdown {
+  status: string
+  order_count: number
+  total_usd: number
+  total_khr: number
+  recognized_revenue_usd: number
+  recognized_revenue_khr: number
+}
+
 export interface SalesReport {
+  date_from?: string
+  date_to?: string
   total_revenue_usd: number
   total_revenue_khr: number
   total_orders: number
+  status_breakdown?: SalesReportStatusBreakdown[]
 }
 
 export const SESSION_INVALID_EVENT = 'brew-boba-management-session-invalid'
@@ -266,3 +278,291 @@ export const getOrder = (token: string, id: number) => request<AdminOrder>(`/api
 export const updateOrderStatus = (token: string, id: number, order_status: OrderStatus) => request<AdminOrder>(`/api/admin/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ order_status }) }, token)
 export const getSalesReport = (token: string) => request<SalesReport>('/api/admin/reports/sales', {}, token)
 export const settleCash = (token: string, id: number, reference: string) => request<{ id: number; recorded_at: string }>(`/api/admin/orders/${id}/cash-settlement`, { method: 'POST', body: JSON.stringify({ reference, confirm_cash_received: true }) }, token)
+
+export interface Customer {
+  id: number
+  full_name: string
+  phone: string
+  email: string | null
+  loyalty_stamps: number
+  is_active: boolean
+  created_at: string
+  last_login_at: string | null
+  total_orders: number
+  total_spent_usd: number
+}
+
+export interface CustomerMetrics {
+  total_customers: number
+  active_customers: number
+  inactive_customers: number
+}
+
+export interface CustomerListResponse {
+  items: Customer[]
+  total: number
+  limit: number
+  offset: number
+  metrics: CustomerMetrics
+}
+
+export interface GetCustomersParams {
+  search?: string
+  status?: 'all' | 'active' | 'inactive'
+  sort_by?: 'created_at' | 'full_name' | 'loyalty_stamps' | 'id'
+  sort_order?: 'asc' | 'desc'
+  limit?: number
+  offset?: number
+}
+
+export const getCustomers = (token: string, params: GetCustomersParams = {}) => {
+  const query = new URLSearchParams()
+  if (params.search && params.search.trim()) query.set('search', params.search.trim())
+  if (params.status && params.status !== 'all') query.set('status', params.status)
+  if (params.sort_by) query.set('sort_by', params.sort_by)
+  if (params.sort_order) query.set('sort_order', params.sort_order)
+  if (params.limit != null) query.set('limit', String(params.limit))
+  if (params.offset != null) query.set('offset', String(params.offset))
+  const queryString = query.toString()
+  return request<CustomerListResponse>(`/api/admin/customers${queryString ? `?${queryString}` : ''}`, {}, token)
+}
+
+export const getCustomer = (token: string, id: number) =>
+  request<Customer>(`/api/admin/customers/${id}`, {}, token)
+
+export interface StaffUser {
+  id: number
+  email: string
+  full_name: string
+  role: 'admin' | 'staff' | 'seller'
+  is_active: boolean
+  created_at: string
+  last_login_at: string | null
+}
+
+export const getStaff = (token: string) =>
+  request<StaffUser[]>('/api/admin/staff', {}, token)
+
+export interface Seller {
+  id: number
+  email: string
+  full_name: string
+  role: string
+  is_active: boolean
+  created_at: string
+  last_login_at: string | null
+  assigned_stores?: Store[]
+  store_name?: string | null
+  store_id?: number | null
+}
+
+export interface SellerMetrics {
+  total_sellers: number
+  active_sellers: number
+  inactive_sellers: number
+}
+
+export interface SellerListResponse {
+  configured: boolean
+  items: Seller[]
+  total: number
+  limit: number
+  offset: number
+  metrics: SellerMetrics
+  message?: string
+}
+
+export interface GetSellersParams {
+  search?: string
+  status?: 'all' | 'active' | 'inactive'
+  limit?: number
+  offset?: number
+}
+
+export const getSellers = (token: string, params: GetSellersParams = {}) => {
+  const query = new URLSearchParams()
+  if (params.search && params.search.trim()) query.set('search', params.search.trim())
+  if (params.status && params.status !== 'all') query.set('status', params.status)
+  if (params.limit != null) query.set('limit', String(params.limit))
+  if (params.offset != null) query.set('offset', String(params.offset))
+  const queryString = query.toString()
+  return request<SellerListResponse>(`/api/admin/sellers${queryString ? `?${queryString}` : ''}`, {}, token)
+}
+
+export const getSeller = (token: string, id: number) =>
+  request<Seller>(`/api/admin/sellers/${id}`, {}, token)
+
+export interface CreateSellerInput {
+  email: string
+  full_name: string
+  password: string
+  is_active?: boolean
+}
+
+export const createSeller = (token: string, input: CreateSellerInput) =>
+  request<Seller>('/api/admin/sellers', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }, token)
+
+export interface UpdateSellerInput {
+  full_name?: string
+  password?: string
+}
+
+export const updateSeller = (token: string, id: number, input: UpdateSellerInput) =>
+  request<Seller>(`/api/admin/sellers/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  }, token)
+
+export const updateSellerStatus = (token: string, id: number, isActive: boolean) =>
+  request<Seller>(`/api/admin/sellers/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ is_active: isActive }),
+  }, token)
+
+export interface SellerLoginResponse {
+  token: string
+  access_token: string
+  token_type: string
+  seller: Seller
+}
+
+export const loginSeller = (email: string, password: string) =>
+  request<SellerLoginResponse>('/api/seller/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  })
+
+export const getSellerProfile = (token: string) =>
+  request<Seller>('/api/seller/auth/me', {}, token)
+
+// =============================================================================
+// STORE REGISTRY & SELLER ASSIGNMENTS (PHASE M5C)
+// =============================================================================
+
+export interface Store {
+  id: number
+  name: string
+  code: string
+  address: string | null
+  is_active: boolean
+  created_at: string
+  assigned_sellers?: {
+    id: number
+    email: string
+    full_name: string
+    assigned_at: string
+  }[]
+  order_count?: number
+}
+
+export interface StoreMetrics {
+  total_stores: number
+  active_stores: number
+  inactive_stores: number
+}
+
+export interface StoreListResponse {
+  items: Store[]
+  total: number
+  metrics: StoreMetrics
+}
+
+export interface CreateStoreInput {
+  name: string
+  code: string
+  address?: string | null
+  is_active?: boolean
+}
+
+export interface UpdateStoreInput {
+  name?: string
+  code?: string
+  address?: string | null
+  is_active?: boolean
+}
+
+export const getStores = (token: string, params: { is_active?: boolean } = {}) => {
+  const query = new URLSearchParams()
+  if (params.is_active !== undefined) query.set('is_active', String(params.is_active))
+  const qs = query.toString()
+  return request<StoreListResponse>(`/api/admin/stores${qs ? `?${qs}` : ''}`, {}, token)
+}
+
+export const getStore = (token: string, id: number) =>
+  request<Store>(`/api/admin/stores/${id}`, {}, token)
+
+export const createStore = (token: string, input: CreateStoreInput) =>
+  request<Store>('/api/admin/stores', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  }, token)
+
+export const updateStore = (token: string, id: number, input: UpdateStoreInput) =>
+  request<Store>(`/api/admin/stores/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  }, token)
+
+export const updateStoreStatus = (token: string, id: number, isActive: boolean) =>
+  request<Store>(`/api/admin/stores/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ is_active: isActive }),
+  }, token)
+
+export const deleteStore = (token: string, id: number) =>
+  request<{ success: boolean; message: string }>(`/api/admin/stores/${id}`, {
+    method: 'DELETE',
+  }, token)
+
+export interface SellerStoreAssignmentResponse {
+  seller_id: number
+  seller_email: string
+  seller_name: string
+  stores: Store[]
+}
+
+export const getSellerStores = (token: string, sellerId: number) =>
+  request<SellerStoreAssignmentResponse>(`/api/admin/sellers/${sellerId}/stores`, {}, token)
+
+export const assignSellerStore = (token: string, sellerId: number, storeId: number) =>
+  request<{ assigned: boolean; seller_id: number; store_id: number }>(`/api/admin/sellers/${sellerId}/stores`, {
+    method: 'POST',
+    body: JSON.stringify({ store_id: storeId }),
+  }, token)
+
+export const unassignSellerStore = (token: string, sellerId: number, storeId: number) =>
+  request<{ unassigned: boolean; seller_id: number; store_id: number }>(`/api/admin/sellers/${sellerId}/stores/${storeId}`, {
+    method: 'DELETE',
+  }, token)
+
+export interface SellerStoresResponse {
+  items: (Store & { assigned_at?: string })[]
+  total: number
+}
+
+export interface SellerOrdersResponse {
+  items: AdminOrder[]
+  total: number
+  limit: number
+  offset: number
+  message?: string
+}
+
+export const getMyStores = (token: string) =>
+  request<SellerStoresResponse>('/api/seller/stores', {}, token)
+
+export const getMyOrders = (token: string, params: { store_id?: number; status?: string; limit?: number; offset?: number } = {}) => {
+  const query = new URLSearchParams()
+  if (params.store_id) query.set('store_id', String(params.store_id))
+  if (params.status) query.set('status', params.status)
+  if (params.limit != null) query.set('limit', String(params.limit))
+  if (params.offset != null) query.set('offset', String(params.offset))
+  const qs = query.toString()
+  return request<SellerOrdersResponse>(`/api/seller/orders${qs ? `?${qs}` : ''}`, {}, token)
+}
+
+export const getMyOrderDetail = (token: string, orderId: number) =>
+  request<AdminOrder>(`/api/seller/orders/${orderId}`, {}, token)

@@ -16,6 +16,12 @@ import adminProductsRouter from './routes/admin/products.js';
 import adminOrdersRouter from './routes/admin/orders.js';
 import adminDashboardRouter from './routes/admin/dashboard.js';
 import adminStaffRouter from './routes/admin/staff.js';
+import adminCustomersRouter from './routes/admin/customers.js';
+import adminSellersRouter from './routes/admin/sellers.js';
+import adminStoresRouter from './routes/admin/stores.js';
+import sellerAuthRouter from './routes/seller/auth.js';
+import sellerStoresRouter from './routes/seller/stores.js';
+import sellerOrdersRouter from './routes/seller/orders.js';
 
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
@@ -63,6 +69,12 @@ app.use('/api/admin/orders', adminOrdersRouter);
 app.use('/api/admin/dashboard', adminDashboardRouter);
 app.use('/api/admin', adminDashboardRouter); // for /api/admin/reports/sales
 app.use('/api/admin/staff', adminStaffRouter);
+app.use('/api/admin/customers', adminCustomersRouter);
+app.use('/api/admin/sellers', adminSellersRouter);
+app.use('/api/admin/stores', adminStoresRouter);
+app.use('/api/seller/auth', sellerAuthRouter);
+app.use('/api/seller/stores', sellerStoresRouter);
+app.use('/api/seller/orders', sellerOrdersRouter);
 
 // Handle 404 & errors
 app.use(notFoundHandler);

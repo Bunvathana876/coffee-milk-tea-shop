@@ -9,7 +9,11 @@ import { AdminDashboard } from './pages/AdminDashboard'
 import { CategoriesPage } from './pages/CategoriesPage'
 import { ProductsPage } from './pages/ProductsPage'
 import { OrdersPage } from './pages/OrdersPage'
+import { CustomersPage } from './pages/CustomersPage'
+import { RoleControllerPage } from './pages/RoleControllerPage'
+import { SellersPage } from './pages/SellersPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
+import { SettingsPage } from './pages/SettingsPage'
 import { PlannedPage } from './pages/PlannedPage'
 import { AccessDeniedPage, NotFoundPage } from './pages/AccessPages'
 
@@ -31,10 +35,11 @@ export default function App() {
         <Route path="products" element={<ProductsPage />} />
         <Route path="categories" element={<CategoriesPage />} />
         <Route path="orders" element={<OrdersPage />} />
-        <Route path="customers" element={<PlannedPage title="Customers" description="Understand your café community." phase={2} />} />
-        <Route path="sellers" element={<PlannedPage title="Sellers" description="Store ownership and seller accounts require new backend support." phase={5} />} />
+        <Route path="customers" element={<CustomersPage />} />
+        <Route path="role-controller" element={<RoleControllerPage />} />
+        <Route path="sellers" element={<SellersPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
-        <Route path="settings" element={<PlannedPage title="Settings" description="Configure the management workspace." phase={7} />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Route>
     <Route element={<RoleGate area="seller" />}>

@@ -3,9 +3,14 @@ import { config } from '../config.js';
 import { dbQuery } from '../db/database.js';
 
 export const STAFF_ROLES = Object.freeze(['admin', 'staff']);
+export const SELLER_ROLES = Object.freeze(['seller']);
 
 export function isSupportedStaffRole(role) {
   return STAFF_ROLES.includes(role);
+}
+
+export function isSupportedSellerRole(role) {
+  return SELLER_ROLES.includes(role);
 }
 
 export function createToken(payload, expiresIn = config.jwtExpiresIn) {
@@ -97,4 +102,37 @@ export function requireAdmin(req, res, next) {
     return res.status(403).json({ detail: 'Forbidden: Administrator privileges required.' });
   }
   next();
+}
+
+/**
+ * Ensures request has a valid Seller JWT token.
+ */
+export async function authenticateSeller(req, res, next) {
+  try {
+    const token = extractBearerToken(req);
+    if (!token) {
+      return res.status(401).json({ detail: 'Authentication credentials were not provided.' });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded || !isSupportedSellerRole(decoded.role)) {
+      return res.status(403).json({ detail: 'Forbidden: Insufficient privileges.' });
+    }
+
+    const result = await dbQuery('SELECT id, email, full_name, role, is_active FROM staff_users WHERE id = $1', [decoded.sub]);
+    const seller = result.rows[0];
+
+    if (!seller || !seller.is_active) {
+      return res.status(401).json({ detail: 'Seller account not found or inactive.' });
+    }
+
+    if (seller.role !== 'seller') {
+      return res.status(403).json({ detail: 'Forbidden: Account is not a registered seller.' });
+    }
+
+    req.seller = seller;
+    next();
+  } catch (err) {
+    next(err);
+  }
 }

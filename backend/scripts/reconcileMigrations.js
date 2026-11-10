@@ -379,6 +379,125 @@ export async function verifySchemaMigrationEffects(client) {
   }
 
   reports.push({ version: '002', name: '002_cash_settlement.sql', verified: true });
+
+  // =========================================================================
+  // MIGRATION 003 VERIFICATION
+  // =========================================================================
+
+  // 1. Column orders.store_id (integer, nullable)
+  const orderStoreColRes = await client.query(`
+    SELECT column_name, data_type, is_nullable
+    FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'orders' AND column_name = 'store_id'
+  `);
+  if (orderStoreColRes.rowCount === 0 || orderStoreColRes.rows[0].data_type !== 'integer') {
+    throw new Error('Migration 003 effect missing: orders.store_id (integer) missing.');
+  }
+
+  // 2. Table stores columns
+  const storeColsRes = await client.query(`
+    SELECT column_name, data_type, is_nullable, character_maximum_length
+    FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'stores'
+  `);
+  if (storeColsRes.rowCount === 0) {
+    throw new Error('Migration 003 effect missing: stores table does not exist.');
+  }
+  const storeCols = Object.fromEntries(storeColsRes.rows.map(r => [r.column_name, r]));
+
+  if (!storeCols.id || storeCols.id.data_type !== 'integer' || storeCols.id.is_nullable !== 'NO') {
+    throw new Error('Migration 003 effect missing: stores.id (integer NOT NULL) missing.');
+  }
+  if (!storeCols.name || storeCols.name.data_type !== 'character varying' || storeCols.name.character_maximum_length !== 120) {
+    throw new Error('Migration 003 effect missing: stores.name (varchar(120) NOT NULL) missing.');
+  }
+  if (!storeCols.code || storeCols.code.data_type !== 'character varying' || storeCols.code.character_maximum_length !== 64) {
+    throw new Error('Migration 003 effect missing: stores.code (varchar(64) NOT NULL) missing.');
+  }
+  if (!storeCols.is_active || storeCols.is_active.data_type !== 'boolean' || storeCols.is_active.is_nullable !== 'NO') {
+    throw new Error('Migration 003 effect missing: stores.is_active (boolean NOT NULL) missing.');
+  }
+
+  // 3. Table seller_store_assignments columns
+  const assignColsRes = await client.query(`
+    SELECT column_name, data_type, is_nullable
+    FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'seller_store_assignments'
+  `);
+  if (assignColsRes.rowCount === 0) {
+    throw new Error('Migration 003 effect missing: seller_store_assignments table does not exist.');
+  }
+  const assignCols = Object.fromEntries(assignColsRes.rows.map(r => [r.column_name, r]));
+
+  if (!assignCols.id || assignCols.id.data_type !== 'integer' || assignCols.id.is_nullable !== 'NO') {
+    throw new Error('Migration 003 effect missing: seller_store_assignments.id (integer NOT NULL) missing.');
+  }
+  if (!assignCols.seller_id || assignCols.seller_id.data_type !== 'integer' || assignCols.seller_id.is_nullable !== 'NO') {
+    throw new Error('Migration 003 effect missing: seller_store_assignments.seller_id (integer NOT NULL) missing.');
+  }
+  if (!assignCols.store_id || assignCols.store_id.data_type !== 'integer' || assignCols.store_id.is_nullable !== 'NO') {
+    throw new Error('Migration 003 effect missing: seller_store_assignments.store_id (integer NOT NULL) missing.');
+  }
+
+  // 4. Primary keys
+  const storePk = pkRes.rows.find(r => r.table_name === 'stores' && r.column_name === 'id');
+  if (!storePk) {
+    throw new Error('Migration 003 effect missing: stores PRIMARY KEY (id) missing.');
+  }
+  const assignPk = pkRes.rows.find(r => r.table_name === 'seller_store_assignments' && r.column_name === 'id');
+  if (!assignPk) {
+    throw new Error('Migration 003 effect missing: seller_store_assignments PRIMARY KEY (id) missing.');
+  }
+
+  // 5. Foreign keys
+  const orderStoreFk = fks.find(
+    f => f.table_name === 'orders' && f.column_name === 'store_id' &&
+         f.foreign_table_name === 'stores' && f.foreign_column_name === 'id'
+  );
+  if (!orderStoreFk || orderStoreFk.delete_rule !== 'RESTRICT') {
+    throw new Error('Migration 003 effect missing: orders.store_id FK with ON DELETE RESTRICT missing.');
+  }
+
+  const assignSellerFk = fks.find(
+    f => f.table_name === 'seller_store_assignments' && f.column_name === 'seller_id' &&
+         f.foreign_table_name === 'staff_users' && f.foreign_column_name === 'id'
+  );
+  if (!assignSellerFk || assignSellerFk.delete_rule !== 'CASCADE') {
+    throw new Error('Migration 003 effect missing: seller_store_assignments.seller_id FK with ON DELETE CASCADE missing.');
+  }
+
+  const assignStoreFk = fks.find(
+    f => f.table_name === 'seller_store_assignments' && f.column_name === 'store_id' &&
+         f.foreign_table_name === 'stores' && f.foreign_column_name === 'id'
+  );
+  if (!assignStoreFk || assignStoreFk.delete_rule !== 'CASCADE') {
+    throw new Error('Migration 003 effect missing: seller_store_assignments.store_id FK with ON DELETE CASCADE missing.');
+  }
+
+  // 6. Unique constraints
+  const hasStoreCodeUnique = uniqueRes.rows.some(
+    r => r.table_name === 'stores' && r.column_name === 'code'
+  );
+  if (!hasStoreCodeUnique) {
+    throw new Error('Migration 003 effect missing: stores UNIQUE constraint on code missing.');
+  }
+
+  // 7. Indexes
+  const allIdxRes = await client.query(`
+    SELECT indexname FROM pg_indexes WHERE schemaname = 'public'
+  `);
+  const allIndexNames = new Set(allIdxRes.rows.map(r => r.indexname));
+  if (!allIndexNames.has('idx_orders_store')) {
+    throw new Error('Migration 003 effect missing: index idx_orders_store on orders missing.');
+  }
+  if (!allIndexNames.has('idx_seller_assignments_seller')) {
+    throw new Error('Migration 003 effect missing: index idx_seller_assignments_seller on seller_store_assignments missing.');
+  }
+  if (!allIndexNames.has('idx_seller_assignments_store')) {
+    throw new Error('Migration 003 effect missing: index idx_seller_assignments_store on seller_store_assignments missing.');
+  }
+
+  reports.push({ version: '003', name: '003_stores_and_assignments.sql', verified: true });
   return reports;
 }
 

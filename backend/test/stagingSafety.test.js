@@ -53,7 +53,32 @@ function createMockValidSchemaDb(overrides = {}) {
           rows: [
             { column_name: 'customer_id', data_type: 'integer', is_nullable: 'YES', column_default: null },
             { column_name: 'payment_status', data_type: 'character varying', is_nullable: 'NO', column_default: "'unpaid'::character varying" },
+            { column_name: 'store_id', data_type: 'integer', is_nullable: 'YES', column_default: null },
           ],
+        };
+      }
+      if (sql.includes('information_schema.columns') && sql.includes("table_name = 'stores'")) {
+        return {
+          rows: [
+            { column_name: 'id', data_type: 'integer', is_nullable: 'NO', character_maximum_length: null },
+            { column_name: 'name', data_type: 'character varying', is_nullable: 'NO', character_maximum_length: 120 },
+            { column_name: 'code', data_type: 'character varying', is_nullable: 'NO', character_maximum_length: 64 },
+            { column_name: 'address', data_type: 'text', is_nullable: 'YES', character_maximum_length: null },
+            { column_name: 'is_active', data_type: 'boolean', is_nullable: 'NO', character_maximum_length: null },
+            { column_name: 'created_at', data_type: 'timestamp with time zone', is_nullable: 'NO', character_maximum_length: null },
+          ],
+          rowCount: 6,
+        };
+      }
+      if (sql.includes('information_schema.columns') && sql.includes("table_name = 'seller_store_assignments'")) {
+        return {
+          rows: [
+            { column_name: 'id', data_type: 'integer', is_nullable: 'NO', character_maximum_length: null },
+            { column_name: 'seller_id', data_type: 'integer', is_nullable: 'NO', character_maximum_length: null },
+            { column_name: 'store_id', data_type: 'integer', is_nullable: 'NO', character_maximum_length: null },
+            { column_name: 'created_at', data_type: 'timestamp with time zone', is_nullable: 'NO', character_maximum_length: null },
+          ],
+          rowCount: 4,
         };
       }
       if (sql.includes('information_schema.columns') && sql.includes("table_name = 'order_idempotency'")) {
@@ -86,10 +111,13 @@ function createMockValidSchemaDb(overrides = {}) {
         return {
           rows: [
             { table_name: 'orders', column_name: 'customer_id', foreign_table_name: 'customer_users', foreign_column_name: 'id', delete_rule: 'SET NULL' },
+            { table_name: 'orders', column_name: 'store_id', foreign_table_name: 'stores', foreign_column_name: 'id', delete_rule: 'RESTRICT' },
             { table_name: 'order_idempotency', column_name: 'customer_id', foreign_table_name: 'customer_users', foreign_column_name: 'id', delete_rule: 'CASCADE' },
             { table_name: 'order_idempotency', column_name: 'order_id', foreign_table_name: 'orders', foreign_column_name: 'id', delete_rule: 'CASCADE' },
             { table_name: 'payment_settlements', column_name: 'order_id', foreign_table_name: 'orders', foreign_column_name: 'id', delete_rule: 'RESTRICT' },
             { table_name: 'payment_settlements', column_name: 'staff_id', foreign_table_name: 'staff_users', foreign_column_name: 'id', delete_rule: 'RESTRICT' },
+            { table_name: 'seller_store_assignments', column_name: 'seller_id', foreign_table_name: 'staff_users', foreign_column_name: 'id', delete_rule: 'CASCADE' },
+            { table_name: 'seller_store_assignments', column_name: 'store_id', foreign_table_name: 'stores', foreign_column_name: 'id', delete_rule: 'CASCADE' },
           ],
         };
       }
@@ -99,6 +127,8 @@ function createMockValidSchemaDb(overrides = {}) {
             { table_name: 'order_idempotency', column_name: 'customer_id', ordinal_position: 1 },
             { table_name: 'order_idempotency', column_name: 'idempotency_key', ordinal_position: 2 },
             { table_name: 'payment_settlements', column_name: 'id', ordinal_position: 1 },
+            { table_name: 'stores', column_name: 'id', ordinal_position: 1 },
+            { table_name: 'seller_store_assignments', column_name: 'id', ordinal_position: 1 },
           ],
         };
       }
@@ -107,6 +137,8 @@ function createMockValidSchemaDb(overrides = {}) {
           rows: [
             { table_name: 'order_idempotency', column_name: 'order_id' },
             { table_name: 'payment_settlements', column_name: 'order_id' },
+            { table_name: 'stores', column_name: 'code' },
+            { table_name: 'seller_store_assignments', column_name: 'seller_id' },
           ],
         };
       }
@@ -132,7 +164,15 @@ function createMockValidSchemaDb(overrides = {}) {
         };
       }
       if (sql.includes('pg_indexes')) {
-        return { rows: [{ indexname: 'idx_orders_customer' }, { indexname: 'idx_orders_ref' }] };
+        return {
+          rows: [
+            { indexname: 'idx_orders_customer' },
+            { indexname: 'idx_orders_ref' },
+            { indexname: 'idx_orders_store' },
+            { indexname: 'idx_seller_assignments_seller' },
+            { indexname: 'idx_seller_assignments_store' },
+          ],
+        };
       }
       if (sql.includes('to_regclass')) {
         return { rows: [{ regclass: null }] };
@@ -142,8 +182,9 @@ function createMockValidSchemaDb(overrides = {}) {
           rows: [
             { version: '001', name: '001_order_idempotency_alignment.sql', checksum: 'f2e7763c1e0559bfebb21f4a7b5c58d63370ffaf52099de19f4293539fb08f72' },
             { version: '002', name: '002_cash_settlement.sql', checksum: '42cd04cfb7dd91dca4e8704bce918fa492ea15df93d4bbdc0746ee292627fdfb' },
+            { version: '003', name: '003_stores_and_assignments.sql', checksum: 'ef87f1444d7739af7f47362519d3566e5844e675ce03efa2eb8a89b5f909ef4a' },
           ],
-          rowCount: 2,
+          rowCount: 3,
         };
       }
       return { rows: [], rowCount: 0 };
@@ -279,8 +320,9 @@ test('migration verification rejects missing or disabled payment audit triggers'
           rows: [
             { version: '001', name: '001_order_idempotency_alignment.sql', checksum: 'f2e7763c1e0559bfebb21f4a7b5c58d63370ffaf52099de19f4293539fb08f72' },
             { version: '002', name: '002_cash_settlement.sql', checksum: '42cd04cfb7dd91dca4e8704bce918fa492ea15df93d4bbdc0746ee292627fdfb' },
+            { version: '003', name: '003_stores_and_assignments.sql', checksum: 'ef87f1444d7739af7f47362519d3566e5844e675ce03efa2eb8a89b5f909ef4a' },
           ],
-          rowCount: 2,
+          rowCount: 3,
         };
       }
       if (sql.includes('FROM pg_trigger')) {
@@ -403,9 +445,10 @@ test('assertAuthorizedStagingTarget rejects unauthorized branch, endpoint, or da
 test('verifySchemaMigrationEffects accepts complete, valid schema', async () => {
   const mockDb = createMockValidSchemaDb();
   const reports = await verifySchemaMigrationEffects(mockDb);
-  assert.equal(reports.length, 2);
+  assert.equal(reports.length, 3);
   assert.equal(reports[0].version, '001');
   assert.equal(reports[1].version, '002');
+  assert.equal(reports[2].version, '003');
 });
 
 test('verifySchemaMigrationEffects rejects missing composite primary key on order_idempotency', async () => {
@@ -497,7 +540,7 @@ test('reconcileMigrations dry-run reports planned actions without executing writ
   const result = await reconcileMigrations(mockDb, { execute: false });
   assert.equal(result.dryRun, true);
   assert.equal(result.trackingTableExists, false);
-  assert.equal(result.actions.length, 2);
+  assert.equal(result.actions.length, 3);
   assert.ok(result.actions.every(a => a.action === 'insert'));
 
   // Ensure no BEGIN/COMMIT/INSERT queries were executed

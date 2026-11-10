@@ -11,7 +11,7 @@ let isTestMemoryDatabase = false;
 // In-memory SQL store used only by explicitly isolated tests.
 class MemoryPgDb {
   constructor() {
-    this.sequences = { categories: 1, products: 1, customer_users: 1, staff_users: 1, orders: 1, order_items: 1 };
+    this.sequences = { categories: 1, products: 1, customer_users: 1, staff_users: 1, orders: 1, order_items: 1, security_audit_logs: 1, stores: 1, seller_store_assignments: 1 };
     this.tables = {
       categories: [],
       products: [],
@@ -20,6 +20,9 @@ class MemoryPgDb {
       orders: [],
       order_items: [],
       order_idempotency: [],
+      security_audit_logs: [],
+      stores: [],
+      seller_store_assignments: [],
     };
     this.transactionQueue = Promise.resolve();
   }
@@ -115,25 +118,64 @@ class MemoryPgDb {
       } else if (tableName === 'products') {
         row = { ...row, category_id: Number(params[0]), name: params[1], description: params[2], image: params[3], base_price_usd: Number(params[4]), is_available: Boolean(params[5]) };
       } else if (tableName === 'staff_users') {
-        row = { ...row, email: params[0], full_name: params[1], role: params[2], password_hash: params[3], is_active: true };
+        row = { ...row, email: params[0], full_name: params[1], role: params[2], password_hash: params[3], is_active: params[4] !== undefined ? Boolean(params[4]) : true };
       } else if (tableName === 'customer_users') {
         row = { ...row, full_name: params[0], phone: params[1], email: params[2] || null, password_hash: params[3], loyalty_stamps: 0, is_active: true, last_login_at: new Date().toISOString() };
       } else if (tableName === 'orders') {
+        const colMatch = cleanSql.match(/^INSERT INTO orders\s*\(([^)]+)\)/i);
+        const valMatch = cleanSql.match(/VALUES\s*\(([^)]+)\)/i);
         row = {
           ...row,
-          order_number: params[0],
-          customer_name: params[1],
-          customer_phone: params[2],
-          customer_email: params[3] || null,
-          notes: params[4] || null,
-          subtotal_usd: Number(params[5]),
-          total_usd: Number(params[6]),
-          total_khr: Number(params[7]),
-          payment_method: params[8] || 'cash',
-          customer_id: params[9] == null ? null : Number(params[9]),
+          subtotal_usd: 0,
+          total_usd: 0,
+          total_khr: 0,
+          payment_method: 'cash',
           payment_status: 'unpaid',
           order_status: 'pending',
+          customer_id: null,
+          store_id: null,
         };
+        if (colMatch) {
+          const cols = colMatch[1].split(',').map(c => c.trim().toLowerCase());
+          if (valMatch) {
+            const valExprs = valMatch[1].split(',').map(v => v.trim());
+            cols.forEach((col, idx) => {
+              const expr = valExprs[idx];
+              if (!expr) return;
+              if (expr.startsWith('$')) {
+                const pIdx = parseInt(expr.slice(1), 10) - 1;
+                const pVal = params[pIdx];
+                if (['subtotal_usd', 'total_usd', 'total_khr', 'customer_id', 'store_id'].includes(col)) {
+                  row[col] = pVal == null ? null : Number(pVal);
+                } else {
+                  row[col] = pVal;
+                }
+              } else if (expr.toUpperCase() === 'NULL') {
+                row[col] = null;
+              } else if (expr.toUpperCase() === 'TRUE') {
+                row[col] = true;
+              } else if (expr.toUpperCase() === 'FALSE') {
+                row[col] = false;
+              } else if ((expr.startsWith("'") && expr.endsWith("'")) || (expr.startsWith('"') && expr.endsWith('"'))) {
+                row[col] = expr.slice(1, -1);
+              } else if (!isNaN(Number(expr))) {
+                row[col] = Number(expr);
+              } else {
+                row[col] = expr;
+              }
+            });
+          } else {
+            cols.forEach((col, idx) => {
+              if (params[idx] !== undefined) {
+                if (['subtotal_usd', 'total_usd', 'total_khr', 'customer_id', 'store_id'].includes(col)) {
+                  row[col] = params[idx] == null ? null : Number(params[idx]);
+                } else {
+                  row[col] = params[idx];
+                }
+              }
+            });
+          }
+        }
       } else if (tableName === 'order_items') {
         row = {
           ...row,
@@ -147,6 +189,37 @@ class MemoryPgDb {
           sugar_level: params[7],
           ice_level: params[8],
           toppings: params[9] || '',
+        };
+      } else if (tableName === 'security_audit_logs') {
+        row = {
+          ...row,
+          actor_id: Number(params[0]),
+          actor_role: params[1],
+          action: params[2],
+          target_type: params[3],
+          target_id: params[4] == null ? null : Number(params[4]),
+          details: params[5],
+          ip_address: params[6] || null,
+        };
+      } else if (tableName === 'stores') {
+        row = {
+          ...row,
+          name: String(params[0]).trim(),
+          code: String(params[1]).trim().toUpperCase(),
+          address: params[2] || null,
+          is_active: params[3] !== undefined ? Boolean(params[3]) : true,
+        };
+      } else if (tableName === 'seller_store_assignments') {
+        const sellerId = Number(params[0]);
+        const storeId = Number(params[1]);
+        const existing = table.find(a => a.seller_id === sellerId && a.store_id === storeId);
+        if (existing) {
+          return Promise.resolve({ rows: [existing], rowCount: 1 });
+        }
+        row = {
+          ...row,
+          seller_id: sellerId,
+          store_id: storeId,
         };
       }
 
@@ -215,31 +288,179 @@ class MemoryPgDb {
       return Promise.resolve({ rows, rowCount: rows.length });
     }
 
+    // Customer metrics for admin
+    if (/SELECT\s+COUNT\(\*\)\s+as\s+total_customers/i.test(cleanSql)) {
+      const customers = this.tables.customer_users || [];
+      const total_customers = customers.length;
+      const active_customers = customers.filter(c => c.is_active).length;
+      const inactive_customers = customers.filter(c => !c.is_active).length;
+      return Promise.resolve({
+        rows: [{ total_customers, active_customers, inactive_customers }],
+        rowCount: 1,
+      });
+    }
+
+    if (/SELECT\s+COUNT\(\*\)\s+as\s+count\s+FROM\s+customer_users/i.test(cleanSql)) {
+      let rows = [...(this.tables.customer_users || [])];
+      if (/is_active = TRUE/i.test(cleanSql)) {
+        rows = rows.filter(r => r.is_active);
+      } else if (/is_active = FALSE/i.test(cleanSql)) {
+        rows = rows.filter(r => !r.is_active);
+      }
+      if (/ILIKE/i.test(cleanSql)) {
+        const searchParam = params.find(p => typeof p === 'string' && p.startsWith('%') && p.endsWith('%'));
+        if (searchParam) {
+          const term = searchParam.replace(/%/g, '').toLowerCase();
+          rows = rows.filter(r =>
+            (r.full_name && r.full_name.toLowerCase().includes(term)) ||
+            (r.email && r.email.toLowerCase().includes(term)) ||
+            (r.phone && r.phone.includes(term))
+          );
+        }
+      }
+      return Promise.resolve({ rows: [{ count: rows.length }], rowCount: 1 });
+    }
+
     // 5. SELECT FROM customer_users
     if (/^SELECT/i.test(cleanSql) && /FROM customer_users/i.test(cleanSql)) {
       let rows = [...this.tables.customer_users];
       if (/WHERE phone = \$1 OR LOWER\(email\) = LOWER\(\$2\)/i.test(cleanSql)) {
         const iden = String(params[0]).toLowerCase();
         rows = rows.filter(r => r.phone === params[0] || (r.email && r.email.toLowerCase() === iden));
-      } else if (/WHERE id = \$1/i.test(cleanSql)) {
+      } else if (/WHERE (?:c\.)?id = \$1/i.test(cleanSql)) {
         rows = rows.filter(r => r.id === Number(params[0]));
       } else if (/WHERE phone = \$1/i.test(cleanSql)) {
         rows = rows.filter(r => r.phone === String(params[0]));
       } else if (/WHERE email = \$1/i.test(cleanSql)) {
         rows = rows.filter(r => r.email && r.email.toLowerCase() === String(params[0]).toLowerCase());
+      } else {
+        if (/is_active = TRUE/i.test(cleanSql)) {
+          rows = rows.filter(r => r.is_active);
+        } else if (/is_active = FALSE/i.test(cleanSql)) {
+          rows = rows.filter(r => !r.is_active);
+        }
+        if (/ILIKE/i.test(cleanSql)) {
+          const searchParam = params.find(p => typeof p === 'string' && p.startsWith('%') && p.endsWith('%'));
+          if (searchParam) {
+            const term = searchParam.replace(/%/g, '').toLowerCase();
+            rows = rows.filter(r =>
+              (r.full_name && r.full_name.toLowerCase().includes(term)) ||
+              (r.email && r.email.toLowerCase().includes(term)) ||
+              (r.phone && r.phone.includes(term))
+            );
+          }
+        }
       }
+
+      if (/LEFT JOIN orders/i.test(cleanSql)) {
+        const orders = this.tables.orders || [];
+        rows = rows.map(c => {
+          const custOrders = orders.filter(o => o.customer_id === c.id);
+          const total_orders = custOrders.length;
+          const total_spent_usd = custOrders
+            .filter(o => o.payment_status === 'paid' && o.order_status === 'completed')
+            .reduce((sum, o) => sum + (o.total_usd || 0), 0);
+          return {
+            ...c,
+            total_orders,
+            total_spent_usd,
+          };
+        });
+      }
+
+      if (/ORDER BY/i.test(cleanSql)) {
+        if (/c\.full_name ASC/i.test(cleanSql)) {
+          rows.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+        } else if (/c\.full_name DESC/i.test(cleanSql)) {
+          rows.sort((a, b) => (b.full_name || '').localeCompare(a.full_name || ''));
+        } else if (/c\.loyalty_stamps DESC/i.test(cleanSql)) {
+          rows.sort((a, b) => (b.loyalty_stamps || 0) - (a.loyalty_stamps || 0));
+        } else if (/c\.created_at ASC/i.test(cleanSql)) {
+          rows.sort((a, b) => a.id - b.id);
+        } else {
+          rows.sort((a, b) => b.id - a.id);
+        }
+      }
+
+      if (/LIMIT \$\d+/i.test(cleanSql)) {
+        const limitIndex = Number(cleanSql.match(/LIMIT \$(\d+)/i)[1]) - 1;
+        const offsetMatch = cleanSql.match(/OFFSET \$(\d+)/i);
+        const offset = offsetMatch ? Number(params[Number(offsetMatch[1]) - 1]) : 0;
+        rows = rows.slice(offset, offset + Number(params[limitIndex]));
+      }
+
       return Promise.resolve({ rows, rowCount: rows.length });
     }
 
     // 6. SELECT FROM staff_users
     if (/^SELECT/i.test(cleanSql) && /FROM staff_users/i.test(cleanSql)) {
       let rows = [...this.tables.staff_users];
-      if (/WHERE email = \$1/i.test(cleanSql) || /WHERE LOWER\(email\) = \$1/i.test(cleanSql) || /WHERE LOWER\(email\) = LOWER\(\$1\)/i.test(cleanSql)) {
-        rows = rows.filter(r => r.email.toLowerCase() === String(params[0]).toLowerCase());
-      } else if (/WHERE id = \$1/i.test(cleanSql)) {
-        rows = rows.filter(r => r.id === Number(params[0]));
+
+      if (/COUNT\(CASE WHEN is_active = TRUE/i.test(cleanSql)) {
+        const sellers = rows.filter(r => r.role === 'seller');
+        const active = sellers.filter(s => s.is_active).length;
+        const inactive = sellers.filter(s => !s.is_active).length;
+        return Promise.resolve({
+          rows: [{ total_sellers: sellers.length, active_sellers: active, inactive_sellers: inactive }],
+          rowCount: 1,
+        });
       }
+
+      if (/COUNT\(\*\)/i.test(cleanSql)) {
+        if (/role = 'seller'/i.test(cleanSql) || /role = \$1/i.test(cleanSql)) {
+          let filtered = rows.filter(r => r.role === 'seller');
+          if (/is_active = TRUE/i.test(cleanSql)) filtered = filtered.filter(r => r.is_active);
+          if (/is_active = FALSE/i.test(cleanSql)) filtered = filtered.filter(r => !r.is_active);
+          if (/LIKE/i.test(cleanSql) && params.length > 0) {
+            const term = String(params[0]).replace(/%/g, '').toLowerCase();
+            filtered = filtered.filter(r => (r.full_name && r.full_name.toLowerCase().includes(term)) || (r.email && r.email.toLowerCase().includes(term)));
+          }
+          return Promise.resolve({ rows: [{ count: filtered.length }], rowCount: 1 });
+        }
+        if (/role = 'admin'/i.test(cleanSql)) {
+          let filtered = rows.filter(r => r.role === 'admin' && r.is_active);
+          if (/id != \$1/i.test(cleanSql) || /id <> \$1/i.test(cleanSql)) {
+            filtered = filtered.filter(r => r.id !== Number(params[0]));
+          }
+          return Promise.resolve({ rows: [{ count: filtered.length }], rowCount: 1 });
+        }
+        return Promise.resolve({ rows: [{ count: rows.length }], rowCount: 1 });
+      }
+
+      if (/WHERE email = \$1/i.test(cleanSql) || /WHERE LOWER\(email\) = \$1/i.test(cleanSql) || /WHERE LOWER\(email\) = LOWER\(\$1\)/i.test(cleanSql)) {
+        if (/AND role = 'seller'/i.test(cleanSql)) {
+          rows = rows.filter(r => r.email.toLowerCase() === String(params[0]).toLowerCase() && r.role === 'seller');
+        } else {
+          rows = rows.filter(r => r.email.toLowerCase() === String(params[0]).toLowerCase());
+        }
+      } else if (/WHERE id = \$1/i.test(cleanSql)) {
+        if (/AND role = 'seller'/i.test(cleanSql)) {
+          rows = rows.filter(r => r.id === Number(params[0]) && r.role === 'seller');
+        } else {
+          rows = rows.filter(r => r.id === Number(params[0]));
+        }
+      } else if (/WHERE role = 'seller'/i.test(cleanSql)) {
+        rows = rows.filter(r => r.role === 'seller');
+        if (/is_active = TRUE/i.test(cleanSql)) rows = rows.filter(r => r.is_active);
+        if (/is_active = FALSE/i.test(cleanSql)) rows = rows.filter(r => !r.is_active);
+        if (/LIKE/i.test(cleanSql) && params.length > 0) {
+          const term = String(params[0]).replace(/%/g, '').toLowerCase();
+          rows = rows.filter(r => (r.full_name && r.full_name.toLowerCase().includes(term)) || (r.email && r.email.toLowerCase().includes(term)));
+        }
+      }
+
+      if (/LIMIT \$\d+/i.test(cleanSql)) {
+        const limitIndex = Number(cleanSql.match(/LIMIT \$(\d+)/i)[1]) - 1;
+        const offsetMatch = cleanSql.match(/OFFSET \$(\d+)/i);
+        const offset = offsetMatch ? Number(params[Number(offsetMatch[1]) - 1]) : 0;
+        rows = rows.slice(offset, offset + Number(params[limitIndex]));
+      }
+
       return Promise.resolve({ rows, rowCount: rows.length });
+    }
+
+    if (/^SELECT/i.test(cleanSql) && /FROM security_audit_logs/i.test(cleanSql)) {
+      return Promise.resolve({ rows: [...this.tables.security_audit_logs], rowCount: this.tables.security_audit_logs.length });
     }
 
     // 7. SELECT FROM orders
@@ -248,9 +469,132 @@ class MemoryPgDb {
       return Promise.resolve({ rows, rowCount: rows.length });
     }
 
+    // Store metrics for admin
+    if (/SELECT\s+COUNT\(\*\)(?:::int)?\s+AS\s+total_stores/i.test(cleanSql)) {
+      const stores = this.tables.stores || [];
+      const total_stores = stores.length;
+      const active_stores = stores.filter(s => s.is_active).length;
+      const inactive_stores = stores.filter(s => !s.is_active).length;
+      return Promise.resolve({
+        rows: [{ total_stores, active_stores, inactive_stores }],
+        rowCount: 1,
+      });
+    }
+
+    if (/SELECT\s+COUNT\(\*\)(?:::int)?\s+AS\s+count\s+FROM\s+stores/i.test(cleanSql)) {
+      let rows = [...(this.tables.stores || [])];
+      if (/is_active = TRUE/i.test(cleanSql)) {
+        rows = rows.filter(r => r.is_active);
+      } else if (/is_active = FALSE/i.test(cleanSql)) {
+        rows = rows.filter(r => !r.is_active);
+      }
+      if (/ILIKE|LIKE/i.test(cleanSql)) {
+        const searchParam = params.find(p => typeof p === 'string' && p.startsWith('%') && p.endsWith('%'));
+        if (searchParam) {
+          const term = searchParam.replace(/%/g, '').toLowerCase();
+          rows = rows.filter(r =>
+            (r.name && r.name.toLowerCase().includes(term)) ||
+            (r.code && r.code.toLowerCase().includes(term)) ||
+            (r.address && r.address.toLowerCase().includes(term))
+          );
+        }
+      }
+      return Promise.resolve({ rows: [{ count: rows.length }], rowCount: 1 });
+    }
+
+    // SELECT FROM stores
+    if (/^SELECT/i.test(cleanSql) && /FROM stores/i.test(cleanSql) && !/JOIN/i.test(cleanSql)) {
+      let rows = [...(this.tables.stores || [])];
+      if (/WHERE id = \$1/i.test(cleanSql)) {
+        rows = rows.filter(s => s.id === Number(params[0]));
+      } else if (/WHERE code = \$1/i.test(cleanSql) || /WHERE LOWER\(code\) = LOWER\(\$1\)/i.test(cleanSql)) {
+        rows = rows.filter(s => s.code.toLowerCase() === String(params[0]).toLowerCase());
+        if (/AND id != \$2/i.test(cleanSql) || /AND id <> \$2/i.test(cleanSql)) {
+          rows = rows.filter(s => s.id !== Number(params[1]));
+        }
+      } else {
+        if (/is_active = TRUE/i.test(cleanSql)) rows = rows.filter(s => s.is_active);
+        if (/is_active = FALSE/i.test(cleanSql)) rows = rows.filter(s => !s.is_active);
+        if (/ILIKE|LIKE/i.test(cleanSql)) {
+          const searchParam = params.find(p => typeof p === 'string' && p.startsWith('%') && p.endsWith('%'));
+          if (searchParam) {
+            const term = searchParam.replace(/%/g, '').toLowerCase();
+            rows = rows.filter(s =>
+              (s.name && s.name.toLowerCase().includes(term)) ||
+              (s.code && s.code.toLowerCase().includes(term)) ||
+              (s.address && s.address.toLowerCase().includes(term))
+            );
+          }
+        }
+      }
+
+      rows.sort((a, b) => a.id - b.id);
+      if (/LIMIT \$\d+/i.test(cleanSql)) {
+        const limitIndex = Number(cleanSql.match(/LIMIT \$(\d+)/i)[1]) - 1;
+        const offsetMatch = cleanSql.match(/OFFSET \$(\d+)/i);
+        const offset = offsetMatch ? Number(params[Number(offsetMatch[1]) - 1]) : 0;
+        rows = rows.slice(offset, offset + Number(params[limitIndex]));
+      }
+
+      return Promise.resolve({ rows, rowCount: rows.length });
+    }
+
+    // SELECT FROM seller_store_assignments
+    if (/^SELECT/i.test(cleanSql) && /FROM seller_store_assignments/i.test(cleanSql)) {
+      const assignments = [...(this.tables.seller_store_assignments || [])];
+      const stores = this.tables.stores || [];
+
+      if (/JOIN stores/i.test(cleanSql)) {
+        const sellerId = Number(params[0]);
+        const sellerAssignments = assignments.filter(a => a.seller_id === sellerId);
+        let joinedStores = sellerAssignments
+          .map(a => {
+            const s = stores.find(st => st.id === a.store_id);
+            if (!s) return null;
+            return { ...s, store_id: s.id, assigned_at: a.created_at };
+          })
+          .filter(Boolean);
+        if (/s\.is_active = TRUE/i.test(cleanSql) || /is_active = TRUE/i.test(cleanSql)) {
+          joinedStores = joinedStores.filter(s => s.is_active);
+        }
+        return Promise.resolve({ rows: joinedStores, rowCount: joinedStores.length });
+      }
+
+      let rows = assignments;
+      if (/WHERE seller_id = \$1 AND store_id = \$2/i.test(cleanSql)) {
+        rows = rows.filter(a => a.seller_id === Number(params[0]) && a.store_id === Number(params[1]));
+      } else if (/WHERE seller_id = \$1/i.test(cleanSql)) {
+        rows = rows.filter(a => a.seller_id === Number(params[0]));
+      } else if (/WHERE store_id = \$1/i.test(cleanSql)) {
+        rows = rows.filter(a => a.store_id === Number(params[0]));
+      }
+      return Promise.resolve({ rows, rowCount: rows.length });
+    }
+
+    // Orders count for seller store scoping
+    if (/SELECT\s+COUNT\(\*\)(?:::int)?\s+AS\s+count\s+FROM\s+orders/i.test(cleanSql)) {
+      let rows = [...(this.tables.orders || [])];
+      if (/store_id = ANY\(\$1\)/i.test(cleanSql)) {
+        const storeIds = Array.isArray(params[0]) ? params[0].map(Number) : [Number(params[0])];
+        rows = rows.filter(r => r.store_id != null && storeIds.includes(r.store_id));
+      } else if (/order_status = \$1/i.test(cleanSql)) {
+        rows = rows.filter(r => r.order_status === String(params[0]));
+      }
+      return Promise.resolve({ rows: [{ count: rows.length }], rowCount: 1 });
+    }
+
     if (/^SELECT/i.test(cleanSql) && /FROM orders/i.test(cleanSql)) {
       let rows = [...this.tables.orders];
-      if (/WHERE customer_id = \$1/i.test(cleanSql)) {
+      if (/WHERE id = \$1 AND (?:o\.)?store_id = ANY\(\$2\)/i.test(cleanSql) || /WHERE id = \$1 AND (?:o\.)?store_id IN/i.test(cleanSql)) {
+        const orderId = Number(params[0]);
+        const storeIds = Array.isArray(params[1]) ? params[1].map(Number) : [Number(params[1])];
+        rows = rows.filter(r => r.id === orderId && r.store_id != null && storeIds.includes(r.store_id));
+      } else if (/store_id = ANY\(\$1\)/i.test(cleanSql) || /store_id IN \(/i.test(cleanSql)) {
+        const storeIds = Array.isArray(params[0]) ? params[0].map(Number) : [Number(params[0])];
+        rows = rows.filter(r => r.store_id != null && storeIds.includes(r.store_id));
+      } else if (/WHERE store_id = \$1/i.test(cleanSql)) {
+        rows = rows.filter(r => r.store_id === Number(params[0]));
+      } else if (/WHERE customer_id = \$1/i.test(cleanSql)) {
         rows = rows.filter(r => r.customer_id === Number(params[0]));
         if (/customer_phone = \$2/i.test(cleanSql)) {
           rows = rows.filter(r => r.customer_phone === String(params[1]));
@@ -309,8 +653,12 @@ class MemoryPgDb {
       const staff = this.tables.staff_users.find(s => s.id === id);
       if (staff) {
         if (/last_login_at/i.test(cleanSql)) staff.last_login_at = new Date().toISOString();
-        if (/full_name = \$/i.test(cleanSql)) staff.full_name = params[0];
-        if (/role = \$/i.test(cleanSql)) staff.role = params[params.length - 2];
+        if (/is_active\s*=\s*FALSE/i.test(cleanSql)) staff.is_active = false;
+        if (/is_active\s*=\s*TRUE/i.test(cleanSql)) staff.is_active = true;
+        for (const [, field, position] of cleanSql.matchAll(/(full_name|email|password_hash|is_active|role) = \$(\d+)/gi)) {
+          const val = params[Number(position) - 1];
+          staff[field] = field === 'is_active' ? Boolean(val) : val;
+        }
       }
       return Promise.resolve({ rows: staff ? [staff] : [], rowCount: staff ? 1 : 0 });
     }
@@ -336,6 +684,17 @@ class MemoryPgDb {
       }
       return Promise.resolve({ rows: prod ? [prod] : [], rowCount: prod ? 1 : 0 });
     }
+    if (/^UPDATE stores SET/i.test(cleanSql)) {
+      const id = Number(params[params.length - 1]);
+      const store = this.tables.stores.find(s => s.id === id);
+      if (store) {
+        for (const [, field, position] of cleanSql.matchAll(/(name|code|address|is_active) = \$(\d+)/gi)) {
+          const val = params[Number(position) - 1];
+          store[field] = field === 'is_active' ? Boolean(val) : val;
+        }
+      }
+      return Promise.resolve({ rows: store ? [store] : [], rowCount: store ? 1 : 0 });
+    }
     if (/^UPDATE orders SET/i.test(cleanSql)) {
       const orderId = Number(params[params.length - 1]);
       const order = this.tables.orders.find(o => o.id === orderId);
@@ -344,11 +703,31 @@ class MemoryPgDb {
         if (/payment_status = \$1/i.test(cleanSql) || /payment_status = \$2/i.test(cleanSql)) {
           order.payment_status = params[params.length - 2];
         }
+        if (/store_id = \$/i.test(cleanSql)) {
+          order.store_id = params[0] == null ? null : Number(params[0]);
+        }
       }
       return Promise.resolve({ rows: order ? [order] : [], rowCount: order ? 1 : 0 });
     }
 
     // 10. DELETE
+    if (/^DELETE FROM seller_store_assignments/i.test(cleanSql)) {
+      const before = this.tables.seller_store_assignments.length;
+      if (/WHERE seller_id = \$1 AND store_id = \$2/i.test(cleanSql)) {
+        this.tables.seller_store_assignments = this.tables.seller_store_assignments.filter(
+          a => !(a.seller_id === Number(params[0]) && a.store_id === Number(params[1]))
+        );
+      } else if (/WHERE seller_id = \$1/i.test(cleanSql)) {
+        this.tables.seller_store_assignments = this.tables.seller_store_assignments.filter(
+          a => a.seller_id !== Number(params[0])
+        );
+      } else if (/WHERE store_id = \$1/i.test(cleanSql)) {
+        this.tables.seller_store_assignments = this.tables.seller_store_assignments.filter(
+          a => a.store_id !== Number(params[0])
+        );
+      }
+      return Promise.resolve({ rowCount: before - this.tables.seller_store_assignments.length, rows: [] });
+    }
     if (/^DELETE FROM categories WHERE id = \$1/i.test(cleanSql)) {
       const before = this.tables.categories.length;
       this.tables.categories = this.tables.categories.filter(c => c.id !== Number(params[0]));
@@ -578,11 +957,48 @@ export async function initSchema(db) {
       PRIMARY KEY (customer_id, idempotency_key)
     );
 
+    CREATE TABLE IF NOT EXISTS security_audit_logs (
+      id SERIAL PRIMARY KEY,
+      actor_id INTEGER,
+      actor_role VARCHAR(50),
+      action VARCHAR(100) NOT NULL,
+      target_type VARCHAR(50),
+      target_id INTEGER,
+      details JSONB,
+      ip_address VARCHAR(100),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS stores (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(120) NOT NULL,
+      code VARCHAR(64) NOT NULL UNIQUE,
+      address TEXT,
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS seller_store_assignments (
+      id SERIAL PRIMARY KEY,
+      seller_id INTEGER NOT NULL REFERENCES staff_users(id) ON DELETE CASCADE,
+      store_id INTEGER NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT uq_seller_store UNIQUE (seller_id, store_id)
+    );
+
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_id INTEGER REFERENCES stores(id) ON DELETE RESTRICT;
+
     CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
     CREATE INDEX IF NOT EXISTS idx_orders_phone ON orders(customer_phone);
     CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id);
     CREATE INDEX IF NOT EXISTS idx_orders_ref ON orders(order_number);
+    CREATE INDEX IF NOT EXISTS idx_orders_store ON orders(store_id);
     CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
+    CREATE INDEX IF NOT EXISTS idx_stores_code ON stores(code);
+    CREATE INDEX IF NOT EXISTS idx_seller_assignments_seller ON seller_store_assignments(seller_id);
+    CREATE INDEX IF NOT EXISTS idx_seller_assignments_store ON seller_store_assignments(store_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_actor ON security_audit_logs(actor_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_action ON security_audit_logs(action);
   `;
 
   if (isConnectedToPostgres && db) {
