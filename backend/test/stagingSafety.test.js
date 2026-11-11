@@ -182,7 +182,7 @@ function createMockValidSchemaDb(overrides = {}) {
           rows: [
             { version: '001', name: '001_order_idempotency_alignment.sql', checksum: 'f2e7763c1e0559bfebb21f4a7b5c58d63370ffaf52099de19f4293539fb08f72' },
             { version: '002', name: '002_cash_settlement.sql', checksum: '42cd04cfb7dd91dca4e8704bce918fa492ea15df93d4bbdc0746ee292627fdfb' },
-            { version: '003', name: '003_stores_and_assignments.sql', checksum: 'ef87f1444d7739af7f47362519d3566e5844e675ce03efa2eb8a89b5f909ef4a' },
+            { version: '003', name: '003_stores_and_assignments.sql', checksum: 'ca18f25afd1260d70d61fb193afeb12a37a6236d25d5fb2a49a510ef3fb32884' },
           ],
           rowCount: 3,
         };
@@ -320,7 +320,7 @@ test('migration verification rejects missing or disabled payment audit triggers'
           rows: [
             { version: '001', name: '001_order_idempotency_alignment.sql', checksum: 'f2e7763c1e0559bfebb21f4a7b5c58d63370ffaf52099de19f4293539fb08f72' },
             { version: '002', name: '002_cash_settlement.sql', checksum: '42cd04cfb7dd91dca4e8704bce918fa492ea15df93d4bbdc0746ee292627fdfb' },
-            { version: '003', name: '003_stores_and_assignments.sql', checksum: 'ef87f1444d7739af7f47362519d3566e5844e675ce03efa2eb8a89b5f909ef4a' },
+            { version: '003', name: '003_stores_and_assignments.sql', checksum: 'ca18f25afd1260d70d61fb193afeb12a37a6236d25d5fb2a49a510ef3fb32884' },
           ],
           rowCount: 3,
         };

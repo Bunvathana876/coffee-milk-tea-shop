@@ -53,3 +53,5 @@ archive/
 
 # Neon local workspace metadata
 .neon
+.vercel
+.env*

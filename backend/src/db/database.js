@@ -503,7 +503,55 @@ class MemoryPgDb {
     }
 
     // SELECT FROM stores
-    if (/^SELECT/i.test(cleanSql) && /FROM stores/i.test(cleanSql) && !/JOIN/i.test(cleanSql)) {
+    if (/^SELECT/i.test(cleanSql) && /FROM stores/i.test(cleanSql)) {
+      // Handle store listing with LEFT JOIN on assignments and orders
+      if (/LEFT JOIN|JOIN/i.test(cleanSql) && /GROUP BY/i.test(cleanSql)) {
+        let rows = [...(this.tables.stores || [])];
+        if (/s\.is_active = TRUE|is_active = TRUE/i.test(cleanSql)) {
+          rows = rows.filter(s => s.is_active);
+        } else if (/s\.is_active = FALSE|is_active = FALSE/i.test(cleanSql)) {
+          rows = rows.filter(s => !s.is_active);
+        }
+        if (/ILIKE|LIKE/i.test(cleanSql)) {
+          const searchParam = params.find(p => typeof p === 'string' && p.startsWith('%') && p.endsWith('%'));
+          if (searchParam) {
+            const term = searchParam.replace(/%/g, '').toLowerCase();
+            rows = rows.filter(r =>
+              (r.name && r.name.toLowerCase().includes(term)) ||
+              (r.code && r.code.toLowerCase().includes(term)) ||
+              (r.address && r.address.toLowerCase().includes(term))
+            );
+          }
+        }
+        const assignments = this.tables.seller_store_assignments || [];
+        const orders = this.tables.orders || [];
+
+        const enriched = rows.map(s => {
+          const storeAssignments = assignments.filter(sa => sa.store_id === s.id);
+          const assigned_sellers_count = new Set(storeAssignments.map(sa => sa.seller_id)).size;
+          const storeOrders = orders.filter(o => o.store_id === s.id);
+          const total_orders_count = new Set(storeOrders.map(o => o.id)).size;
+          return {
+            id: s.id,
+            name: s.name,
+            code: s.code,
+            address: s.address || null,
+            is_active: Boolean(s.is_active),
+            created_at: s.created_at,
+            assigned_sellers_count,
+            total_orders_count,
+          };
+        });
+
+        enriched.sort((a, b) => a.id - b.id);
+        if (/LIMIT \$\d+/i.test(cleanSql)) {
+          const limitIndex = Number(cleanSql.match(/LIMIT \$(\d+)/i)[1]) - 1;
+          const offsetMatch = cleanSql.match(/OFFSET \$(\d+)/i);
+          const offset = offsetMatch ? Number(params[Number(offsetMatch[1]) - 1]) : 0;
+          return Promise.resolve({ rows: enriched.slice(offset, offset + Number(params[limitIndex])), rowCount: enriched.length });
+        }
+        return Promise.resolve({ rows: enriched, rowCount: enriched.length });
+      }
       let rows = [...(this.tables.stores || [])];
       if (/WHERE id = \$1/i.test(cleanSql)) {
         rows = rows.filter(s => s.id === Number(params[0]));
@@ -544,6 +592,27 @@ class MemoryPgDb {
       const assignments = [...(this.tables.seller_store_assignments || [])];
       const stores = this.tables.stores || [];
 
+      if (/JOIN staff_users/i.test(cleanSql)) {
+        const storeId = Number(params[0]);
+        const storeAssignments = assignments.filter(a => a.store_id === storeId);
+        const staffList = this.tables.staff_users || [];
+        const joinedStaff = storeAssignments
+          .map(a => {
+            const u = staffList.find(su => su.id === a.seller_id);
+            if (!u) return null;
+            return {
+              id: u.id,
+              full_name: u.full_name,
+              email: u.email,
+              is_active: Boolean(u.is_active),
+              assigned_at: a.created_at,
+            };
+          })
+          .filter(Boolean);
+        joinedStaff.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+        return Promise.resolve({ rows: joinedStaff, rowCount: joinedStaff.length });
+      }
+
       if (/JOIN stores/i.test(cleanSql)) {
         const sellerId = Number(params[0]);
         const sellerAssignments = assignments.filter(a => a.seller_id === sellerId);
@@ -569,6 +638,18 @@ class MemoryPgDb {
         rows = rows.filter(a => a.store_id === Number(params[0]));
       }
       return Promise.resolve({ rows, rowCount: rows.length });
+    }
+
+    // Store revenue and order metrics query
+    if (/SELECT\s+COUNT\(\*\)(?:::int)?\s+AS\s+total_orders,\s*COALESCE\(SUM/i.test(cleanSql)) {
+      const storeId = Number(params[0]);
+      const storeOrders = (this.tables.orders || []).filter(o => o.store_id === storeId);
+      const recognized = storeOrders.filter(o => o.payment_status === 'paid' && o.order_status === 'completed');
+      const revenue = recognized.reduce((sum, o) => sum + (o.total_usd || 0), 0);
+      return Promise.resolve({
+        rows: [{ total_orders: storeOrders.length, revenue_usd: revenue }],
+        rowCount: 1,
+      });
     }
 
     // Orders count for seller store scoping
