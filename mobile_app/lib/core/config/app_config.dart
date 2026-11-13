@@ -23,14 +23,18 @@ class AppConfig {
     const configured = String.fromEnvironment('BREW_BOBA_API_URL');
     if (configured.isNotEmpty) {
       final parsed = Uri.tryParse(configured);
-      if (parsed == null || !['http', 'https'].contains(parsed.scheme) ||
-          parsed.host.isEmpty || parsed.userInfo.isNotEmpty) {
+      if (parsed == null ||
+          !['http', 'https'].contains(parsed.scheme) ||
+          parsed.host.isEmpty ||
+          parsed.userInfo.isNotEmpty) {
         throw StateError('BREW_BOBA_API_URL must be a full HTTP or HTTPS URL.');
       }
       return configured.replaceFirst(RegExp(r'/+$'), '');
     }
     if (kReleaseMode) {
-      throw StateError('BREW_BOBA_API_URL must be configured for release builds.');
+      throw StateError(
+        'BREW_BOBA_API_URL must be configured for release builds.',
+      );
     }
     if (kIsWeb) {
       return 'http://localhost:8001';
@@ -54,8 +58,19 @@ class AppConfig {
 
   /// Available drink customization options
   static const List<String> availableSizes = ['Small', 'Medium', 'Large'];
-  static const List<String> availableSugarLevels = ['0%', '25%', '50%', '75%', '100%'];
-  static const List<String> availableIceLevels = ['No Ice', 'Less Ice', 'Normal Ice', 'Extra Ice'];
+  static const List<String> availableSugarLevels = [
+    '0%',
+    '25%',
+    '50%',
+    '75%',
+    '100%',
+  ];
+  static const List<String> availableIceLevels = [
+    'No Ice',
+    'Less Ice',
+    'Normal Ice',
+    'Extra Ice',
+  ];
 
   /// Available toppings and their price upcharges in USD
   static const Map<String, double> toppingPrices = {

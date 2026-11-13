@@ -29,19 +29,23 @@ class LocalStorageService {
 
   // Customer Name
   String? getCustomerName() => _prefs.getString(_keyCustomerName);
-  Future<bool> setCustomerName(String name) => _prefs.setString(_keyCustomerName, name);
+  Future<bool> setCustomerName(String name) =>
+      _prefs.setString(_keyCustomerName, name);
 
   // Customer Phone
   String? getCustomerPhone() => _prefs.getString(_keyCustomerPhone);
-  Future<bool> setCustomerPhone(String phone) => _prefs.setString(_keyCustomerPhone, phone);
+  Future<bool> setCustomerPhone(String phone) =>
+      _prefs.setString(_keyCustomerPhone, phone);
 
   // Customer Email
   String? getCustomerEmail() => _prefs.getString(_keyCustomerEmail);
-  Future<bool> setCustomerEmail(String email) => _prefs.setString(_keyCustomerEmail, email);
+  Future<bool> setCustomerEmail(String email) =>
+      _prefs.setString(_keyCustomerEmail, email);
 
   // Customer Auth Token
   String? getAuthToken() => _prefs.getString(_keyAuthToken);
-  Future<bool> setAuthToken(String token) => _prefs.setString(_keyAuthToken, token);
+  Future<bool> setAuthToken(String token) =>
+      _prefs.setString(_keyAuthToken, token);
   Future<bool> clearCustomerAuth() async {
     await _prefs.remove(_keyAuthToken);
     await _prefs.remove(_keyCustomerName);
@@ -52,7 +56,8 @@ class LocalStorageService {
   }
 
   String? getAccountPhone() => _prefs.getString(_keyAccountPhone);
-  Future<bool> setAccountPhone(String phone) => _prefs.setString(_keyAccountPhone, phone);
+  Future<bool> setAccountPhone(String phone) =>
+      _prefs.setString(_keyAccountPhone, phone);
 
   /// Stores one unresolved submission. Its payload is a local cart fingerprint,
   /// not a server order or a payment receipt.
@@ -61,15 +66,25 @@ class LocalStorageService {
     if (raw == null) return null;
     try {
       final value = jsonDecode(raw);
-      if (value is! Map || value['identity'] is! String || value['key'] is! String) return null;
-      return {'identity': value['identity'] as String, 'key': value['key'] as String};
+      if (value is! Map ||
+          value['identity'] is! String ||
+          value['key'] is! String) {
+        return null;
+      }
+      return {
+        'identity': value['identity'] as String,
+        'key': value['key'] as String,
+      };
     } catch (_) {
       return null;
     }
   }
 
   Future<bool> savePendingOrder(String identity, String key) =>
-      _prefs.setString(_keyPendingOrder, jsonEncode({'identity': identity, 'key': key}));
+      _prefs.setString(
+        _keyPendingOrder,
+        jsonEncode({'identity': identity, 'key': key}),
+      );
   Future<bool> clearPendingOrder() => _prefs.remove(_keyPendingOrder);
 
   Future<bool> clearPendingOrderIfMatches(String identity, String key) {
@@ -98,7 +113,8 @@ class LocalStorageService {
 
   // Custom API URL
   String? getCustomApiUrl() => _prefs.getString(_keyCustomApiUrl);
-  Future<bool> setCustomApiUrl(String url) => _prefs.setString(_keyCustomApiUrl, url);
+  Future<bool> setCustomApiUrl(String url) =>
+      _prefs.setString(_keyCustomApiUrl, url);
   Future<bool> clearCustomApiUrl() => _prefs.remove(_keyCustomApiUrl);
 
   // Cart Persistence
@@ -107,7 +123,9 @@ class LocalStorageService {
     if (rawJson == null || rawJson.isEmpty) return [];
     try {
       final List<dynamic> list = jsonDecode(rawJson) as List<dynamic>;
-      return list.map((item) => CartItemModel.fromJson(item as Map<String, dynamic>)).toList();
+      return list
+          .map((item) => CartItemModel.fromJson(item as Map<String, dynamic>))
+          .toList();
     } catch (_) {
       return [];
     }
@@ -141,7 +159,9 @@ class LocalStorageService {
     if (rawJson == null || rawJson.isEmpty) return [];
     try {
       final List<dynamic> list = jsonDecode(rawJson) as List<dynamic>;
-      return list.map((item) => CartItemModel.fromJson(item as Map<String, dynamic>)).toList();
+      return list
+          .map((item) => CartItemModel.fromJson(item as Map<String, dynamic>))
+          .toList();
     } catch (_) {
       return [];
     }

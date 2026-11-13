@@ -3,7 +3,10 @@ import type { Category, Product, HealthCheckResponse } from '../types';
 const getBaseUrl = (): string => {
   const envUrl = import.meta.env.VITE_API_URL;
   if (typeof envUrl === 'string') {
-    return envUrl.trim().replace(/^["']|["']$/g, '').replace(/\/+$/, '');
+    return envUrl
+      .trim()
+      .replace(/^["']|["']$/g, '')
+      .replace(/\/+$/, '');
   }
   return 'http://localhost:8001';
 };
@@ -68,7 +71,7 @@ export async function request<T>(endpoint: string, options?: RequestInit): Promi
       // Prevent Safari's cryptic "The string did not match the expected pattern."
       // by inspecting non-JSON bodies (e.g. HTML pages returned by an unproxied dev server)
       throw new Error(
-        'The server returned an unexpected response (non-JSON). Please verify the backend is running at http://localhost:8001.'
+        'The server returned an unexpected response (non-JSON). Please verify the backend is running at http://localhost:8001.',
       );
     }
 
@@ -83,7 +86,7 @@ export async function request<T>(endpoint: string, options?: RequestInit): Promi
         (typeof navigator !== 'undefined' && !navigator.onLine)
       ) {
         throw new Error(
-          'Network error: Unable to connect to the café server. Please verify the backend is running at http://localhost:8001.'
+          'Network error: Unable to connect to the café server. Please verify the backend is running at http://localhost:8001.',
         );
       }
       throw error;
@@ -141,7 +144,10 @@ export async function getProductById(id: number): Promise<Product> {
 /**
  * Submit order to backend POST /api/orders/
  */
-export async function createOrder(payload: import('../types').CreateOrderPayload, idempotencyKey?: string): Promise<import('../types').Order> {
+export async function createOrder(
+  payload: import('../types').CreateOrderPayload,
+  idempotencyKey?: string,
+): Promise<import('../types').Order> {
   return request<import('../types').Order>('/api/orders/', {
     method: 'POST',
     headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
@@ -168,7 +174,7 @@ export async function getOrderByReference(orderNumber: string): Promise<import('
  */
 export async function getOrdersByPhone(phone: string): Promise<import('../types').Order[]> {
   return request<import('../types').Order[]>(
-    `/api/orders/lookup/phone?phone=${encodeURIComponent(phone.trim())}`
+    `/api/orders/lookup/phone?phone=${encodeURIComponent(phone.trim())}`,
   );
 }
 
@@ -232,7 +238,7 @@ export async function getCustomerProfile(token: string): Promise<CustomerUser> {
  */
 export async function updateCustomerProfile(
   token: string,
-  data: { full_name?: string; email?: string }
+  data: { full_name?: string; email?: string },
 ): Promise<CustomerUser> {
   return request<CustomerUser>('/api/auth/me', {
     method: 'PATCH',

@@ -1,13 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 
 /** Content stays visible when observation or motion is unavailable. */
-export function Reveal({
-  children,
-  className = '',
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+export function Reveal({ children, className = '' }: { children: ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const element = ref.current;

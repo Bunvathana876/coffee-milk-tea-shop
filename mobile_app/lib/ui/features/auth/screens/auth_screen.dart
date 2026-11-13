@@ -8,10 +8,7 @@ import '../../../../providers/user_provider.dart';
 
 /// Customer Login & Registration screen with tab switcher and form validation.
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({
-    super.key,
-    this.initialIsRegister = false,
-  });
+  const AuthScreen({super.key, this.initialIsRegister = false});
 
   final bool initialIsRegister;
 
@@ -72,7 +69,9 @@ class _AuthScreenState extends State<AuthScreen> {
       success = await userProvider.register(
         fullName: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
-        email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
+        email: _emailController.text.trim().isEmpty
+            ? null
+            : _emailController.text.trim(),
         password: _passwordController.text,
       );
     } else {
@@ -105,9 +104,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(_isRegister ? 'Create Account' : 'Sign In'),
-      ),
+      appBar: AppBar(title: Text(_isRegister ? 'Create Account' : 'Sign In')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -123,7 +120,10 @@ class _AuthScreenState extends State<AuthScreen> {
                       height: 80,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: AppColors.surfaceBorder, width: 2),
+                        border: Border.all(
+                          color: AppColors.surfaceBorder,
+                          width: 2,
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withAlpha(15),
@@ -149,10 +149,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      AppConfig.appName,
-                      style: AppTypography.displayMedium,
-                    ),
+                    Text(AppConfig.appName, style: AppTypography.displayMedium),
                     const SizedBox(height: 4),
                     Text(
                       _isRegister
@@ -183,7 +180,9 @@ class _AuthScreenState extends State<AuthScreen> {
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            color: !_isRegister ? AppColors.primary : Colors.transparent,
+                            color: !_isRegister
+                                ? AppColors.primary
+                                : Colors.transparent,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -192,7 +191,9 @@ class _AuthScreenState extends State<AuthScreen> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: !_isRegister ? Colors.white : AppColors.textSecondary,
+                              color: !_isRegister
+                                  ? Colors.white
+                                  : AppColors.textSecondary,
                             ),
                           ),
                         ),
@@ -205,7 +206,9 @@ class _AuthScreenState extends State<AuthScreen> {
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            color: _isRegister ? AppColors.primary : Colors.transparent,
+                            color: _isRegister
+                                ? AppColors.primary
+                                : Colors.transparent,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -214,7 +217,9 @@ class _AuthScreenState extends State<AuthScreen> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: _isRegister ? Colors.white : AppColors.textSecondary,
+                              color: _isRegister
+                                  ? Colors.white
+                                  : AppColors.textSecondary,
                             ),
                           ),
                         ),
@@ -232,7 +237,9 @@ class _AuthScreenState extends State<AuthScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.statusCancelledBg,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.statusCancelled.withAlpha(80)),
+                    border: Border.all(
+                      color: AppColors.statusCancelled.withAlpha(80),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -272,14 +279,20 @@ class _AuthScreenState extends State<AuthScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (_isRegister) ...[
-                        const Text('Full Name', style: AppTypography.titleSmall),
+                        const Text(
+                          'Full Name',
+                          style: AppTypography.titleSmall,
+                        ),
                         const SizedBox(height: 6),
                         TextFormField(
                           controller: _nameController,
                           textInputAction: TextInputAction.next,
                           decoration: const InputDecoration(
                             hintText: 'e.g. Sokha Chan',
-                            prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
+                            prefixIcon: Icon(
+                              Icons.person_outline_rounded,
+                              size: 20,
+                            ),
                           ),
                           validator: (val) {
                             if (val == null || val.trim().length < 2) {
@@ -290,7 +303,10 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        const Text('Phone Number', style: AppTypography.titleSmall),
+                        const Text(
+                          'Phone Number',
+                          style: AppTypography.titleSmall,
+                        ),
                         const SizedBox(height: 6),
                         TextFormField(
                           controller: _phoneController,
@@ -301,7 +317,10 @@ class _AuthScreenState extends State<AuthScreen> {
                             prefixIcon: Icon(Icons.phone_outlined, size: 20),
                           ),
                           validator: (val) {
-                            final digits = (val ?? '').replaceAll(RegExp(r'\D'), '');
+                            final digits = (val ?? '').replaceAll(
+                              RegExp(r'\D'),
+                              '',
+                            );
                             if (digits.length < 8) {
                               return 'Please enter a valid phone number (at least 8 digits)';
                             }
@@ -310,7 +329,10 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        const Text('Email Address (Optional)', style: AppTypography.titleSmall),
+                        const Text(
+                          'Email Address (Optional)',
+                          style: AppTypography.titleSmall,
+                        ),
                         const SizedBox(height: 6),
                         TextFormField(
                           controller: _emailController,
@@ -330,14 +352,20 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                         const SizedBox(height: 16),
                       ] else ...[
-                        const Text('Phone Number or Email', style: AppTypography.titleSmall),
+                        const Text(
+                          'Phone Number or Email',
+                          style: AppTypography.titleSmall,
+                        ),
                         const SizedBox(height: 6),
                         TextFormField(
                           controller: _identifierController,
                           textInputAction: TextInputAction.next,
                           decoration: const InputDecoration(
                             hintText: 'Enter your phone or email',
-                            prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
+                            prefixIcon: Icon(
+                              Icons.person_outline_rounded,
+                              size: 20,
+                            ),
                           ),
                           validator: (val) {
                             if (val == null || val.trim().length < 3) {
@@ -354,13 +382,20 @@ class _AuthScreenState extends State<AuthScreen> {
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
-                        textInputAction: _isRegister ? TextInputAction.next : TextInputAction.done,
+                        textInputAction: _isRegister
+                            ? TextInputAction.next
+                            : TextInputAction.done,
                         onFieldSubmitted: (_) {
                           if (!_isRegister) _submit();
                         },
                         decoration: InputDecoration(
-                          hintText: _isRegister ? 'At least 6 characters' : 'Enter your password',
-                          prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                          hintText: _isRegister
+                              ? 'At least 6 characters'
+                              : 'Enter your password',
+                          prefixIcon: const Icon(
+                            Icons.lock_outline_rounded,
+                            size: 20,
+                          ),
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword
@@ -369,7 +404,9 @@ class _AuthScreenState extends State<AuthScreen> {
                               size: 20,
                             ),
                             onPressed: () {
-                              setState(() => _obscurePassword = !_obscurePassword);
+                              setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              );
                             },
                           ),
                         ),
@@ -386,7 +423,10 @@ class _AuthScreenState extends State<AuthScreen> {
 
                       if (_isRegister) ...[
                         const SizedBox(height: 16),
-                        const Text('Confirm Password', style: AppTypography.titleSmall),
+                        const Text(
+                          'Confirm Password',
+                          style: AppTypography.titleSmall,
+                        ),
                         const SizedBox(height: 6),
                         TextFormField(
                           controller: _confirmPasswordController,
@@ -395,7 +435,10 @@ class _AuthScreenState extends State<AuthScreen> {
                           onFieldSubmitted: (_) => _submit(),
                           decoration: InputDecoration(
                             hintText: 'Re-enter your password',
-                            prefixIcon: const Icon(Icons.lock_reset_rounded, size: 20),
+                            prefixIcon: const Icon(
+                              Icons.lock_reset_rounded,
+                              size: 20,
+                            ),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscureConfirmPassword
@@ -404,7 +447,10 @@ class _AuthScreenState extends State<AuthScreen> {
                                 size: 20,
                               ),
                               onPressed: () {
-                                setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+                                setState(
+                                  () => _obscureConfirmPassword =
+                                      !_obscureConfirmPassword,
+                                );
                               },
                             ),
                           ),

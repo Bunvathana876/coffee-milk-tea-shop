@@ -12,10 +12,20 @@ export const initialCartState: CartState = {
 export function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const { productId, productName, image, size, sugarLevel, iceLevel, toppings = [], unitPriceUsd, quantity } = action.payload;
+      const {
+        productId,
+        productName,
+        image,
+        size,
+        sugarLevel,
+        iceLevel,
+        toppings = [],
+        unitPriceUsd,
+        quantity,
+      } = action.payload;
       const itemId = generateCartItemId(productId, size, sugarLevel, iceLevel, toppings);
 
-      const existingIndex = state.items.findIndex((item) => item.id === itemId);
+      const existingIndex = state.items.findIndex(item => item.id === itemId);
 
       let updatedItems: CartItem[];
 
@@ -58,7 +68,7 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
     }
 
     case 'REMOVE_ITEM': {
-      const updatedItems = state.items.filter((item) => item.id !== action.payload.id);
+      const updatedItems = state.items.filter(item => item.id !== action.payload.id);
       return {
         ...state,
         items: updatedItems,
@@ -67,7 +77,7 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
     }
 
     case 'INCREASE_QUANTITY': {
-      const updatedItems = state.items.map((item) => {
+      const updatedItems = state.items.map(item => {
         if (item.id === action.payload.id) {
           const newQuantity = item.quantity + 1;
           return {
@@ -87,15 +97,15 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
     }
 
     case 'DECREASE_QUANTITY': {
-      const targetItem = state.items.find((item) => item.id === action.payload.id);
+      const targetItem = state.items.find(item => item.id === action.payload.id);
       if (!targetItem) return state;
 
       let updatedItems: CartItem[];
       if (targetItem.quantity <= 1) {
         // Remove item if decreasing from 1
-        updatedItems = state.items.filter((item) => item.id !== action.payload.id);
+        updatedItems = state.items.filter(item => item.id !== action.payload.id);
       } else {
-        updatedItems = state.items.map((item) => {
+        updatedItems = state.items.map(item => {
           if (item.id === action.payload.id) {
             const newQuantity = item.quantity - 1;
             return {
@@ -120,9 +130,9 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
 
       let updatedItems: CartItem[];
       if (quantity <= 0) {
-        updatedItems = state.items.filter((item) => item.id !== id);
+        updatedItems = state.items.filter(item => item.id !== id);
       } else {
-        updatedItems = state.items.map((item) => {
+        updatedItems = state.items.map(item => {
           if (item.id === id) {
             return {
               ...item,
@@ -157,4 +167,3 @@ export function cartReducer(state: CartState, action: CartAction): CartState {
       return state;
   }
 }
-

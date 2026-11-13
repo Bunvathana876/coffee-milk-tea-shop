@@ -7,14 +7,18 @@ export async function verifyMigrations(db) {
     result = await db.query('SELECT version, name, checksum FROM schema_migrations');
   } catch (err) {
     if (err.code === '42P01') {
-      throw new Error('Database migration tracking table (schema_migrations) does not exist. Run the approved migration process.');
+      throw new Error(
+        'Database migration tracking table (schema_migrations) does not exist. Run the approved migration process.',
+      );
     }
     throw err;
   }
   for (const file of files) {
     const applied = result.rows.find(row => row.version === file.version);
     if (!applied || applied.name !== file.name || applied.checksum !== file.checksum) {
-      throw new Error('Database migrations are missing or have changed. Run the approved migration process.');
+      throw new Error(
+        'Database migrations are missing or have changed. Run the approved migration process.',
+      );
     }
   }
   const trigger = await db.query(`SELECT 1 FROM pg_trigger

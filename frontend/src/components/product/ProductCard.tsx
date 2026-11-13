@@ -18,9 +18,7 @@ export function ProductCard({ product, onSelect }: ProductCardProps) {
     if (canSelect) onSelect?.(product);
   };
   return (
-    <article
-      className={`drink-card ${product.is_available ? '' : 'drink-unavailable'}`}
-    >
+    <article className={`drink-card ${product.is_available ? '' : 'drink-unavailable'}`}>
       <div className="drink-media">
         <button
           type="button"
@@ -69,9 +67,7 @@ export function ProductCard({ product, onSelect }: ProductCardProps) {
           <Heart size={18} className={favorited ? 'fill-rose-500 text-rose-500' : ''} />
         </button>
         {!product.is_available && (
-          <span className="drink-availability drink-avail-sold">
-            Sold out
-          </span>
+          <span className="drink-availability drink-avail-sold">Sold out</span>
         )}
       </div>
       <div className="drink-info">
@@ -79,9 +75,7 @@ export function ProductCard({ product, onSelect }: ProductCardProps) {
           {product.category_name || product.category?.name || 'Brew & Boba'}
         </p>
         <h3>{product.name}</h3>
-        {product.description && (
-          <p className="drink-description">{product.description}</p>
-        )}
+        {product.description && <p className="drink-description">{product.description}</p>}
         <div className="drink-price">
           <p>
             {formatUsd(product.base_price_usd)}
@@ -94,7 +88,9 @@ export function ProductCard({ product, onSelect }: ProductCardProps) {
             aria-label={`Customize and add ${product.name} to cart`}
           >
             <Plus size={16} />
-            <span className="hidden sm:inline">{product.is_available ? 'Customize' : 'Sold out'}</span>
+            <span className="hidden sm:inline">
+              {product.is_available ? 'Customize' : 'Sold out'}
+            </span>
             <span className="sm:hidden">{product.is_available ? 'Add' : 'Sold out'}</span>
           </button>
         </div>

@@ -3,9 +3,14 @@ import { config } from '../config.js';
 import { dbQuery } from '../db/database.js';
 
 export const STAFF_ROLES = Object.freeze(['admin', 'staff']);
+export const SELLER_ROLES = Object.freeze(['seller']);
 
 export function isSupportedStaffRole(role) {
   return STAFF_ROLES.includes(role);
+}
+
+export function isSupportedSellerRole(role) {
+  return SELLER_ROLES.includes(role);
 }
 
 export function createToken(payload, expiresIn = config.jwtExpiresIn) {
@@ -43,7 +48,10 @@ export async function authenticateCustomer(req, res, next) {
       return res.status(401).json({ detail: 'Invalid or expired customer token.' });
     }
 
-    const result = await dbQuery('SELECT id, full_name, phone, email, loyalty_stamps, is_active FROM customer_users WHERE id = $1', [decoded.sub]);
+    const result = await dbQuery(
+      'SELECT id, full_name, phone, email, loyalty_stamps, is_active FROM customer_users WHERE id = $1',
+      [decoded.sub],
+    );
     const customer = result.rows[0];
 
     if (!customer || !customer.is_active) {
@@ -72,7 +80,10 @@ export async function authenticateStaff(req, res, next) {
       return res.status(403).json({ detail: 'Forbidden: Insufficient privileges.' });
     }
 
-    const result = await dbQuery('SELECT id, email, full_name, role, is_active FROM staff_users WHERE id = $1', [decoded.sub]);
+    const result = await dbQuery(
+      'SELECT id, email, full_name, role, is_active FROM staff_users WHERE id = $1',
+      [decoded.sub],
+    );
     const staff = result.rows[0];
 
     if (!staff || !staff.is_active) {
@@ -81,7 +92,9 @@ export async function authenticateStaff(req, res, next) {
 
     // Tokens issued before a role change cannot retain or acquire privileges.
     if (!isSupportedStaffRole(staff.role) || staff.role !== decoded.role) {
-      return res.status(403).json({ detail: 'Forbidden: Staff role has changed or is unsupported.' });
+      return res
+        .status(403)
+        .json({ detail: 'Forbidden: Staff role has changed or is unsupported.' });
     }
 
     req.staff = staff;
@@ -97,4 +110,40 @@ export function requireAdmin(req, res, next) {
     return res.status(403).json({ detail: 'Forbidden: Administrator privileges required.' });
   }
   next();
+}
+
+/**
+ * Ensures request has a valid Seller JWT token.
+ */
+export async function authenticateSeller(req, res, next) {
+  try {
+    const token = extractBearerToken(req);
+    if (!token) {
+      return res.status(401).json({ detail: 'Authentication credentials were not provided.' });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded || !isSupportedSellerRole(decoded.role)) {
+      return res.status(403).json({ detail: 'Forbidden: Insufficient privileges.' });
+    }
+
+    const result = await dbQuery(
+      'SELECT id, email, full_name, role, is_active FROM staff_users WHERE id = $1',
+      [decoded.sub],
+    );
+    const seller = result.rows[0];
+
+    if (!seller || !seller.is_active) {
+      return res.status(401).json({ detail: 'Seller account not found or inactive.' });
+    }
+
+    if (seller.role !== 'seller') {
+      return res.status(403).json({ detail: 'Forbidden: Account is not a registered seller.' });
+    }
+
+    req.seller = seller;
+    next();
+  } catch (err) {
+    next(err);
+  }
 }

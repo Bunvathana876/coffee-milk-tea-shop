@@ -83,7 +83,7 @@ export const CartPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Cart Items List */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-4">
-            {items.map((item) => (
+            {items.map(item => (
               <CartItem
                 key={item.id}
                 item={item}

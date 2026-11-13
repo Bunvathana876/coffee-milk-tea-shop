@@ -19,11 +19,10 @@ test('a successful transaction uses one client and commits once', async () => {
 
   assert.deepEqual(result.rows, [{ id: 1 }]);
   assert.equal(workCalls, 1);
-  assert.deepEqual(statements.map(([sql]) => sql), [
-    'BEGIN',
-    'INSERT INTO orders (order_number) VALUES ($1) RETURNING id',
-    'COMMIT',
-  ]);
+  assert.deepEqual(
+    statements.map(([sql]) => sql),
+    ['BEGIN', 'INSERT INTO orders (order_number) VALUES ($1) RETURNING id', 'COMMIT'],
+  );
   assert.deepEqual(statements[1][1], ['order-1']);
 });
 
@@ -45,7 +44,12 @@ test('a failed write rolls back on the same client without committing', async ()
     }),
     err => err === failure,
   );
-  assert.deepEqual(statements, ['BEGIN', 'INSERT INTO orders', 'INSERT INTO order_items', 'ROLLBACK']);
+  assert.deepEqual(statements, [
+    'BEGIN',
+    'INSERT INTO orders',
+    'INSERT INTO order_items',
+    'ROLLBACK',
+  ]);
 });
 
 test('a failed related operation rolls back before reporting the error', async () => {

@@ -43,7 +43,7 @@ class CategoryChip extends StatelessWidget {
                         color: AppColors.primary.withAlpha(50),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
-                      )
+                      ),
                     ]
                   : null,
             ),
@@ -69,7 +69,10 @@ class CategoryChip extends StatelessWidget {
                 if (count != null && count! > 0) ...[
                   const SizedBox(width: 6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: isSelected
                           ? Colors.white.withAlpha(50)
@@ -81,7 +84,9 @@ class CategoryChip extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: isSelected ? Colors.white : AppColors.textSecondary,
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.textSecondary,
                       ),
                     ),
                   ),

@@ -3,7 +3,8 @@ import 'product_model.dart';
 
 /// Represents a customer's customized beverage in the cart or order.
 class CartItemModel {
-  final String id; // Unique combination key (e.g. "product_1_Medium_50%_Normal Ice_Pearls")
+  final String
+  id; // Unique combination key (e.g. "product_1_Medium_50%_Normal Ice_Pearls")
   final ProductModel product;
   final String size;
   final String sugarLevel;
@@ -19,21 +20,21 @@ class CartItemModel {
     this.iceLevel = 'Normal Ice',
     List<String>? toppings,
     this.quantity = 1,
-  })  : toppings = List.unmodifiable(toppings ?? const []),
-        id = id ??
-            '${product.id}_${size}_${sugarLevel}_${iceLevel}_${(toppings != null ? (List<String>.from(toppings)..sort()).join(',') : '')}';
+  }) : toppings = List.unmodifiable(toppings ?? const []),
+       id =
+           id ??
+           '${product.id}_${size}_${sugarLevel}_${iceLevel}_${(toppings != null ? (List<String>.from(toppings)..sort()).join(',') : '')}';
 
   /// Size price modifier (Small: 0, Medium: +$0.30, Large: +$0.60)
   double get sizeModifier => AppConfig.sizePriceModifiers[size] ?? 0.0;
 
   /// Toppings price modifier
-  double get toppingsModifier => toppings.fold(
-        0.0,
-        (sum, t) => sum + (AppConfig.toppingPrices[t] ?? 0.0),
-      );
+  double get toppingsModifier =>
+      toppings.fold(0.0, (sum, t) => sum + (AppConfig.toppingPrices[t] ?? 0.0));
 
   /// Effective price per single drink with size & toppings customization
-  double get unitPriceUsd => product.basePriceUsd + sizeModifier + toppingsModifier;
+  double get unitPriceUsd =>
+      product.basePriceUsd + sizeModifier + toppingsModifier;
 
   /// Total for this customized drink line item
   double get subtotalUsd => unitPriceUsd * quantity;
@@ -89,7 +90,11 @@ class CartItemModel {
     if (rawToppings is List) {
       parsedToppings = rawToppings.map((e) => e.toString()).toList();
     } else if (rawToppings is String && rawToppings.isNotEmpty) {
-      parsedToppings = rawToppings.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      parsedToppings = rawToppings
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
     }
 
     return CartItemModel(

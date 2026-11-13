@@ -21,7 +21,9 @@ export const Loading: React.FC<LoadingProps> = ({
   const containerPadding = fullHeight ? 'min-h-[50vh]' : 'py-12';
 
   return (
-    <div className={`flex flex-col items-center justify-center ${containerPadding} text-center space-y-4`}>
+    <div
+      className={`flex flex-col items-center justify-center ${containerPadding} text-center space-y-4`}
+    >
       <div className="relative">
         {/* Glow halo */}
         <div className="absolute inset-0 rounded-3xl bg-amber-400/20 blur-xl animate-pulse" />

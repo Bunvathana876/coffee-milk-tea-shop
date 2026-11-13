@@ -41,13 +41,7 @@ export function MobileAppSection() {
             height="112"
             shapeRendering="crispEdges"
           >
-            <rect
-              x="-4"
-              y="-4"
-              width={qr.size + 8}
-              height={qr.size + 8}
-              fill="white"
-            />
+            <rect x="-4" y="-4" width={qr.size + 8} height={qr.size + 8} fill="white" />
             <path d={qr.path} fill="#191714" />
           </svg>
           <span>Scan to open this website</span>

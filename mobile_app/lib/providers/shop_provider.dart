@@ -13,8 +13,8 @@ class ShopProvider extends ChangeNotifier {
   ShopProvider({
     required ShopRepository shopRepository,
     LocalStorageService? localStorageService,
-  })  : _shopRepository = shopRepository,
-        _localStorageService = localStorageService {
+  }) : _shopRepository = shopRepository,
+       _localStorageService = localStorageService {
     _loadFavorites();
   }
 
@@ -43,11 +43,14 @@ class ShopProvider extends ChangeNotifier {
     }
     if (_searchQuery.trim().isNotEmpty) {
       final q = _searchQuery.trim().toLowerCase();
-      list = list.where((p) =>
-        p.name.toLowerCase().contains(q) ||
-        (p.description?.toLowerCase().contains(q) ?? false) ||
-        (p.categoryName?.toLowerCase().contains(q) ?? false)
-      ).toList();
+      list = list
+          .where(
+            (p) =>
+                p.name.toLowerCase().contains(q) ||
+                (p.description?.toLowerCase().contains(q) ?? false) ||
+                (p.categoryName?.toLowerCase().contains(q) ?? false),
+          )
+          .toList();
     }
     return list;
   }
@@ -116,7 +119,9 @@ class ShopProvider extends ChangeNotifier {
   }
 
   Future<void> toggleFavoriteProduct(ProductModel product) async {
-    final existingIndex = _favoriteItems.indexWhere((f) => f.product.id == product.id);
+    final existingIndex = _favoriteItems.indexWhere(
+      (f) => f.product.id == product.id,
+    );
     if (existingIndex >= 0) {
       _favoriteItems.removeAt(existingIndex);
     } else {

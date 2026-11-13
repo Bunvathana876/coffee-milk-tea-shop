@@ -170,7 +170,7 @@ test('5. Order Creation with Size & Toppings calculations and Loyalty increment'
   assert.ok(order.order_number.startsWith('ORD-'));
   assert.match(order.order_number, /^ORD-\d{8}-[A-Z2-9]{10}$/);
   // Expected price: (2.00 + 0.60 + 0.50) = 3.10 * 2 = 6.20
-  const expectedUnitPrice = parseFloat((drink.base_price_usd + 0.60 + 0.50).toFixed(2));
+  const expectedUnitPrice = parseFloat((drink.base_price_usd + 0.6 + 0.5).toFixed(2));
   const expectedTotal = parseFloat((expectedUnitPrice * 2).toFixed(2));
   assert.equal(order.total_usd, expectedTotal);
   assert.equal(order.total_khr, Math.round(expectedTotal * 4100));
@@ -182,13 +182,17 @@ test('5. Order Creation with Size & Toppings calculations and Loyalty increment'
   assert.equal(order.order_status, 'pending');
 
   // Verify phone lookup
-  const lookupRes = await apiRequest(`/api/orders/lookup/phone?phone=${phone}`, { headers: customerHeaders });
+  const lookupRes = await apiRequest(`/api/orders/lookup/phone?phone=${phone}`, {
+    headers: customerHeaders,
+  });
   assert.equal(lookupRes.status, 200);
   assert.ok(lookupRes.data.length >= 1);
   assert.equal(lookupRes.data[0].order_number, order.order_number);
 
   // Verify reference lookup
-  const refRes = await apiRequest(`/api/orders/ref/${encodeURIComponent(order.order_number)}`, { headers: customerHeaders });
+  const refRes = await apiRequest(`/api/orders/ref/${encodeURIComponent(order.order_number)}`, {
+    headers: customerHeaders,
+  });
   assert.equal(refRes.status, 200);
   assert.equal(refRes.data.id, order.id);
 
@@ -208,10 +212,11 @@ test('6. Order access requires a current customer and database-backed ownership'
   const number = Math.floor(100000 + Math.random() * 900000);
   const ownerPhone = `071${number}`;
   const otherPhone = `072${number}`;
-  const register = async (phone) => apiRequest('/api/auth/register', {
-    method: 'POST',
-    body: JSON.stringify({ full_name: 'Order Customer', phone, password: 'test-only-password' }),
-  });
+  const register = async phone =>
+    apiRequest('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ full_name: 'Order Customer', phone, password: 'test-only-password' }),
+    });
   const owner = await register(ownerPhone);
   const other = await register(otherPhone);
   assert.equal(owner.status, 201);
@@ -225,9 +230,14 @@ test('6. Order access requires a current customer and database-backed ownership'
     items: [{ product_id: product.id, quantity: 1 }],
   };
 
-  assert.equal((await apiRequest('/api/orders', { method: 'POST', body: JSON.stringify(payload) })).status, 401);
+  assert.equal(
+    (await apiRequest('/api/orders', { method: 'POST', body: JSON.stringify(payload) })).status,
+    401,
+  );
   const created = await apiRequest('/api/orders', {
-    method: 'POST', headers: ownerHeaders, body: JSON.stringify(payload),
+    method: 'POST',
+    headers: ownerHeaders,
+    body: JSON.stringify(payload),
   });
   assert.equal(created.status, 201);
   const order = created.data;
@@ -252,62 +262,128 @@ test('6. Order access requires a current customer and database-backed ownership'
 
   // Contact numbers may differ from account numbers, but ownership and rewards do not.
   const alternateContactOrder = await apiRequest('/api/orders', {
-    method: 'POST', headers: otherHeaders, body: JSON.stringify(payload),
+    method: 'POST',
+    headers: otherHeaders,
+    body: JSON.stringify(payload),
   });
   assert.equal(alternateContactOrder.status, 201);
-  assert.equal((await apiRequest(`/api/orders/${alternateContactOrder.data.id}`, { headers: ownerHeaders })).status, 404);
+  assert.equal(
+    (await apiRequest(`/api/orders/${alternateContactOrder.data.id}`, { headers: ownerHeaders }))
+      .status,
+    404,
+  );
   const otherOwnLookup = await apiRequest(customerPaths[2], { headers: otherHeaders });
   assert.equal(otherOwnLookup.data.length, 1);
 
   const invalidHeaders = { Authorization: 'Bearer invalid-token' };
-  const expiredHeaders = { Authorization: `Bearer ${createToken({ sub: owner.data.user.id, role: 'customer' }, '-1s')}` };
-  const missingUserHeaders = { Authorization: `Bearer ${createToken({ sub: 999999, role: 'customer' })}` };
+  const expiredHeaders = {
+    Authorization: `Bearer ${createToken({ sub: owner.data.user.id, role: 'customer' }, '-1s')}`,
+  };
+  const missingUserHeaders = {
+    Authorization: `Bearer ${createToken({ sub: 999999, role: 'customer' })}`,
+  };
   for (const headers of [invalidHeaders, expiredHeaders, missingUserHeaders]) {
     assert.equal((await apiRequest(customerPaths[0], { headers })).status, 401);
   }
 
   const customerPatch = await apiRequest(`/api/admin/orders/${order.id}/status`, {
-    method: 'PATCH', headers: ownerHeaders, body: JSON.stringify({ order_status: 'completed' }),
+    method: 'PATCH',
+    headers: ownerHeaders,
+    body: JSON.stringify({ order_status: 'completed' }),
   });
   assert.equal(customerPatch.status, 403);
-  assert.equal((await apiRequest(`/api/admin/orders/${order.id}/status`, {
-    method: 'PATCH', body: JSON.stringify({ order_status: 'completed' }),
-  })).status, 401);
-  assert.equal((await apiRequest(`/api/orders/${order.id}`, {
-    method: 'PATCH', headers: otherHeaders, body: JSON.stringify({ order_status: 'completed' }),
-  })).status, 404);
-  assert.equal((await apiRequest(customerPaths[0], { headers: ownerHeaders })).data.order_status, 'pending');
+  assert.equal(
+    (
+      await apiRequest(`/api/admin/orders/${order.id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ order_status: 'completed' }),
+      })
+    ).status,
+    401,
+  );
+  assert.equal(
+    (
+      await apiRequest(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        headers: otherHeaders,
+        body: JSON.stringify({ order_status: 'completed' }),
+      })
+    ).status,
+    404,
+  );
+  assert.equal(
+    (await apiRequest(customerPaths[0], { headers: ownerHeaders })).data.order_status,
+    'pending',
+  );
 
   const adminLogin = await apiRequest('/api/admin/auth/login', {
-    method: 'POST', body: JSON.stringify({ email: 'admin@coffeeshop.com', password: 'admin123' }),
+    method: 'POST',
+    body: JSON.stringify({ email: 'admin@coffeeshop.com', password: 'admin123' }),
   });
   assert.equal(adminLogin.status, 200);
   const adminHeaders = { Authorization: `Bearer ${adminLogin.data.access_token}` };
-  assert.equal((await apiRequest(`/api/admin/orders/${order.id}`, { headers: adminHeaders })).status, 200);
+  assert.equal(
+    (await apiRequest(`/api/admin/orders/${order.id}`, { headers: adminHeaders })).status,
+    200,
+  );
   assert.equal((await apiRequest('/api/admin/orders', { headers: adminHeaders })).status, 200);
   assert.equal((await apiRequest(customerPaths[0], { headers: adminHeaders })).status, 401);
-  assert.equal((await apiRequest(`/api/admin/orders/${order.id}`, { headers: invalidHeaders })).status, 403);
-  const missingStaffHeaders = { Authorization: `Bearer ${createToken({ sub: 999999, role: 'admin' })}` };
-  assert.equal((await apiRequest(`/api/admin/orders/${order.id}`, { headers: missingStaffHeaders })).status, 401);
+  assert.equal(
+    (await apiRequest(`/api/admin/orders/${order.id}`, { headers: invalidHeaders })).status,
+    403,
+  );
+  const missingStaffHeaders = {
+    Authorization: `Bearer ${createToken({ sub: 999999, role: 'admin' })}`,
+  };
+  assert.equal(
+    (await apiRequest(`/api/admin/orders/${order.id}`, { headers: missingStaffHeaders })).status,
+    401,
+  );
 
   const adminUpdate = await apiRequest(`/api/admin/orders/${order.id}/status`, {
-    method: 'PATCH', headers: adminHeaders, body: JSON.stringify({ order_status: 'preparing' }),
+    method: 'PATCH',
+    headers: adminHeaders,
+    body: JSON.stringify({ order_status: 'preparing' }),
   });
   assert.equal(adminUpdate.status, 200);
   assert.equal(adminUpdate.data.order_status, 'preparing');
 
   // Pre-existing rows have no owner. Do not infer ownership from an unverified phone.
-  const legacy = await dbQuery(`
+  const legacy = await dbQuery(
+    `
     INSERT INTO orders (order_number, customer_name, customer_phone, customer_email, notes,
       subtotal_usd, total_usd, total_khr, payment_method, customer_id)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *
-  `, ['LEGACY-TEST-ORDER', 'Legacy Customer', ownerPhone, null, null, 1, 1, 4100, 'cash', null]);
+  `,
+    ['LEGACY-TEST-ORDER', 'Legacy Customer', ownerPhone, null, null, 1, 1, 4100, 'cash', null],
+  );
   const legacyId = legacy.rows[0].id;
-  assert.equal((await apiRequest(`/api/orders/${legacyId}`, { headers: ownerHeaders })).status, 404);
-  assert.equal((await apiRequest(`/api/admin/orders/${legacyId}`, { headers: adminHeaders })).status, 200);
-  assert.equal((await apiRequest('/api/orders', { headers: ownerHeaders })).data.some(row => row.id === legacyId), false);
-  assert.equal((await apiRequest('/api/orders', { headers: ownerHeaders })).data.some(row => row.id === order.id), true);
-  assert.equal((await apiRequest('/api/orders', { headers: otherHeaders })).data.some(row => row.id === order.id), false);
+  assert.equal(
+    (await apiRequest(`/api/orders/${legacyId}`, { headers: ownerHeaders })).status,
+    404,
+  );
+  assert.equal(
+    (await apiRequest(`/api/admin/orders/${legacyId}`, { headers: adminHeaders })).status,
+    200,
+  );
+  assert.equal(
+    (await apiRequest('/api/orders', { headers: ownerHeaders })).data.some(
+      row => row.id === legacyId,
+    ),
+    false,
+  );
+  assert.equal(
+    (await apiRequest('/api/orders', { headers: ownerHeaders })).data.some(
+      row => row.id === order.id,
+    ),
+    true,
+  );
+  assert.equal(
+    (await apiRequest('/api/orders', { headers: otherHeaders })).data.some(
+      row => row.id === order.id,
+    ),
+    false,
+  );
   assert.equal((await apiRequest('/api/orders')).status, 401);
 });
 
@@ -320,21 +396,32 @@ async function assertOrderRollback(failureKind) {
   assert.equal(registered.status, 201);
   const headers = { Authorization: `Bearer ${registered.data.access_token}` };
   const product = (await apiRequest('/api/products')).data[0];
-  const beforeOrders = Number((await dbQuery('SELECT COUNT(*) as count FROM orders')).rows[0].count);
-  const beforeItems = Number((await dbQuery('SELECT COUNT(*) as count FROM order_items')).rows[0].count);
+  const beforeOrders = Number(
+    (await dbQuery('SELECT COUNT(*) as count FROM orders')).rows[0].count,
+  );
+  const beforeItems = Number(
+    (await dbQuery('SELECT COUNT(*) as count FROM order_items')).rows[0].count,
+  );
   const memoryDb = await getDatabase();
   const originalQuery = memoryDb.query;
   let itemWrites = 0;
 
   memoryDb.query = function (sql, params) {
     const statement = sql.trim();
-    if (/^INSERT INTO order_items/i.test(statement) && ++itemWrites === 2 && failureKind === 'item') {
+    if (
+      /^INSERT INTO order_items/i.test(statement) &&
+      ++itemWrites === 2 &&
+      failureKind === 'item'
+    ) {
       throw new Error('Injected item write failure');
     }
     if (/^UPDATE customer_users SET loyalty_stamps/i.test(statement) && failureKind === 'loyalty') {
       throw new Error('Injected loyalty write failure');
     }
-    if (/^UPDATE customer_users SET loyalty_stamps/i.test(statement) && failureKind === 'missing-owner') {
+    if (
+      /^UPDATE customer_users SET loyalty_stamps/i.test(statement) &&
+      failureKind === 'missing-owner'
+    ) {
       return { rows: [], rowCount: 0 };
     }
     return originalQuery.call(this, sql, params);
@@ -345,7 +432,8 @@ async function assertOrderRollback(failureKind) {
       method: 'POST',
       headers,
       body: JSON.stringify({
-        customer_name: 'Rollback Tester', customer_phone: phone,
+        customer_name: 'Rollback Tester',
+        customer_phone: phone,
         items: [
           { product_id: product.id, quantity: 1 },
           { product_id: product.id, quantity: 1 },
@@ -357,8 +445,14 @@ async function assertOrderRollback(failureKind) {
     memoryDb.query = originalQuery;
   }
 
-  assert.equal(Number((await dbQuery('SELECT COUNT(*) as count FROM orders')).rows[0].count), beforeOrders);
-  assert.equal(Number((await dbQuery('SELECT COUNT(*) as count FROM order_items')).rows[0].count), beforeItems);
+  assert.equal(
+    Number((await dbQuery('SELECT COUNT(*) as count FROM orders')).rows[0].count),
+    beforeOrders,
+  );
+  assert.equal(
+    Number((await dbQuery('SELECT COUNT(*) as count FROM order_items')).rows[0].count),
+    beforeItems,
+  );
   const profile = await apiRequest('/api/auth/me', { headers });
   assert.equal(profile.data.loyalty_stamps, 0);
 }
@@ -407,9 +501,14 @@ test('10. Admin Authentication & Dashboard Summary', async () => {
     body: JSON.stringify({ payment_status: 'paid' }),
   });
   assert.equal(paymentRes.status, 422);
-  assert.equal((await apiRequest(`/api/admin/orders/${order.id}`, {
-    headers: { Authorization: `Bearer ${adminToken}` },
-  })).data.payment_status, 'unpaid');
+  assert.equal(
+    (
+      await apiRequest(`/api/admin/orders/${order.id}`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      })
+    ).data.payment_status,
+    'unpaid',
+  );
 });
 
 test('11. Staff access follows the active database role and rejects unsupported roles', async () => {
@@ -431,29 +530,58 @@ test('11. Staff access follows the active database role and rejects unsupported 
   const staffRow = memoryDb.tables.staff_users.find(row => row.id === staffId);
   assert.ok(staffRow);
 
-  const login = () => apiRequest('/api/admin/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  });
+  const login = () =>
+    apiRequest('/api/admin/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
   const staffLogin = await login();
   assert.equal(staffLogin.status, 200);
   const staffHeaders = { Authorization: `Bearer ${staffLogin.data.access_token}` };
 
   assert.equal((await apiRequest('/api/admin/auth/me', { headers: staffHeaders })).status, 200);
-  assert.equal((await apiRequest('/api/admin/dashboard/summary', { headers: staffHeaders })).status, 403);
+  assert.equal(
+    (await apiRequest('/api/admin/dashboard/summary', { headers: staffHeaders })).status,
+    403,
+  );
   assert.equal((await apiRequest('/api/admin/orders', { headers: staffHeaders })).status, 403);
   assert.equal((await apiRequest('/api/admin/staff', { headers: staffHeaders })).status, 403);
-  assert.equal((await apiRequest(`/api/admin/staff/${staffId}`, {
-    method: 'PATCH', headers: staffHeaders, body: JSON.stringify({ role: 'admin' }),
-  })).status, 403);
+  assert.equal(
+    (
+      await apiRequest(`/api/admin/staff/${staffId}`, {
+        method: 'PATCH',
+        headers: staffHeaders,
+        body: JSON.stringify({ role: 'admin' }),
+      })
+    ).status,
+    403,
+  );
 
-  assert.equal((await apiRequest('/api/admin/staff', {
-    method: 'POST', headers: adminHeaders,
-    body: JSON.stringify({ email: 'unsupported@example.test', full_name: 'Unsupported', password, role: 'seller' }),
-  })).status, 422);
-  assert.equal((await apiRequest(`/api/admin/staff/${staffId}`, {
-    method: 'PATCH', headers: adminHeaders, body: JSON.stringify({ role: 'seller' }),
-  })).status, 422);
+  assert.equal(
+    (
+      await apiRequest('/api/admin/staff', {
+        method: 'POST',
+        headers: adminHeaders,
+        body: JSON.stringify({
+          email: 'unsupported@example.test',
+          full_name: 'Unsupported',
+          password,
+          role: 'seller',
+        }),
+      })
+    ).status,
+    422,
+  );
+  assert.equal(
+    (
+      await apiRequest(`/api/admin/staff/${staffId}`, {
+        method: 'PATCH',
+        headers: adminHeaders,
+        body: JSON.stringify({ role: 'seller' }),
+      })
+    ).status,
+    422,
+  );
 
   try {
     staffRow.is_active = false;
@@ -463,11 +591,16 @@ test('11. Staff access follows the active database role and rejects unsupported 
 
     staffRow.role = 'seller';
     assert.equal((await apiRequest('/api/admin/auth/me', { headers: staffHeaders })).status, 403);
-    assert.equal((await apiRequest('/api/admin/dashboard/summary', { headers: staffHeaders })).status, 403);
+    assert.equal(
+      (await apiRequest('/api/admin/dashboard/summary', { headers: staffHeaders })).status,
+      403,
+    );
     assert.equal((await login()).status, 403);
     staffRow.role = 'staff';
     const promoted = await apiRequest(`/api/admin/staff/${staffId}`, {
-      method: 'PATCH', headers: adminHeaders, body: JSON.stringify({ role: 'admin' }),
+      method: 'PATCH',
+      headers: adminHeaders,
+      body: JSON.stringify({ role: 'admin' }),
     });
     assert.equal(promoted.status, 200);
     assert.equal(promoted.data.role, 'admin');
@@ -478,7 +611,9 @@ test('11. Staff access follows the active database role and rejects unsupported 
     const promotedHeaders = { Authorization: `Bearer ${promotedLogin.data.access_token}` };
     assert.equal((await apiRequest('/api/admin/staff', { headers: promotedHeaders })).status, 200);
     const demoted = await apiRequest(`/api/admin/staff/${staffId}`, {
-      method: 'PATCH', headers: adminHeaders, body: JSON.stringify({ role: 'staff' }),
+      method: 'PATCH',
+      headers: adminHeaders,
+      body: JSON.stringify({ role: 'staff' }),
     });
     assert.equal(demoted.status, 200);
     assert.equal((await apiRequest('/api/admin/staff', { headers: promotedHeaders })).status, 403);
@@ -496,50 +631,108 @@ test('phase 4 catalog CRUD is admin-only and validates input', async () => {
   const staffHeaders = { Authorization: `Bearer ${createToken({ sub: staff.id, role: 'staff' })}` };
   assert.equal((await apiRequest('/api/admin/categories', { headers: staffHeaders })).status, 403);
   assert.equal((await apiRequest('/api/admin/products', { headers: staffHeaders })).status, 403);
-  assert.equal((await apiRequest('/api/admin/categories', {
-    method: 'POST', headers: staffHeaders, body: JSON.stringify({ name: 'Forbidden' }),
-  })).status, 403);
+  assert.equal(
+    (
+      await apiRequest('/api/admin/categories', {
+        method: 'POST',
+        headers: staffHeaders,
+        body: JSON.stringify({ name: 'Forbidden' }),
+      })
+    ).status,
+    403,
+  );
   const category = await apiRequest('/api/admin/categories', {
-    method: 'POST', headers: adminHeaders,
+    method: 'POST',
+    headers: adminHeaders,
     body: JSON.stringify({ name: 'Phase Four Test', description: 'Test only', is_active: true }),
   });
   assert.equal(category.status, 201);
   const categoryId = category.data.id;
   const duplicate = await apiRequest('/api/admin/categories', {
-    method: 'POST', headers: adminHeaders, body: JSON.stringify({ name: 'phase four test' }),
+    method: 'POST',
+    headers: adminHeaders,
+    body: JSON.stringify({ name: 'phase four test' }),
   });
   assert.equal(duplicate.status, 400);
   const product = await apiRequest('/api/admin/products', {
-    method: 'POST', headers: adminHeaders,
-    body: JSON.stringify({ category_id: categoryId, name: 'Phase Four Drink', base_price_usd: 2.3, is_available: true }),
+    method: 'POST',
+    headers: adminHeaders,
+    body: JSON.stringify({
+      category_id: categoryId,
+      name: 'Phase Four Drink',
+      base_price_usd: 2.3,
+      is_available: true,
+    }),
   });
   assert.equal(product.status, 201);
   const productId = product.data.id;
-  assert.equal((await apiRequest('/api/admin/products', {
-    method: 'POST', headers: adminHeaders,
-    body: JSON.stringify({ category_id: categoryId, name: 'Bad Price', base_price_usd: '2.3oops' }),
-  })).status, 422);
-  assert.equal((await apiRequest(`/api/admin/products/${productId}`, {
-    method: 'PATCH', headers: staffHeaders, body: JSON.stringify({ is_available: false }),
-  })).status, 403);
+  assert.equal(
+    (
+      await apiRequest('/api/admin/products', {
+        method: 'POST',
+        headers: adminHeaders,
+        body: JSON.stringify({
+          category_id: categoryId,
+          name: 'Bad Price',
+          base_price_usd: '2.3oops',
+        }),
+      })
+    ).status,
+    422,
+  );
+  assert.equal(
+    (
+      await apiRequest(`/api/admin/products/${productId}`, {
+        method: 'PATCH',
+        headers: staffHeaders,
+        body: JSON.stringify({ is_available: false }),
+      })
+    ).status,
+    403,
+  );
   const updated = await apiRequest(`/api/admin/products/${productId}`, {
-    method: 'PATCH', headers: adminHeaders,
+    method: 'PATCH',
+    headers: adminHeaders,
     body: JSON.stringify({ name: 'Renamed Drink', base_price_usd: 3.25, is_available: false }),
   });
   assert.equal(updated.status, 200);
   assert.equal(updated.data.name, 'Renamed Drink');
   assert.equal(updated.data.base_price_usd, 3.25);
   assert.equal(updated.data.is_available, false);
-  assert.equal((await apiRequest(`/api/admin/categories/${categoryId}`, {
-    method: 'DELETE', headers: adminHeaders,
-  })).status, 400);
+  assert.equal(
+    (
+      await apiRequest(`/api/admin/categories/${categoryId}`, {
+        method: 'DELETE',
+        headers: adminHeaders,
+      })
+    ).status,
+    400,
+  );
   const renamedCategory = await apiRequest(`/api/admin/categories/${categoryId}`, {
-    method: 'PATCH', headers: adminHeaders, body: JSON.stringify({ name: 'Renamed Category', is_active: false }),
+    method: 'PATCH',
+    headers: adminHeaders,
+    body: JSON.stringify({ name: 'Renamed Category', is_active: false }),
   });
   assert.equal(renamedCategory.data.name, 'Renamed Category');
   assert.equal(renamedCategory.data.is_active, false);
-  assert.equal((await apiRequest(`/api/admin/products/${productId}`, { method: 'DELETE', headers: adminHeaders })).status, 200);
-  assert.equal((await apiRequest(`/api/admin/categories/${categoryId}`, { method: 'DELETE', headers: adminHeaders })).status, 200);
+  assert.equal(
+    (
+      await apiRequest(`/api/admin/products/${productId}`, {
+        method: 'DELETE',
+        headers: adminHeaders,
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await apiRequest(`/api/admin/categories/${categoryId}`, {
+        method: 'DELETE',
+        headers: adminHeaders,
+      })
+    ).status,
+    200,
+  );
 });
 
 test('phase 4 order transitions, payment restrictions, and revenue policy', async () => {
@@ -548,31 +741,71 @@ test('phase 4 order transitions, payment restrictions, and revenue policy', asyn
   const staff = memory.tables.staff_users.find(row => row.role === 'staff' && row.is_active);
   const adminHeaders = { Authorization: `Bearer ${createToken({ sub: admin.id, role: 'admin' })}` };
   const staffHeaders = { Authorization: `Bearer ${createToken({ sub: staff.id, role: 'staff' })}` };
-  const existing = memory.tables.orders.find(row => row.payment_status === 'unpaid' && row.order_status === 'pending');
+  const existing = memory.tables.orders.find(
+    row => row.payment_status === 'unpaid' && row.order_status === 'pending',
+  );
   assert.ok(existing);
   const id = existing.id;
-  assert.equal((await apiRequest(`/api/admin/orders/${id}`, { headers: adminHeaders })).status, 200);
-  assert.equal((await apiRequest('/api/admin/orders?status=pending', { headers: adminHeaders })).data.items.every(row => row.order_status === 'pending'), true);
-  assert.equal((await apiRequest(`/api/admin/orders/${id}/status`, {
-    method: 'PATCH', headers: staffHeaders, body: JSON.stringify({ order_status: 'preparing' }),
-  })).status, 403);
-  assert.equal((await apiRequest(`/api/admin/orders/${id}/status`, {
-    method: 'PATCH', headers: adminHeaders, body: JSON.stringify({ order_status: 'completed' }),
-  })).status, 409);
-  assert.equal((await apiRequest(`/api/admin/orders/${id}/status`, {
-    method: 'PATCH', headers: adminHeaders, body: JSON.stringify({ payment_status: 'paid' }),
-  })).status, 422);
+  assert.equal(
+    (await apiRequest(`/api/admin/orders/${id}`, { headers: adminHeaders })).status,
+    200,
+  );
+  assert.equal(
+    (
+      await apiRequest('/api/admin/orders?status=pending', { headers: adminHeaders })
+    ).data.items.every(row => row.order_status === 'pending'),
+    true,
+  );
+  assert.equal(
+    (
+      await apiRequest(`/api/admin/orders/${id}/status`, {
+        method: 'PATCH',
+        headers: staffHeaders,
+        body: JSON.stringify({ order_status: 'preparing' }),
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await apiRequest(`/api/admin/orders/${id}/status`, {
+        method: 'PATCH',
+        headers: adminHeaders,
+        body: JSON.stringify({ order_status: 'completed' }),
+      })
+    ).status,
+    409,
+  );
+  assert.equal(
+    (
+      await apiRequest(`/api/admin/orders/${id}/status`, {
+        method: 'PATCH',
+        headers: adminHeaders,
+        body: JSON.stringify({ payment_status: 'paid' }),
+      })
+    ).status,
+    422,
+  );
   for (const next of ['preparing', 'ready', 'completed']) {
     const result = await apiRequest(`/api/admin/orders/${id}/status`, {
-      method: 'PATCH', headers: adminHeaders, body: JSON.stringify({ order_status: next }),
+      method: 'PATCH',
+      headers: adminHeaders,
+      body: JSON.stringify({ order_status: next }),
     });
     assert.equal(result.status, 200);
     assert.equal(result.data.order_status, next);
     assert.equal(result.data.payment_status, 'unpaid');
   }
-  assert.equal((await apiRequest(`/api/admin/orders/${id}/status`, {
-    method: 'PATCH', headers: adminHeaders, body: JSON.stringify({ order_status: 'cancelled' }),
-  })).status, 409);
+  assert.equal(
+    (
+      await apiRequest(`/api/admin/orders/${id}/status`, {
+        method: 'PATCH',
+        headers: adminHeaders,
+        body: JSON.stringify({ order_status: 'cancelled' }),
+      })
+    ).status,
+    409,
+  );
   const report = await apiRequest('/api/admin/reports/sales', { headers: adminHeaders });
   assert.equal(report.status, 200);
   assert.equal(report.data.total_revenue_usd, 0);
@@ -587,10 +820,17 @@ test('phase 4 reports count only historical paid and completed rows', async () =
   const first = memory.tables.orders[0];
   const second = memory.tables.orders[1];
   assert.ok(first && second);
-  const before = [first.payment_status, first.order_status, second.payment_status, second.order_status];
+  const before = [
+    first.payment_status,
+    first.order_status,
+    second.payment_status,
+    second.order_status,
+  ];
   try {
-    first.payment_status = 'paid'; first.order_status = 'completed';
-    second.payment_status = 'paid'; second.order_status = 'cancelled';
+    first.payment_status = 'paid';
+    first.order_status = 'completed';
+    second.payment_status = 'paid';
+    second.order_status = 'cancelled';
     const summary = await apiRequest('/api/admin/dashboard/summary', { headers });
     const report = await apiRequest('/api/admin/reports/sales', { headers });
     assert.equal(summary.data.total_sales_usd, first.total_usd);
@@ -607,43 +847,84 @@ test('phase 5 rejects repeated settlement claims and keeps cash cancellation unp
   const staff = memory.tables.staff_users.find(row => row.role === 'staff' && row.is_active);
   const adminHeaders = { Authorization: `Bearer ${createToken({ sub: admin.id, role: 'admin' })}` };
   const staffHeaders = { Authorization: `Bearer ${createToken({ sub: staff.id, role: 'staff' })}` };
-  assert.equal((await apiRequest('/api/admin/orders/1/cash-settlement', {
-    method: 'POST', body: JSON.stringify({ reference: 'TEST', confirm_cash_received: true }),
-  })).status, 401);
-  assert.equal((await apiRequest('/api/admin/orders/1/cash-settlement', {
-    method: 'POST', headers: staffHeaders, body: JSON.stringify({ reference: 'TEST', confirm_cash_received: true }),
-  })).status, 403);
-  const cash = memory.tables.orders.find(row => row.payment_method === 'cash' && row.payment_status === 'unpaid' && row.order_status === 'pending');
+  assert.equal(
+    (
+      await apiRequest('/api/admin/orders/1/cash-settlement', {
+        method: 'POST',
+        body: JSON.stringify({ reference: 'TEST', confirm_cash_received: true }),
+      })
+    ).status,
+    401,
+  );
+  assert.equal(
+    (
+      await apiRequest('/api/admin/orders/1/cash-settlement', {
+        method: 'POST',
+        headers: staffHeaders,
+        body: JSON.stringify({ reference: 'TEST', confirm_cash_received: true }),
+      })
+    ).status,
+    403,
+  );
+  const cash = memory.tables.orders.find(
+    row =>
+      row.payment_method === 'cash' &&
+      row.payment_status === 'unpaid' &&
+      row.order_status === 'pending',
+  );
   assert.ok(cash);
   const originalCashStatus = cash.order_status;
   try {
-  for (const headers of [staffHeaders, adminHeaders, adminHeaders]) {
-    const response = await apiRequest(`/api/admin/orders/${cash.id}/status`, {
-      method: 'PATCH', headers, body: JSON.stringify({ payment_status: 'paid' }),
+    for (const headers of [staffHeaders, adminHeaders, adminHeaders]) {
+      const response = await apiRequest(`/api/admin/orders/${cash.id}/status`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ payment_status: 'paid' }),
+      });
+      assert.equal(response.status, headers === staffHeaders ? 403 : 422);
+    }
+    assert.equal(cash.payment_status, 'unpaid');
+    const cancelled = await apiRequest(`/api/admin/orders/${cash.id}/status`, {
+      method: 'PATCH',
+      headers: adminHeaders,
+      body: JSON.stringify({ order_status: 'cancelled' }),
     });
-    assert.equal(response.status, headers === staffHeaders ? 403 : 422);
+    assert.equal(cancelled.status, 200);
+    assert.equal(cancelled.data.payment_status, 'unpaid');
+    assert.equal(
+      (
+        await apiRequest(`/api/admin/orders/${cash.id}/status`, {
+          method: 'PATCH',
+          headers: adminHeaders,
+          body: JSON.stringify({ order_status: 'preparing' }),
+        })
+      ).status,
+      409,
+    );
+  } finally {
+    cash.order_status = originalCashStatus;
   }
-  assert.equal(cash.payment_status, 'unpaid');
-  const cancelled = await apiRequest(`/api/admin/orders/${cash.id}/status`, {
-    method: 'PATCH', headers: adminHeaders, body: JSON.stringify({ order_status: 'cancelled' }),
-  });
-  assert.equal(cancelled.status, 200);
-  assert.equal(cancelled.data.payment_status, 'unpaid');
-  assert.equal((await apiRequest(`/api/admin/orders/${cash.id}/status`, {
-    method: 'PATCH', headers: adminHeaders, body: JSON.stringify({ order_status: 'preparing' }),
-  })).status, 409);
-  } finally { cash.order_status = originalCashStatus; }
 
   const historical = memory.tables.orders.find(row => row.id !== cash.id);
   assert.ok(historical);
   const before = [historical.payment_status, historical.order_status];
   try {
-    historical.payment_status = 'paid'; historical.order_status = 'ready';
-    assert.equal((await apiRequest(`/api/admin/orders/${historical.id}/status`, {
-      method: 'PATCH', headers: adminHeaders, body: JSON.stringify({ order_status: 'cancelled' }),
-    })).status, 409);
+    historical.payment_status = 'paid';
+    historical.order_status = 'ready';
+    assert.equal(
+      (
+        await apiRequest(`/api/admin/orders/${historical.id}/status`, {
+          method: 'PATCH',
+          headers: adminHeaders,
+          body: JSON.stringify({ order_status: 'cancelled' }),
+        })
+      ).status,
+      409,
+    );
     assert.equal(historical.payment_status, 'paid');
-  } finally { [historical.payment_status, historical.order_status] = before; }
+  } finally {
+    [historical.payment_status, historical.order_status] = before;
+  }
 });
 
 async function orderFixture() {
@@ -660,17 +941,30 @@ async function orderFixture() {
     headers: { Authorization: `Bearer ${registration.data.access_token}` },
     product,
     payload: {
-      customer_name: 'Order Test', customer_phone: phone,
-      items: [{ product_id: product.id, quantity: 1, size: 'Medium', sugar_level: '50%', ice_level: 'Normal Ice', toppings: [] }],
+      customer_name: 'Order Test',
+      customer_phone: phone,
+      items: [
+        {
+          product_id: product.id,
+          quantity: 1,
+          size: 'Medium',
+          sugar_level: '50%',
+          ice_level: 'Normal Ice',
+          toppings: [],
+        },
+      ],
     },
   };
 }
 
 test('order boundary rejects malformed products, quantities, customizations and currency methods', async () => {
   const { headers, product, payload } = await orderFixture();
-  const submit = body => apiRequest('/api/orders', { method: 'POST', headers, body: JSON.stringify(body) });
+  const submit = body =>
+    apiRequest('/api/orders', { method: 'POST', headers, body: JSON.stringify(body) });
   const invalidBodies = [
-    null, [], { ...payload, items: [] },
+    null,
+    [],
+    { ...payload, items: [] },
     { ...payload, items: [null] },
     { ...payload, items: [{ ...payload.items[0], product_id: 999999 }] },
     { ...payload, items: [{ ...payload.items[0], product_id: '1' }] },
@@ -710,10 +1004,27 @@ test('order boundary rejects malformed products, quantities, customizations and 
 test('web and Flutter order bodies use catalog prices and server currency totals', async () => {
   const { headers, product, payload } = await orderFixture();
   const webPayload = {
-    ...payload, payment_method: 'khqr', currency: 'USD', total_usd: 0.01, total_khr: 1,
-    items: [{ ...payload.items[0], quantity: 2, product_name: 'Fake', unit_price_usd: 0.01, subtotal_usd: 0.02, toppings: ['Pudding'] }],
+    ...payload,
+    payment_method: 'khqr',
+    currency: 'USD',
+    total_usd: 0.01,
+    total_khr: 1,
+    items: [
+      {
+        ...payload.items[0],
+        quantity: 2,
+        product_name: 'Fake',
+        unit_price_usd: 0.01,
+        subtotal_usd: 0.02,
+        toppings: ['Pudding'],
+      },
+    ],
   };
-  const web = await apiRequest('/api/orders', { method: 'POST', headers, body: JSON.stringify(webPayload) });
+  const web = await apiRequest('/api/orders', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(webPayload),
+  });
   assert.equal(web.status, 201);
   const expected = Number((product.base_price_usd + 0.3 + 0.5).toFixed(2));
   assert.equal(web.data.items[0].product_name, product.name);
@@ -721,17 +1032,27 @@ test('web and Flutter order bodies use catalog prices and server currency totals
   assert.equal(web.data.total_usd, expected * 2);
   assert.equal(web.data.total_khr, Math.round(expected * 2 * 4100));
   assert.equal(web.data.payment_status, 'unpaid');
-  const mobile = await apiRequest('/api/orders', { method: 'POST', headers, body: JSON.stringify(payload) });
+  const mobile = await apiRequest('/api/orders', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
   assert.equal(mobile.status, 201);
-  assert.equal(mobile.data.items[0].unit_price_usd, Number((product.base_price_usd + 0.3).toFixed(2)));
+  assert.equal(
+    mobile.data.items[0].unit_price_usd,
+    Number((product.base_price_usd + 0.3).toFixed(2)),
+  );
 });
 
 test('idempotency replays one owned order, rejects payload conflicts and serializes concurrent requests', async () => {
   const { headers, payload, phone } = await orderFixture();
   const key = `test-${randomUUID()}`;
-  const submit = (body, idempotencyKey = key) => apiRequest('/api/orders', {
-    method: 'POST', headers: { ...headers, 'Idempotency-Key': idempotencyKey }, body: JSON.stringify(body),
-  });
+  const submit = (body, idempotencyKey = key) =>
+    apiRequest('/api/orders', {
+      method: 'POST',
+      headers: { ...headers, 'Idempotency-Key': idempotencyKey },
+      body: JSON.stringify(body),
+    });
   const [first, concurrent] = await Promise.all([submit(payload), submit(payload)]);
   assert.deepEqual([first.status, concurrent.status].sort(), [200, 201]);
   assert.equal(first.data.id, concurrent.data.id);
@@ -744,7 +1065,8 @@ test('idempotency replays one owned order, rejects payload conflicts and seriali
   assert.equal(profile.data.loyalty_stamps, 1);
   const other = await orderFixture();
   const sameKeyOtherOwner = await apiRequest('/api/orders', {
-    method: 'POST', headers: { ...other.headers, 'Idempotency-Key': key },
+    method: 'POST',
+    headers: { ...other.headers, 'Idempotency-Key': key },
     body: JSON.stringify(other.payload),
   });
   assert.equal(sameKeyOtherOwner.status, 201);
@@ -762,16 +1084,23 @@ test('a failed idempotent write rolls back the reservation, order, items and loy
   };
   try {
     const failed = await apiRequest('/api/orders', {
-      method: 'POST', headers: { ...headers, 'Idempotency-Key': key }, body: JSON.stringify(payload),
+      method: 'POST',
+      headers: { ...headers, 'Idempotency-Key': key },
+      body: JSON.stringify(payload),
     });
     assert.equal(failed.status, 500);
   } finally {
     db.query = originalQuery;
   }
-  assert.equal(db.tables.order_idempotency.some(row => row.idempotency_key === key), false);
+  assert.equal(
+    db.tables.order_idempotency.some(row => row.idempotency_key === key),
+    false,
+  );
   assert.equal((await apiRequest('/api/auth/me', { headers })).data.loyalty_stamps, 0);
   const retried = await apiRequest('/api/orders', {
-    method: 'POST', headers: { ...headers, 'Idempotency-Key': key }, body: JSON.stringify(payload),
+    method: 'POST',
+    headers: { ...headers, 'Idempotency-Key': key },
+    body: JSON.stringify(payload),
   });
   assert.equal(retried.status, 201);
   assert.equal((await apiRequest('/api/auth/me', { headers })).data.loyalty_stamps, 1);

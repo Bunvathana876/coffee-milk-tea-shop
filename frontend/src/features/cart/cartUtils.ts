@@ -11,11 +11,13 @@ export function generateCartItemId(
   size: DrinkSize,
   sugarLevel: SugarLevel,
   iceLevel: IceLevel,
-  toppings: string[] = []
+  toppings: string[] = [],
 ): string {
   const sortedToppings = [...toppings].sort().join(',');
   const toppingsPart = sortedToppings ? `-${sortedToppings}` : '';
-  return `${productId}-${size}-${sugarLevel}-${iceLevel}${toppingsPart}`.toLowerCase().replace(/\s+/g, '-');
+  return `${productId}-${size}-${sugarLevel}-${iceLevel}${toppingsPart}`
+    .toLowerCase()
+    .replace(/\s+/g, '-');
 }
 
 /**
@@ -34,9 +36,7 @@ export function calculateItemSubtotal(unitPriceUsd: number, quantity: number): n
  */
 export function calculateCartTotals(items: CartItem[]) {
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotalUsd = Number(
-    items.reduce((sum, item) => sum + item.subtotalUsd, 0).toFixed(2)
-  );
+  const subtotalUsd = Number(items.reduce((sum, item) => sum + item.subtotalUsd, 0).toFixed(2));
   const totalPriceUsd = subtotalUsd;
   const totalPriceKhr = usdToKhr(totalPriceUsd);
 
@@ -47,4 +47,3 @@ export function calculateCartTotals(items: CartItem[]) {
     totalPriceKhr,
   };
 }
-

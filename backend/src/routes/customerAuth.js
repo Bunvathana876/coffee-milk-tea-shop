@@ -24,27 +24,36 @@ router.post('/register', async (req, res, next) => {
     const cleanEmail = email && String(email).trim() ? String(email).trim().toLowerCase() : null;
 
     // Check duplicate phone
-    const existingPhone = await dbQuery('SELECT id FROM customer_users WHERE phone = $1', [cleanPhone]);
+    const existingPhone = await dbQuery('SELECT id FROM customer_users WHERE phone = $1', [
+      cleanPhone,
+    ]);
     if (existingPhone.rows.length > 0) {
       return res.status(400).json({ detail: 'An account with this phone number already exists.' });
     }
 
     // Check duplicate email
     if (cleanEmail) {
-      const existingEmail = await dbQuery('SELECT id FROM customer_users WHERE email = $1', [cleanEmail]);
+      const existingEmail = await dbQuery('SELECT id FROM customer_users WHERE email = $1', [
+        cleanEmail,
+      ]);
       if (existingEmail.rows.length > 0) {
-        return res.status(400).json({ detail: 'An account with this email address already exists.' });
+        return res
+          .status(400)
+          .json({ detail: 'An account with this email address already exists.' });
       }
     }
 
     const salt = bcrypt.genSaltSync(10);
     const passwordHash = bcrypt.hashSync(password, salt);
 
-    const result = await dbQuery(`
+    const result = await dbQuery(
+      `
       INSERT INTO customer_users (full_name, phone, email, password_hash, loyalty_stamps, is_active, last_login_at)
       VALUES ($1, $2, $3, $4, 0, TRUE, CURRENT_TIMESTAMP)
       RETURNING id, full_name, phone, email, loyalty_stamps, is_active, created_at, last_login_at
-    `, [String(full_name).trim(), cleanPhone, cleanEmail, passwordHash]);
+    `,
+      [String(full_name).trim(), cleanPhone, cleanEmail, passwordHash],
+    );
 
     const user = result.rows[0];
 
@@ -75,15 +84,20 @@ router.post('/login', async (req, res, next) => {
     const { identifier, password } = req.body;
 
     if (!identifier || !password) {
-      return res.status(422).json({ detail: 'Identifier (phone or email) and password are required.' });
+      return res
+        .status(422)
+        .json({ detail: 'Identifier (phone or email) and password are required.' });
     }
 
     const cleanIdentifier = String(identifier).trim();
-    const result = await dbQuery(`
+    const result = await dbQuery(
+      `
       SELECT id, full_name, phone, email, password_hash, loyalty_stamps, is_active, created_at, last_login_at
       FROM customer_users
       WHERE phone = $1 OR LOWER(email) = LOWER($2)
-    `, [cleanIdentifier, cleanIdentifier]);
+    `,
+      [cleanIdentifier, cleanIdentifier],
+    );
 
     const user = result.rows[0];
 
@@ -96,7 +110,9 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json({ detail: 'Invalid phone/email or password.' });
     }
 
-    await dbQuery('UPDATE customer_users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
+    await dbQuery('UPDATE customer_users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1', [
+      user.id,
+    ]);
 
     const accessToken = createToken({
       sub: user.id,
@@ -104,7 +120,10 @@ router.post('/login', async (req, res, next) => {
       phone: user.phone,
     });
 
-    const updatedUserRes = await dbQuery('SELECT id, full_name, phone, email, loyalty_stamps, is_active, created_at, last_login_at FROM customer_users WHERE id = $1', [user.id]);
+    const updatedUserRes = await dbQuery(
+      'SELECT id, full_name, phone, email, loyalty_stamps, is_active, created_at, last_login_at FROM customer_users WHERE id = $1',
+      [user.id],
+    );
     const updatedUser = updatedUserRes.rows[0] || user;
 
     res.json({
@@ -156,9 +175,14 @@ router.patch('/me', authenticateCustomer, async (req, res, next) => {
     if (email !== undefined) {
       const cleanEmail = email && String(email).trim() ? String(email).trim().toLowerCase() : null;
       if (cleanEmail) {
-        const existing = await dbQuery('SELECT id FROM customer_users WHERE email = $1 AND id != $2', [cleanEmail, customerId]);
+        const existing = await dbQuery(
+          'SELECT id FROM customer_users WHERE email = $1 AND id != $2',
+          [cleanEmail, customerId],
+        );
         if (existing.rows.length > 0) {
-          return res.status(400).json({ detail: 'Email address already in use by another customer.' });
+          return res
+            .status(400)
+            .json({ detail: 'Email address already in use by another customer.' });
         }
       }
       params.push(cleanEmail);
@@ -167,10 +191,16 @@ router.patch('/me', authenticateCustomer, async (req, res, next) => {
 
     if (updates.length > 0) {
       params.push(customerId);
-      await dbQuery(`UPDATE customer_users SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+      await dbQuery(
+        `UPDATE customer_users SET ${updates.join(', ')} WHERE id = $${params.length}`,
+        params,
+      );
     }
 
-    const updatedRes = await dbQuery('SELECT id, full_name, phone, email, loyalty_stamps, is_active, created_at, last_login_at FROM customer_users WHERE id = $1', [customerId]);
+    const updatedRes = await dbQuery(
+      'SELECT id, full_name, phone, email, loyalty_stamps, is_active, created_at, last_login_at FROM customer_users WHERE id = $1',
+      [customerId],
+    );
     const updated = updatedRes.rows[0];
 
     res.json({

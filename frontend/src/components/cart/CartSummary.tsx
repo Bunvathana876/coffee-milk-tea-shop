@@ -44,9 +44,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
             <div className="font-serif font-bold text-ink text-sm leading-tight">
               {formatUsd(subtotalUsd)}
             </div>
-            <div className="text-xs text-ink-soft mt-0.5 font-medium">
-              {formatKhr(subtotalUsd)}
-            </div>
+            <div className="text-xs text-ink-soft mt-0.5 font-medium">{formatKhr(subtotalUsd)}</div>
           </div>
         </div>
 
@@ -67,17 +65,13 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
           <span className="text-[11px] font-bold text-cobalt uppercase tracking-wider block">
             Total Due
           </span>
-          <span className="text-[10px] text-ink-soft">
-            Official Rate: $1 = {formatKhr(1)}
-          </span>
+          <span className="text-[10px] text-ink-soft">Official Rate: $1 = {formatKhr(1)}</span>
         </div>
         <div className="text-right">
           <div className="text-2xl sm:text-3xl font-serif font-black text-cobalt tracking-tight leading-none">
             {formatUsd(totalPriceUsd)}
           </div>
-          <div className="text-xs font-bold text-ink-soft mt-1">
-            {formatKhr(totalPriceKhr)}
-          </div>
+          <div className="text-xs font-bold text-ink-soft mt-1">{formatKhr(totalPriceKhr)}</div>
         </div>
       </div>
 
@@ -88,7 +82,9 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
         </div>
         <div className="leading-snug">
           <p className="font-bold text-ink">Instant Bakong KHQR</p>
-          <p className="text-[11px] text-ink-soft">Scan with ABA or any Cambodian mobile banking app.</p>
+          <p className="text-[11px] text-ink-soft">
+            Scan with ABA or any Cambodian mobile banking app.
+          </p>
         </div>
       </div>
 

@@ -56,12 +56,14 @@ function createMockClient(options = {}) {
 
       if (cleanSql.includes('current_database()')) {
         return {
-          rows: [{
-            current_db: currentDb,
-            branch_id: branchId,
-            endpoint_id: endpointId,
-            project_id: projectId,
-          }],
+          rows: [
+            {
+              current_db: currentDb,
+              branch_id: branchId,
+              endpoint_id: endpointId,
+              project_id: projectId,
+            },
+          ],
         };
       }
 
@@ -97,15 +99,17 @@ function createMockClient(options = {}) {
         }
         capturedInsertParams = params;
         return {
-          rows: [{
-            id: 1,
-            email: params[0],
-            full_name: params[1],
-            role: 'admin',
-            password_hash: params[2],
-            is_active: true,
-            created_at: new Date().toISOString(),
-          }],
+          rows: [
+            {
+              id: 1,
+              email: params[0],
+              full_name: params[1],
+              role: 'admin',
+              password_hash: params[2],
+              is_active: true,
+              created_at: new Date().toISOString(),
+            },
+          ],
           rowCount: 1,
         };
       }
@@ -120,26 +124,29 @@ function createMockClient(options = {}) {
 test('validateBootstrapInput requires explicit confirmation', () => {
   assert.throws(
     () => validateBootstrapInput({}),
-    error => error instanceof Error && /CONFIRM_STAGING_BOOTSTRAP=true is required/.test(error.message)
+    error =>
+      error instanceof Error && /CONFIRM_STAGING_BOOTSTRAP=true is required/.test(error.message),
   );
 });
 
 test('validateBootstrapInput validates email format', () => {
   assert.throws(
     () => validateBootstrapInput(validEnv({ BOOTSTRAP_ADMIN_EMAIL: 'invalid-email' })),
-    error => error instanceof Error && /BOOTSTRAP_ADMIN_EMAIL must be a valid email/.test(error.message)
+    error =>
+      error instanceof Error && /BOOTSTRAP_ADMIN_EMAIL must be a valid email/.test(error.message),
   );
 });
 
 test('validateBootstrapInput enforces minimum password length and rejects common passwords', () => {
   assert.throws(
     () => validateBootstrapInput(validEnv({ BOOTSTRAP_ADMIN_PASSWORD: 'short' })),
-    error => error instanceof Error && /at least 12 characters/.test(error.message)
+    error => error instanceof Error && /at least 12 characters/.test(error.message),
   );
 
   assert.throws(
     () => validateBootstrapInput(validEnv({ BOOTSTRAP_ADMIN_PASSWORD: 'password12345678' })),
-    error => error instanceof Error && /cannot be a common or predictable default/.test(error.message)
+    error =>
+      error instanceof Error && /cannot be a common or predictable default/.test(error.message),
   );
 });
 
@@ -153,38 +160,66 @@ test('validateBootstrapInput accepts valid operator input', () => {
 
 test('validateBootstrapInput requires TLS with sslmode=verify-full in DATABASE_URL', () => {
   assert.throws(
-    () => validateBootstrapInput(validEnv({
-      DATABASE_URL: `postgresql://user:pass@${AUTHORIZED_TARGETS.stagingEndpointId}.aws.neon.tech/${AUTHORIZED_TARGETS.stagingDatabase}`,
-    })),
-    error => error instanceof Error && /DATABASE_URL must require TLS with sslmode=verify-full/.test(error.message)
+    () =>
+      validateBootstrapInput(
+        validEnv({
+          DATABASE_URL: `postgresql://user:pass@${AUTHORIZED_TARGETS.stagingEndpointId}.aws.neon.tech/${AUTHORIZED_TARGETS.stagingDatabase}`,
+        }),
+      ),
+    error =>
+      error instanceof Error &&
+      /DATABASE_URL must require TLS with sslmode=verify-full/.test(error.message),
   );
 
   assert.throws(
-    () => validateBootstrapInput(validEnv({
-      DATABASE_URL: `postgresql://user:pass@${AUTHORIZED_TARGETS.stagingEndpointId}.aws.neon.tech/${AUTHORIZED_TARGETS.stagingDatabase}?sslmode=require`,
-    })),
-    error => error instanceof Error && /DATABASE_URL must require TLS with sslmode=verify-full/.test(error.message)
+    () =>
+      validateBootstrapInput(
+        validEnv({
+          DATABASE_URL: `postgresql://user:pass@${AUTHORIZED_TARGETS.stagingEndpointId}.aws.neon.tech/${AUTHORIZED_TARGETS.stagingDatabase}?sslmode=require`,
+        }),
+      ),
+    error =>
+      error instanceof Error &&
+      /DATABASE_URL must require TLS with sslmode=verify-full/.test(error.message),
   );
 
   assert.throws(
-    () => validateBootstrapInput(validEnv({
-      DATABASE_URL: `postgresql://user:pass@${AUTHORIZED_TARGETS.stagingEndpointId}.aws.neon.tech/${AUTHORIZED_TARGETS.stagingDatabase}?sslmode=disable`,
-    })),
-    error => error instanceof Error && /DATABASE_URL must require TLS with sslmode=verify-full/.test(error.message)
+    () =>
+      validateBootstrapInput(
+        validEnv({
+          DATABASE_URL: `postgresql://user:pass@${AUTHORIZED_TARGETS.stagingEndpointId}.aws.neon.tech/${AUTHORIZED_TARGETS.stagingDatabase}?sslmode=disable`,
+        }),
+      ),
+    error =>
+      error instanceof Error &&
+      /DATABASE_URL must require TLS with sslmode=verify-full/.test(error.message),
   );
 
   assert.throws(
-    () => validateBootstrapInput(validEnv({
-      DATABASE_URL: 'not-a-postgres-url',
-    })),
-    error => error instanceof Error && /DATABASE_URL must be a valid PostgreSQL connection URL/.test(error.message)
+    () =>
+      validateBootstrapInput(
+        validEnv({
+          DATABASE_URL: 'not-a-postgres-url',
+        }),
+      ),
+    error =>
+      error instanceof Error &&
+      /DATABASE_URL must be a valid PostgreSQL connection URL/.test(error.message),
   );
 });
 
 test('createBootstrapPgClient configures TLS without rejectUnauthorized: false', () => {
   const client = createBootstrapPgClient(VALID_STAGING_URL);
-  assert.notEqual(client.ssl?.rejectUnauthorized, false, 'rejectUnauthorized: false must not be present');
-  assert.deepEqual(client.ssl, {}, 'sslmode=verify-full must resolve to strict TLS verification ({})');
+  assert.notEqual(
+    client.ssl?.rejectUnauthorized,
+    false,
+    'rejectUnauthorized: false must not be present',
+  );
+  assert.deepEqual(
+    client.ssl,
+    {},
+    'sslmode=verify-full must resolve to strict TLS verification ({})',
+  );
 });
 
 test('bootstrapAdminUser rejects unauthorized branches fail-closed before opening transaction', async () => {
@@ -194,13 +229,23 @@ test('bootstrapAdminUser rejects unauthorized branches fail-closed before openin
 
   await assert.rejects(
     bootstrapAdminUser(validEnv(), mockClient),
-    error => error instanceof Error && /Target guard failed: Connected branch.*does not match authorized staging branch/.test(error.message)
+    error =>
+      error instanceof Error &&
+      /Target guard failed: Connected branch.*does not match authorized staging branch/.test(
+        error.message,
+      ),
   );
 
   const executedSql = mockClient.queries.map(q => q.sql);
   assert.ok(!executedSql.includes('BEGIN'), 'Must not begin transaction on unauthorized branch');
-  assert.ok(!executedSql.some(sql => sql.includes('pg_advisory_xact_lock')), 'Must not acquire advisory lock');
-  assert.ok(!executedSql.some(sql => sql.includes('staff_users')), 'Must not touch staff_users table');
+  assert.ok(
+    !executedSql.some(sql => sql.includes('pg_advisory_xact_lock')),
+    'Must not acquire advisory lock',
+  );
+  assert.ok(
+    !executedSql.some(sql => sql.includes('staff_users')),
+    'Must not touch staff_users table',
+  );
   assert.ok(!executedSql.includes('COMMIT'), 'Must not commit');
   assert.equal(mockClient.ended, true, 'Client connection must be closed');
 });
@@ -213,7 +258,11 @@ test('bootstrapAdminUser rejects production branch fail-closed before transactio
 
   await assert.rejects(
     bootstrapAdminUser(validEnv(), mockClient),
-    error => error instanceof Error && /CRITICAL TARGET GUARD: Connected database session is identified as PRODUCTION/.test(error.message)
+    error =>
+      error instanceof Error &&
+      /CRITICAL TARGET GUARD: Connected database session is identified as PRODUCTION/.test(
+        error.message,
+      ),
   );
 
   const executedSql = mockClient.queries.map(q => q.sql);
@@ -230,7 +279,11 @@ test('bootstrapAdminUser rejects production endpoint in session fail-closed befo
 
   await assert.rejects(
     bootstrapAdminUser(validEnv(), mockClient),
-    error => error instanceof Error && /CRITICAL TARGET GUARD: Connected database session is identified as PRODUCTION/.test(error.message)
+    error =>
+      error instanceof Error &&
+      /CRITICAL TARGET GUARD: Connected database session is identified as PRODUCTION/.test(
+        error.message,
+      ),
   );
 
   const executedSql = mockClient.queries.map(q => q.sql);
@@ -246,11 +299,18 @@ test('bootstrapAdminUser rejects production endpoint in DATABASE_URL fail-closed
 
   await assert.rejects(
     bootstrapAdminUser(prodUrlEnv, mockClient),
-    error => error instanceof Error && /CRITICAL TARGET GUARD: Writes to production branch or endpoint are strictly prohibited/.test(error.message)
+    error =>
+      error instanceof Error &&
+      /CRITICAL TARGET GUARD: Writes to production branch or endpoint are strictly prohibited/.test(
+        error.message,
+      ),
   );
 
   const executedSql = mockClient.queries.map(q => q.sql);
-  assert.ok(!executedSql.includes('BEGIN'), 'Must not begin transaction when DATABASE_URL points to production');
+  assert.ok(
+    !executedSql.includes('BEGIN'),
+    'Must not begin transaction when DATABASE_URL points to production',
+  );
   assert.equal(mockClient.ended, true, 'Client connection must be closed');
 });
 
@@ -261,11 +321,18 @@ test('bootstrapAdminUser rejects unauthorized database name in session fail-clos
 
   await assert.rejects(
     bootstrapAdminUser(validEnv(), mockClient),
-    error => error instanceof Error && /Target guard failed: Connected database \[unauthorized_db\] does not match authorized database/.test(error.message)
+    error =>
+      error instanceof Error &&
+      /Target guard failed: Connected database \[unauthorized_db\] does not match authorized database/.test(
+        error.message,
+      ),
   );
 
   const executedSql = mockClient.queries.map(q => q.sql);
-  assert.ok(!executedSql.includes('BEGIN'), 'Must not begin transaction when database name is unauthorized');
+  assert.ok(
+    !executedSql.includes('BEGIN'),
+    'Must not begin transaction when database name is unauthorized',
+  );
   assert.equal(mockClient.ended, true, 'Client connection must be closed');
 });
 
@@ -276,7 +343,9 @@ test('bootstrapAdminUser acquires transaction-scoped advisory lock after BEGIN',
 
   const executedSql = mockClient.queries.map(q => q.sql);
   const beginIndex = executedSql.indexOf('BEGIN');
-  const lockIndex = executedSql.findIndex(sql => sql.includes(`pg_advisory_xact_lock(${BOOTSTRAP_ADVISORY_LOCK_ID})`));
+  const lockIndex = executedSql.findIndex(sql =>
+    sql.includes(`pg_advisory_xact_lock(${BOOTSTRAP_ADVISORY_LOCK_ID})`),
+  );
   const selectUsersIndex = executedSql.findIndex(sql => sql.includes('FROM staff_users'));
 
   assert.ok(beginIndex !== -1, 'Must begin transaction');
@@ -288,23 +357,34 @@ test('bootstrapAdminUser acquires transaction-scoped advisory lock after BEGIN',
 
 test('bootstrapAdminUser rejects duplicate administrator with identical email', async () => {
   const mockClient = createMockClient({
-    existingUsers: [
-      { id: 42, email: 'ops-admin@brewboba.com', role: 'admin', is_active: true },
-    ],
+    existingUsers: [{ id: 42, email: 'ops-admin@brewboba.com', role: 'admin', is_active: true }],
   });
 
   await assert.rejects(
     bootstrapAdminUser(validEnv(), mockClient),
-    error => error instanceof Error && /Bootstrap aborted: Staff user already exists with email \[ops-admin@brewboba.com\] \(id=42, role=admin, active=true\)/.test(error.message)
+    error =>
+      error instanceof Error &&
+      /Bootstrap aborted: Staff user already exists with email \[ops-admin@brewboba.com\] \(id=42, role=admin, active=true\)/.test(
+        error.message,
+      ),
   );
 
   const executedSql = mockClient.queries.map(q => q.sql);
   assert.ok(executedSql.includes('BEGIN'), 'Must begin transaction');
-  assert.ok(executedSql.some(sql => sql.includes(`pg_advisory_xact_lock(${BOOTSTRAP_ADVISORY_LOCK_ID})`)), 'Must acquire advisory lock');
-  assert.ok(executedSql.some(sql => sql.includes('SELECT id, email, role, is_active FROM staff_users')), 'Must query staff_users');
+  assert.ok(
+    executedSql.some(sql => sql.includes(`pg_advisory_xact_lock(${BOOTSTRAP_ADVISORY_LOCK_ID})`)),
+    'Must acquire advisory lock',
+  );
+  assert.ok(
+    executedSql.some(sql => sql.includes('SELECT id, email, role, is_active FROM staff_users')),
+    'Must query staff_users',
+  );
   assert.ok(executedSql.includes('ROLLBACK'), 'Must roll back on existing account');
   assert.ok(!executedSql.includes('COMMIT'), 'Must not commit when account already exists');
-  assert.ok(!executedSql.some(sql => sql.startsWith('INSERT INTO staff_users')), 'Must not insert user');
+  assert.ok(
+    !executedSql.some(sql => sql.startsWith('INSERT INTO staff_users')),
+    'Must not insert user',
+  );
   assert.equal(mockClient.ended, true, 'Client connection must be closed');
 });
 
@@ -317,15 +397,25 @@ test('bootstrapAdminUser rejects provisioning when any other staff account alrea
 
   await assert.rejects(
     bootstrapAdminUser(validEnv(), mockClient),
-    error => error instanceof Error && /Bootstrap aborted: staff_users table is not empty \(1 existing account found, e.g. \[existing-barista@brewboba.com\] id=99, role=staff\)/.test(error.message)
+    error =>
+      error instanceof Error &&
+      /Bootstrap aborted: staff_users table is not empty \(1 existing account found, e.g. \[existing-barista@brewboba.com\] id=99, role=staff\)/.test(
+        error.message,
+      ),
   );
 
   const executedSql = mockClient.queries.map(q => q.sql);
   assert.ok(executedSql.includes('BEGIN'), 'Must begin transaction');
-  assert.ok(executedSql.some(sql => sql.includes(`pg_advisory_xact_lock(${BOOTSTRAP_ADVISORY_LOCK_ID})`)), 'Must acquire advisory lock');
+  assert.ok(
+    executedSql.some(sql => sql.includes(`pg_advisory_xact_lock(${BOOTSTRAP_ADVISORY_LOCK_ID})`)),
+    'Must acquire advisory lock',
+  );
   assert.ok(executedSql.includes('ROLLBACK'), 'Must roll back when table is not empty');
   assert.ok(!executedSql.includes('COMMIT'), 'Must not commit when table is not empty');
-  assert.ok(!executedSql.some(sql => sql.startsWith('INSERT INTO staff_users')), 'Must not insert user');
+  assert.ok(
+    !executedSql.some(sql => sql.startsWith('INSERT INTO staff_users')),
+    'Must not insert user',
+  );
   assert.equal(mockClient.ended, true, 'Client connection must be closed');
 });
 
@@ -361,7 +451,9 @@ test('bootstrapAdminUser serializes concurrent bootstrap attempts via advisory l
     return {
       id: clientId,
       queries,
-      get ended() { return ended; },
+      get ended() {
+        return ended;
+      },
       async connect() {},
       async end() {
         if (holdsLock) {
@@ -376,12 +468,14 @@ test('bootstrapAdminUser serializes concurrent bootstrap attempts via advisory l
 
         if (cleanSql.includes('current_database()')) {
           return {
-            rows: [{
-              current_db: AUTHORIZED_TARGETS.stagingDatabase,
-              branch_id: AUTHORIZED_TARGETS.stagingBranchId,
-              endpoint_id: AUTHORIZED_TARGETS.stagingEndpointId,
-              project_id: AUTHORIZED_TARGETS.projectId,
-            }],
+            rows: [
+              {
+                current_db: AUTHORIZED_TARGETS.stagingDatabase,
+                branch_id: AUTHORIZED_TARGETS.stagingBranchId,
+                endpoint_id: AUTHORIZED_TARGETS.stagingEndpointId,
+                project_id: AUTHORIZED_TARGETS.projectId,
+              },
+            ],
           };
         }
 
@@ -465,7 +559,7 @@ test('bootstrapAdminUser serializes concurrent bootstrap attempts via advisory l
   assert.match(
     rejected[0].reason.message,
     /Bootstrap aborted: staff_users table is not empty|Staff user already exists/,
-    'Rejected attempt must report that staff_users is not empty'
+    'Rejected attempt must report that staff_users is not empty',
   );
 
   assert.equal(sharedStaffUsers.length, 1, 'Only one administrator must be created in total');
@@ -479,27 +573,24 @@ test('bootstrapAdminUser serializes concurrent bootstrap attempts via advisory l
 
 test('bootstrapAdminUser surfaces transaction rollback failure when rollback fails on duplicate user', async () => {
   const mockClient = createMockClient({
-    existingUsers: [
-      { id: 42, email: 'ops-admin@brewboba.com', role: 'admin', is_active: true },
-    ],
+    existingUsers: [{ id: 42, email: 'ops-admin@brewboba.com', role: 'admin', is_active: true }],
     rollbackError: new Error('Simulated network drop during rollback'),
   });
 
-  await assert.rejects(
-    bootstrapAdminUser(validEnv(), mockClient),
-    error => {
-      assert.ok(error instanceof AggregateError, 'Must throw AggregateError on rollback failure');
-      assert.equal(error.message, 'Transaction rollback failed.');
-      assert.equal(error.errors.length, 2);
-      assert.match(error.errors[0].message, /Bootstrap aborted: Staff user already exists/);
-      assert.match(error.errors[1].message, /Simulated network drop during rollback/);
-      return true;
-    }
-  );
+  await assert.rejects(bootstrapAdminUser(validEnv(), mockClient), error => {
+    assert.ok(error instanceof AggregateError, 'Must throw AggregateError on rollback failure');
+    assert.equal(error.message, 'Transaction rollback failed.');
+    assert.equal(error.errors.length, 2);
+    assert.match(error.errors[0].message, /Bootstrap aborted: Staff user already exists/);
+    assert.match(error.errors[1].message, /Simulated network drop during rollback/);
+    return true;
+  });
 
   const executedSql = mockClient.queries.map(q => q.sql);
   assert.ok(executedSql.includes('BEGIN'));
-  assert.ok(executedSql.some(sql => sql.includes(`pg_advisory_xact_lock(${BOOTSTRAP_ADVISORY_LOCK_ID})`)));
+  assert.ok(
+    executedSql.some(sql => sql.includes(`pg_advisory_xact_lock(${BOOTSTRAP_ADVISORY_LOCK_ID})`)),
+  );
   assert.ok(executedSql.includes('ROLLBACK'));
   assert.ok(!executedSql.includes('COMMIT'));
   assert.equal(mockClient.ended, true, 'Client connection must be closed');
@@ -511,21 +602,20 @@ test('bootstrapAdminUser surfaces transaction rollback failure when rollback fai
     rollbackError: new Error('Simulated socket error on rollback'),
   });
 
-  await assert.rejects(
-    bootstrapAdminUser(validEnv(), mockClient),
-    error => {
-      assert.ok(error instanceof AggregateError, 'Must throw AggregateError on rollback failure');
-      assert.equal(error.message, 'Transaction rollback failed.');
-      assert.equal(error.errors.length, 2);
-      assert.match(error.errors[0].message, /Simulated disk full on staff insert/);
-      assert.match(error.errors[1].message, /Simulated socket error on rollback/);
-      return true;
-    }
-  );
+  await assert.rejects(bootstrapAdminUser(validEnv(), mockClient), error => {
+    assert.ok(error instanceof AggregateError, 'Must throw AggregateError on rollback failure');
+    assert.equal(error.message, 'Transaction rollback failed.');
+    assert.equal(error.errors.length, 2);
+    assert.match(error.errors[0].message, /Simulated disk full on staff insert/);
+    assert.match(error.errors[1].message, /Simulated socket error on rollback/);
+    return true;
+  });
 
   const executedSql = mockClient.queries.map(q => q.sql);
   assert.ok(executedSql.includes('BEGIN'));
-  assert.ok(executedSql.some(sql => sql.includes(`pg_advisory_xact_lock(${BOOTSTRAP_ADVISORY_LOCK_ID})`)));
+  assert.ok(
+    executedSql.some(sql => sql.includes(`pg_advisory_xact_lock(${BOOTSTRAP_ADVISORY_LOCK_ID})`)),
+  );
   assert.ok(executedSql.includes('ROLLBACK'));
   assert.ok(!executedSql.includes('COMMIT'));
   assert.equal(mockClient.ended, true, 'Client connection must be closed');
@@ -549,13 +639,17 @@ test('bootstrapAdminUser successfully provisions the first administrator on empt
   assert.ok(capturedPasswordHash.startsWith('$2'), 'Password hash must be a valid bcrypt hash');
   assert.ok(
     bcrypt.compareSync('a-very-strong-and-unique-password-2026', capturedPasswordHash),
-    'Password hash must match operator password via bcrypt verification'
+    'Password hash must match operator password via bcrypt verification',
   );
 
   const executedSql = mockClient.queries.map(q => q.sql);
   assert.ok(executedSql.includes('BEGIN'));
-  assert.ok(executedSql.some(sql => sql.includes(`pg_advisory_xact_lock(${BOOTSTRAP_ADVISORY_LOCK_ID})`)));
-  assert.ok(executedSql.some(sql => sql.includes('SELECT id, email, role, is_active FROM staff_users')));
+  assert.ok(
+    executedSql.some(sql => sql.includes(`pg_advisory_xact_lock(${BOOTSTRAP_ADVISORY_LOCK_ID})`)),
+  );
+  assert.ok(
+    executedSql.some(sql => sql.includes('SELECT id, email, role, is_active FROM staff_users')),
+  );
   assert.ok(executedSql.some(sql => sql.startsWith('INSERT INTO staff_users')));
   assert.ok(executedSql.includes('COMMIT'), 'Must commit on success');
   assert.ok(!executedSql.includes('ROLLBACK'), 'Must not roll back on success');

@@ -4,5 +4,7 @@ export function isRecordedPaid(status: string | null | undefined): boolean {
 }
 
 export function paymentStatusLabel(status: string | null | undefined): string {
-  return isRecordedPaid(status) ? 'PAID (SERVER RECORD)' : `${(status || 'unpaid').toUpperCase()} (NOT CONFIRMED PAID)`;
+  return isRecordedPaid(status)
+    ? 'PAID (SERVER RECORD)'
+    : `${(status || 'unpaid').toUpperCase()} (NOT CONFIRMED PAID)`;
 }

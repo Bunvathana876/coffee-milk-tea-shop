@@ -1,11 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import {
-  ShieldAlert,
-  Copy,
-  Check,
-  Clock,
-  CheckCircle2,
-} from 'lucide-react';
+import { ShieldAlert, Copy, Check, Clock, CheckCircle2 } from 'lucide-react';
 import { formatUsd, formatKhr, usdToKhr } from '../../config/currency';
 import { generateQrMatrix, matrixToSvgPath } from '../../utils/qrCode';
 import { isRecordedPaid } from '../../utils/paymentStatus';
@@ -84,7 +78,8 @@ export const AbaKhqrPayment: React.FC<AbaKhqrPaymentProps> = ({
     });
   };
 
-  const isPending = paymentStatus.toLowerCase() === 'pending' || paymentStatus.toLowerCase() === 'unpaid';
+  const isPending =
+    paymentStatus.toLowerCase() === 'pending' || paymentStatus.toLowerCase() === 'unpaid';
   const isPaid = isRecordedPaid(paymentStatus);
 
   return (
@@ -107,9 +102,7 @@ export const AbaKhqrPayment: React.FC<AbaKhqrPaymentProps> = ({
             <div className="bg-[#e1251b] text-white px-2.5 py-1 rounded-lg font-black tracking-wider text-xs shadow-xs flex items-center gap-1">
               <span>KHQR</span>
             </div>
-            <span className="font-bold text-sm tracking-wide text-white/95">
-              ABA KHQR
-            </span>
+            <span className="font-bold text-sm tracking-wide text-white/95">ABA KHQR</span>
           </div>
 
           {/* Individual Order Reference Badge */}
@@ -157,7 +150,9 @@ export const AbaKhqrPayment: React.FC<AbaKhqrPaymentProps> = ({
           <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-[#004f71] rounded-br-sm pointer-events-none" />
 
           {/* Crisp Scalable Vector QR Code with Safe Demo Payload */}
-          <div className={`relative ${compact ? 'w-36 h-36' : 'w-48 h-48 sm:w-56 sm:h-56'} flex items-center justify-center p-2 bg-white`}>
+          <div
+            className={`relative ${compact ? 'w-36 h-36' : 'w-48 h-48 sm:w-56 sm:h-56'} flex items-center justify-center p-2 bg-white`}
+          >
             <svg
               viewBox={`0 0 ${matrixSize} ${matrixSize}`}
               className="w-full h-full text-stone-950"
@@ -170,8 +165,12 @@ export const AbaKhqrPayment: React.FC<AbaKhqrPaymentProps> = ({
             </svg>
 
             {/* Central KHQR Emblem Overlay */}
-            <div className={`absolute inset-0 m-auto ${compact ? 'w-8 h-8' : 'w-11 h-11'} rounded-xl bg-[#e1251b] border-2 border-white shadow-md flex flex-col items-center justify-center text-white font-black leading-none pointer-events-none`}>
-              <span className={`${compact ? 'text-[6px]' : 'text-[8px]'} tracking-tighter`}>KHQR</span>
+            <div
+              className={`absolute inset-0 m-auto ${compact ? 'w-8 h-8' : 'w-11 h-11'} rounded-xl bg-[#e1251b] border-2 border-white shadow-md flex flex-col items-center justify-center text-white font-black leading-none pointer-events-none`}
+            >
+              <span className={`${compact ? 'text-[6px]' : 'text-[8px]'} tracking-tighter`}>
+                KHQR
+              </span>
               <span className={`${compact ? 'text-[8px]' : 'text-[10px]'} font-bold`}>៛ / $</span>
             </div>
           </div>
@@ -236,7 +235,6 @@ export const AbaKhqrPayment: React.FC<AbaKhqrPaymentProps> = ({
                 </>
               )}
             </button>
-
           </div>
         </div>
       )}

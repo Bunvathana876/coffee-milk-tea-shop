@@ -89,9 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Profile & Settings'),
-      ),
+      appBar: AppBar(title: const Text('Profile & Settings')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -214,7 +212,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           text: 'Register',
                           height: 44,
                           isOutlined: true,
-                          icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                          icon: const Icon(
+                            Icons.person_add_alt_1_rounded,
+                            size: 18,
+                          ),
                           onPressed: () => _openAuthScreen(isRegister: true),
                         ),
                       ),
@@ -235,23 +236,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Your Name', style: AppTypography.titleSmall),
+                        const Text(
+                          'Your Name',
+                          style: AppTypography.titleSmall,
+                        ),
                         const SizedBox(height: 6),
                         TextFormField(
                           controller: _nameController,
-                          decoration: const InputDecoration(hintText: 'e.g. John Doe'),
+                          decoration: const InputDecoration(
+                            hintText: 'e.g. John Doe',
+                          ),
                           validator: (val) =>
-                              val == null || val.trim().length < 2 ? 'Minimum 2 characters' : null,
+                              val == null || val.trim().length < 2
+                              ? 'Minimum 2 characters'
+                              : null,
                         ),
                         const SizedBox(height: 12),
-                        const Text('Phone Number', style: AppTypography.titleSmall),
+                        const Text(
+                          'Phone Number',
+                          style: AppTypography.titleSmall,
+                        ),
                         const SizedBox(height: 6),
                         TextFormField(
                           controller: _phoneController,
                           keyboardType: TextInputType.phone,
-                          decoration: const InputDecoration(hintText: 'e.g. 012 345 678'),
+                          decoration: const InputDecoration(
+                            hintText: 'e.g. 012 345 678',
+                          ),
                           validator: (val) =>
-                              val == null || val.trim().length < 8 ? 'Minimum 8 digits' : null,
+                              val == null || val.trim().length < 8
+                              ? 'Minimum 8 digits'
+                              : null,
                         ),
                         const SizedBox(height: 16),
                         CustomButton(
@@ -283,7 +298,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Store Information', style: AppTypography.titleSmall),
+                const Text(
+                  'Store Information',
+                  style: AppTypography.titleSmall,
+                ),
                 const SizedBox(height: 14),
                 _buildInfoTile(
                   icon: Icons.storefront_rounded,
@@ -345,7 +363,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: AppColors.primary.withAlpha(20),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.loyalty_rounded, color: AppColors.primary, size: 20),
+                    child: const Icon(
+                      Icons.loyalty_rounded,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Column(
@@ -371,7 +393,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(12),
@@ -406,12 +431,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     height: itemSize,
                     decoration: BoxDecoration(
                       color: isCompleted
-                          ? (isFreeDrinkSlot ? AppColors.secondary.withAlpha(40) : AppColors.primary.withAlpha(20))
+                          ? (isFreeDrinkSlot
+                                ? AppColors.secondary.withAlpha(40)
+                                : AppColors.primary.withAlpha(20))
                           : AppColors.surfaceMuted,
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: isCompleted
-                            ? (isFreeDrinkSlot ? AppColors.secondary : AppColors.primary)
+                            ? (isFreeDrinkSlot
+                                  ? AppColors.secondary
+                                  : AppColors.primary)
                             : AppColors.surfaceBorder,
                         width: isCompleted ? 2 : 1,
                       ),
@@ -419,24 +448,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Center(
                       child: isCompleted
                           ? Icon(
-                              isFreeDrinkSlot ? Icons.card_giftcard_rounded : Icons.check_circle_rounded,
-                              color: isFreeDrinkSlot ? AppColors.secondary : AppColors.primary,
+                              isFreeDrinkSlot
+                                  ? Icons.card_giftcard_rounded
+                                  : Icons.check_circle_rounded,
+                              color: isFreeDrinkSlot
+                                  ? AppColors.secondary
+                                  : AppColors.primary,
                               size: itemSize * 0.5,
                             )
                           : isFreeDrinkSlot
-                              ? Icon(
-                                  Icons.star_rounded,
-                                  color: AppColors.textTertiary,
-                                  size: itemSize * 0.5,
-                                )
-                              : Text(
-                                  '$stampNumber',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textTertiary,
-                                  ),
-                                ),
+                          ? Icon(
+                              Icons.star_rounded,
+                              color: AppColors.textTertiary,
+                              size: itemSize * 0.5,
+                            )
+                          : Text(
+                              '$stampNumber',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textTertiary,
+                              ),
+                            ),
                     ),
                   );
                 }),
@@ -455,24 +488,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.textSecondary),
+                const Icon(
+                  Icons.info_outline_rounded,
+                  size: 16,
+                  color: AppColors.textSecondary,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     user.hasServerSession
                         ? '$totalStamps confirmed stamp(s). ${user.loyaltyIsFresh ? 'Synced with the café.' : 'Last confirmed balance; reconnect to refresh.'} Reward availability is confirmed by the café.'
                         : 'Sign in to the café server to see confirmed stamps.',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          if (user.legacyLocalStamps > 0 && user.legacyLocalStamps != totalStamps) ...[
+          if (user.legacyLocalStamps > 0 &&
+              user.legacyLocalStamps != totalStamps) ...[
             const SizedBox(height: 8),
             Text(
               'Earlier device-only balance: ${user.legacyLocalStamps} (unverified; not added to confirmed rewards).',
-              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ],
@@ -494,9 +539,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ),
             ],
           ),
         ),

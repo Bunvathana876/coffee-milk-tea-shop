@@ -13,7 +13,7 @@ class OrderProvider extends ChangeNotifier {
   final OrderRepository _orderRepository;
 
   OrderProvider({required OrderRepository orderRepository})
-      : _orderRepository = orderRepository;
+    : _orderRepository = orderRepository;
 
   OrderModel? _activeOrder;
   List<OrderModel> _recentOrders = [];
@@ -75,7 +75,9 @@ class OrderProvider extends ChangeNotifier {
       _submissionState = OrderSubmissionState.confirmed;
 
       // Add to local recent orders if not present
-      final existingIndex = _recentOrders.indexWhere((o) => o.orderNumber == order.orderNumber);
+      final existingIndex = _recentOrders.indexWhere(
+        (o) => o.orderNumber == order.orderNumber,
+      );
       if (existingIndex >= 0) {
         _recentOrders[existingIndex] = order;
       } else {
@@ -88,13 +90,15 @@ class OrderProvider extends ChangeNotifier {
       if (_sessionToken != sessionAtStart) return null;
       _submissionState = OrderSubmissionState.preview;
       _offlinePreview = OfflineOrderPreview(items);
-      _errorMessage = 'The server could not be reached. Your cart is saved as a preview; retry to confirm the order.';
+      _errorMessage =
+          'The server could not be reached. Your cart is saved as a preview; retry to confirm the order.';
       return null;
     } on TimeoutException {
       if (_sessionToken != sessionAtStart) return null;
       _submissionState = OrderSubmissionState.preview;
       _offlinePreview = OfflineOrderPreview(items);
-      _errorMessage = 'The server did not confirm this order in time. Your cart is saved; retry to check its result.';
+      _errorMessage =
+          'The server did not confirm this order in time. Your cart is saved; retry to check its result.';
       return null;
     } on HttpException catch (e) {
       if (_sessionToken != sessionAtStart) return null;
@@ -104,7 +108,8 @@ class OrderProvider extends ChangeNotifier {
     } catch (_) {
       if (_sessionToken != sessionAtStart) return null;
       _submissionState = OrderSubmissionState.failed;
-      _errorMessage = 'The server did not confirm this order. Your cart is saved; please retry.';
+      _errorMessage =
+          'The server did not confirm this order. Your cart is saved; please retry.';
       return null;
     } finally {
       _isPlacingOrder = false;
@@ -194,10 +199,14 @@ class OrderProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final order = await _orderRepository.getOrderByReference(orderNumber.trim().toUpperCase());
+      final order = await _orderRepository.getOrderByReference(
+        orderNumber.trim().toUpperCase(),
+      );
       if (_sessionToken != sessionAtStart) return null;
       _activeOrder = order;
-      final existingIndex = _recentOrders.indexWhere((o) => o.orderNumber == order.orderNumber);
+      final existingIndex = _recentOrders.indexWhere(
+        (o) => o.orderNumber == order.orderNumber,
+      );
       if (existingIndex >= 0) {
         _recentOrders[existingIndex] = order;
       } else {
@@ -226,10 +235,17 @@ class OrderProvider extends ChangeNotifier {
     final referenceAtStart = _activeOrder!.orderNumber;
 
     try {
-      final updated = await _orderRepository.getOrderByReference(referenceAtStart);
-      if (_sessionToken != sessionAtStart || _activeOrder?.orderNumber != referenceAtStart) return;
+      final updated = await _orderRepository.getOrderByReference(
+        referenceAtStart,
+      );
+      if (_sessionToken != sessionAtStart ||
+          _activeOrder?.orderNumber != referenceAtStart) {
+        return;
+      }
       _activeOrder = updated;
-      final index = _recentOrders.indexWhere((o) => o.orderNumber == updated.orderNumber);
+      final index = _recentOrders.indexWhere(
+        (o) => o.orderNumber == updated.orderNumber,
+      );
       if (index >= 0) {
         _recentOrders[index] = updated;
       }

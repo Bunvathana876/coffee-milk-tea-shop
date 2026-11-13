@@ -1,13 +1,7 @@
 'use client';
 
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  Home,
-  Coffee,
-  ShoppingBag,
-  Trophy,
-  User,
-} from 'lucide-react';
+import { Home, Coffee, ShoppingBag, Trophy, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/features/cart/useCart';
 import GooeyNav, { type GooeyNavItem } from './GooeyNav';
@@ -88,8 +82,9 @@ export function BottomNavBar({
       aria-label="Bottom Navigation"
       className={cn(
         'transition-all duration-300',
-        stickyBottom && 'fixed inset-x-0 bottom-4 sm:bottom-6 mx-auto z-40 w-fit flex justify-center max-w-[96vw]',
-        className
+        stickyBottom &&
+          'fixed inset-x-0 bottom-4 sm:bottom-6 mx-auto z-40 w-fit flex justify-center max-w-[96vw]',
+        className,
       )}
     >
       <GooeyNav

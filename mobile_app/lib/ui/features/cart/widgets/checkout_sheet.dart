@@ -61,9 +61,13 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
     final user = context.read<UserProvider>();
 
     if (!user.hasServerSession) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Please sign in to the café server before placing an order.'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please sign in to the café server before placing an order.',
+          ),
+        ),
+      );
       return;
     }
     if (cart.items.isEmpty) return;
@@ -86,9 +90,13 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
       );
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Could not prepare checkout. Your cart is saved; please retry.'),
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not prepare checkout. Your cart is saved; please retry.',
+            ),
+          ),
+        );
       }
       return;
     } finally {
@@ -158,7 +166,10 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Checkout & Pickup', style: AppTypography.titleLarge),
+                  const Text(
+                    'Checkout & Pickup',
+                    style: AppTypography.titleLarge,
+                  ),
                   IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: () => Navigator.pop(context),
@@ -185,7 +196,11 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.storefront_rounded, color: AppColors.primary, size: 24),
+                          const Icon(
+                            Icons.storefront_rounded,
+                            color: AppColors.primary,
+                            size: 24,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -222,7 +237,10 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                       controller: _nameController,
                       decoration: const InputDecoration(
                         hintText: 'e.g. Sokha Chhay',
-                        prefixIcon: Icon(Icons.person_outline_rounded, color: AppColors.textSecondary),
+                        prefixIcon: Icon(
+                          Icons.person_outline_rounded,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       validator: (val) {
                         if (val == null || val.trim().length < 2) {
@@ -234,14 +252,20 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                     const SizedBox(height: 16),
 
                     // Customer Phone
-                    const Text('Phone Number (for order lookup)', style: AppTypography.titleSmall),
+                    const Text(
+                      'Phone Number (for order lookup)',
+                      style: AppTypography.titleSmall,
+                    ),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
                       decoration: const InputDecoration(
                         hintText: 'e.g. 012 345 678',
-                        prefixIcon: Icon(Icons.phone_outlined, color: AppColors.textSecondary),
+                        prefixIcon: Icon(
+                          Icons.phone_outlined,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) {
@@ -260,23 +284,30 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                     Material(
                       color: Colors.transparent,
                       child: CheckboxListTile(
-                      value: _rememberMe,
-                      onChanged: (val) => setState(() => _rememberMe = val ?? true),
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      dense: true,
-                      activeColor: AppColors.primary,
-                      title: const Text(
-                        'Remember my info on this device for 1-tap ordering',
-                        style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                      ),
+                        value: _rememberMe,
+                        onChanged: (val) =>
+                            setState(() => _rememberMe = val ?? true),
+                        contentPadding: EdgeInsets.zero,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        dense: true,
+                        activeColor: AppColors.primary,
+                        title: const Text(
+                          'Remember my info on this device for 1-tap ordering',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
                       ),
                     ),
 
                     const SizedBox(height: 16),
 
                     // Payment Method Selection
-                    const Text('Payment Method', style: AppTypography.titleSmall),
+                    const Text(
+                      'Payment Method',
+                      style: AppTypography.titleSmall,
+                    ),
                     const SizedBox(height: 10),
                     Row(
                       children: [
@@ -312,23 +343,39 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                       ),
                       child: Column(
                         children: [
-                          _buildSummaryRow('Items (${cart.totalQuantity} drinks)', CurrencyFormatter.formatUsd(cart.subtotalUsd)),
+                          _buildSummaryRow(
+                            'Items (${cart.totalQuantity} drinks)',
+                            CurrencyFormatter.formatUsd(cart.subtotalUsd),
+                          ),
                           const SizedBox(height: 8),
-                          _buildSummaryRow('Exchange Rate', '1 USD = 4,100 KHR'),
-                          const Divider(height: 20, color: AppColors.surfaceBorder),
+                          _buildSummaryRow(
+                            'Exchange Rate',
+                            '1 USD = 4,100 KHR',
+                          ),
+                          const Divider(
+                            height: 20,
+                            color: AppColors.surfaceBorder,
+                          ),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Total Amount', style: AppTypography.titleMedium),
+                              const Text(
+                                'Total Amount',
+                                style: AppTypography.titleMedium,
+                              ),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    CurrencyFormatter.formatUsd(cart.subtotalUsd),
+                                    CurrencyFormatter.formatUsd(
+                                      cart.subtotalUsd,
+                                    ),
                                     style: AppTypography.priceLarge,
                                   ),
                                   Text(
-                                    CurrencyFormatter.formatKhr(cart.subtotalUsd),
+                                    CurrencyFormatter.formatKhr(
+                                      cart.subtotalUsd,
+                                    ),
                                     style: AppTypography.priceSmall,
                                   ),
                                 ],
@@ -348,12 +395,19 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                 orderProvider.submissionState == OrderSubmissionState.failed ||
                 orderProvider.submissionState == OrderSubmissionState.pending)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 child: Text(
                   orderProvider.submissionState == OrderSubmissionState.pending
                       ? 'Waiting for server confirmation…'
-                      : orderProvider.errorMessage ?? 'Order was not confirmed. Your cart is saved.',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                      : orderProvider.errorMessage ??
+                            'Order was not confirmed. Your cart is saved.',
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             Padding(
@@ -389,7 +443,9 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withAlpha(20) : AppColors.surface,
+          color: isSelected
+              ? AppColors.primary.withAlpha(20)
+              : AppColors.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
@@ -399,7 +455,11 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: isSelected ? AppColors.primary : AppColors.textSecondary, size: 24),
+            Icon(
+              icon,
+              color: isSelected ? AppColors.primary : AppColors.textSecondary,
+              size: 24,
+            ),
             const SizedBox(height: 8),
             Text(
               label,
@@ -412,7 +472,10 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
             const SizedBox(height: 2),
             Text(
               sublabel,
-              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),

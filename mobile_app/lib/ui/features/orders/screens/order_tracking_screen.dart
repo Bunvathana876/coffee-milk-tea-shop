@@ -38,7 +38,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
   Widget build(BuildContext context) {
     final user = context.watch<UserProvider>();
     if (!user.hasServerSession || user.authToken != _sessionToken) {
-      return const Scaffold(body: Center(child: Text('Sign in to view this server order.')));
+      return const Scaffold(
+        body: Center(child: Text('Sign in to view this server order.')),
+      );
     }
     final orderProvider = context.watch<OrderProvider>();
     final currentOrder = orderProvider.activeOrder ?? widget.order;
@@ -85,7 +87,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Order Reference', style: AppTypography.bodySmall),
+                            const Text(
+                              'Order Reference',
+                              style: AppTypography.bodySmall,
+                            ),
                             const SizedBox(height: 2),
                             Text(
                               currentOrder.orderNumber,
@@ -102,7 +107,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      StatusBadge(status: currentOrder.orderStatus, fontSize: 13),
+                      StatusBadge(
+                        status: currentOrder.orderStatus,
+                        fontSize: 13,
+                      ),
                     ],
                   ),
                   const Divider(height: 24, color: AppColors.surfaceBorder),
@@ -112,7 +120,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       Expanded(
                         child: Row(
                           children: [
-                            const Icon(Icons.person_outline_rounded, size: 16, color: AppColors.textSecondary),
+                            const Icon(
+                              Icons.person_outline_rounded,
+                              size: 16,
+                              color: AppColors.textSecondary,
+                            ),
                             const SizedBox(width: 6),
                             Flexible(
                               child: Text(
@@ -128,7 +140,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       const SizedBox(width: 8),
                       Row(
                         children: [
-                          const Icon(Icons.access_time_rounded, size: 16, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.access_time_rounded,
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             DateFormatter.formatTime(currentOrder.createdAt),
@@ -154,7 +170,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Preparation Status', style: AppTypography.titleSmall),
+                  const Text(
+                    'Preparation Status',
+                    style: AppTypography.titleSmall,
+                  ),
                   const SizedBox(height: 16),
                   _buildStatusStepper(currentOrder.orderStatus),
                 ],
@@ -177,7 +196,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       color: AppColors.primary.withAlpha(20),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.storefront_rounded, color: AppColors.primary, size: 24),
+                    child: const Icon(
+                      Icons.storefront_rounded,
+                      color: AppColors.primary,
+                      size: 24,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -186,12 +209,18 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       children: [
                         Text(
                           'Pickup at ${AppConfig.appName}',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           AppConfig.storeAddress,
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -201,7 +230,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                     currentOrder.paymentStatus.toLowerCase() == 'paid'
                         ? 'Payment confirmed by the café'
                         : 'Payment has not been confirmed by the café',
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -228,7 +260,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.surfaceMuted,
                               borderRadius: BorderRadius.circular(6),
@@ -249,30 +284,50 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                               children: [
                                 Text(
                                   item.productName,
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   '${item.size} • ${item.sugarLevel} sugar • ${item.iceLevel}',
-                                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                           Text(
                             CurrencyFormatter.formatUsd(item.subtotalUsd),
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ],
                       ),
                     );
                   }),
                   const Divider(height: 24, color: AppColors.surfaceBorder),
-                  _buildReceiptRow('Subtotal', CurrencyFormatter.formatUsd(currentOrder.subtotalUsd)),
+                  _buildReceiptRow(
+                    'Subtotal',
+                    CurrencyFormatter.formatUsd(currentOrder.subtotalUsd),
+                  ),
                   const SizedBox(height: 6),
-                  _buildReceiptRow('Total (USD)', CurrencyFormatter.formatUsd(currentOrder.totalUsd), isBold: true),
+                  _buildReceiptRow(
+                    'Total (USD)',
+                    CurrencyFormatter.formatUsd(currentOrder.totalUsd),
+                    isBold: true,
+                  ),
                   const SizedBox(height: 4),
-                  _buildReceiptRow('Total (KHR)', CurrencyFormatter.formatRawKhr(currentOrder.totalKhr), isSecondary: true),
+                  _buildReceiptRow(
+                    'Total (KHR)',
+                    CurrencyFormatter.formatRawKhr(currentOrder.totalKhr),
+                    isSecondary: true,
+                  ),
                 ],
               ),
             ),
@@ -287,9 +342,21 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     final statusIndex = _getStatusStep(currentStatus);
 
     final steps = [
-      ('Order Received', 'Your order was sent to the café queue.', Icons.receipt_long_rounded),
-      ('Preparing Your Drink', 'Our barista is handcrafting your beverages.', Icons.blender_rounded),
-      ('Ready for Pickup', 'Your drinks are ready at the counter!', Icons.takeout_dining_rounded),
+      (
+        'Order Received',
+        'Your order was sent to the café queue.',
+        Icons.receipt_long_rounded,
+      ),
+      (
+        'Preparing Your Drink',
+        'Our barista is handcrafting your beverages.',
+        Icons.blender_rounded,
+      ),
+      (
+        'Ready for Pickup',
+        'Your drinks are ready at the counter!',
+        Icons.takeout_dining_rounded,
+      ),
       ('Completed', 'Picked up & enjoyed.', Icons.verified_rounded),
     ];
 
@@ -318,24 +385,32 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: isCurrent || isCompleted ? dotColor : AppColors.surfaceMuted,
+                    color: isCurrent || isCompleted
+                        ? dotColor
+                        : AppColors.surfaceMuted,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isCurrent ? AppColors.secondary : Colors.transparent,
+                      color: isCurrent
+                          ? AppColors.secondary
+                          : Colors.transparent,
                       width: 2,
                     ),
                   ),
                   child: Icon(
                     isCompleted ? Icons.check : step.$3,
                     size: 16,
-                    color: isCurrent || isCompleted ? Colors.white : AppColors.textTertiary,
+                    color: isCurrent || isCompleted
+                        ? Colors.white
+                        : AppColors.textTertiary,
                   ),
                 ),
                 if (!isLast)
                   Container(
                     width: 2,
                     height: 36,
-                    color: isCompleted ? AppColors.primary : AppColors.surfaceBorder,
+                    color: isCompleted
+                        ? AppColors.primary
+                        : AppColors.surfaceBorder,
                   ),
               ],
             ),
@@ -350,8 +425,14 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       step.$1,
                       style: TextStyle(
                         fontSize: 14,
-                        fontWeight: isCurrent ? FontWeight.w800 : FontWeight.w600,
-                        color: isCurrent ? AppColors.primary : (isCompleted ? AppColors.textPrimary : AppColors.textTertiary),
+                        fontWeight: isCurrent
+                            ? FontWeight.w800
+                            : FontWeight.w600,
+                        color: isCurrent
+                            ? AppColors.primary
+                            : (isCompleted
+                                  ? AppColors.textPrimary
+                                  : AppColors.textTertiary),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -359,7 +440,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       step.$2,
                       style: TextStyle(
                         fontSize: 12,
-                        color: isCurrent ? AppColors.textPrimary : AppColors.textSecondary,
+                        color: isCurrent
+                            ? AppColors.textPrimary
+                            : AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -387,7 +470,12 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
     }
   }
 
-  Widget _buildReceiptRow(String label, String value, {bool isBold = false, bool isSecondary = false}) {
+  Widget _buildReceiptRow(
+    String label,
+    String value, {
+    bool isBold = false,
+    bool isSecondary = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [

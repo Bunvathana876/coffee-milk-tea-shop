@@ -64,7 +64,12 @@ class OrderCard extends StatelessWidget {
               // Items summary preview
               Text(
                 order.items.isNotEmpty
-                    ? order.items.map((i) => '${i.quantity}x ${i.productName} (${i.size})').join(', ')
+                    ? order.items
+                          .map(
+                            (i) =>
+                                '${i.quantity}x ${i.productName} (${i.size})',
+                          )
+                          .join(', ')
                     : '$itemCount items',
                 style: AppTypography.bodyMedium,
                 maxLines: 2,
@@ -111,11 +116,17 @@ class OrderCard extends StatelessWidget {
                     icon: const Icon(Icons.replay_rounded, size: 16),
                     label: const Text(
                       'Reorder Items',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
-                      side: const BorderSide(color: AppColors.primary, width: 1.2),
+                      side: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.2,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),

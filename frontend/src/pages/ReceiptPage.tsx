@@ -29,7 +29,7 @@ export const ReceiptPage: React.FC = () => {
   const [order, setOrder] = useState<Order | null>(stateOrder || null);
   const [isLoading, setIsLoading] = useState(!stateOrder && !isInvalidId);
   const [fetchError, setFetchError] = useState<string | null>(
-    !stateOrder && isInvalidId ? 'Invalid or missing order reference number.' : null
+    !stateOrder && isInvalidId ? 'Invalid or missing order reference number.' : null,
   );
 
   // The server record is the only payment status shown or exported.
@@ -56,15 +56,16 @@ export const ReceiptPage: React.FC = () => {
     if (stateOrder || isInvalidId) return;
 
     getOrderById(Number(orderId))
-      .then((data) => {
+      .then(data => {
         if (isMounted) {
           setOrder(data);
         }
       })
-      .catch((err) => {
+      .catch(err => {
         if (isMounted) {
           console.error('Failed to load order:', err);
-          const msg = err instanceof Error ? err.message : 'Could not load order details from server.';
+          const msg =
+            err instanceof Error ? err.message : 'Could not load order details from server.';
           setFetchError(msg);
         }
       })
@@ -82,12 +83,13 @@ export const ReceiptPage: React.FC = () => {
     setIsLoading(true);
     setFetchError(null);
     getOrderById(Number(orderId))
-      .then((data) => {
+      .then(data => {
         setOrder(data);
       })
-      .catch((err) => {
+      .catch(err => {
         console.error('Failed to load order:', err);
-        const msg = err instanceof Error ? err.message : 'Could not load order details from server.';
+        const msg =
+          err instanceof Error ? err.message : 'Could not load order details from server.';
         setFetchError(msg);
       })
       .finally(() => {
@@ -155,7 +157,8 @@ export const ReceiptPage: React.FC = () => {
             {isNetworkError ? 'Connection Issue' : 'Order Not Found'}
           </h2>
           <p className="text-xs sm:text-sm text-stone-500 leading-relaxed">
-            {fetchError || 'Unable to retrieve your order details. The order may not exist or might have expired.'}
+            {fetchError ||
+              'Unable to retrieve your order details. The order may not exist or might have expired.'}
           </p>
         </div>
 
@@ -249,19 +252,23 @@ export const ReceiptPage: React.FC = () => {
       {/* Main Responsive Grid Layout (Desktop: Side-by-side; Mobile: Stacked; Print: Receipt First) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left / Bottom Standee: Reusable ABA KHQR Card (Screen interactive; Hidden or compact on paper) */}
-        {order.payment_method === 'khqr' && <div className="lg:col-span-5 order-2 lg:order-1 print:hidden">
-          <AbaKhqrPayment
-            orderNumber={order.order_number}
-            amountUsd={order.total_usd}
-            amountKhr={order.total_khr ?? usdToKhr(order.total_usd)}
-            merchantName="Brew & Boba Café"
-            customerName={order.customer_name}
-            paymentStatus={paymentStatus}
-          />
-        </div>}
+        {order.payment_method === 'khqr' && (
+          <div className="lg:col-span-5 order-2 lg:order-1 print:hidden">
+            <AbaKhqrPayment
+              orderNumber={order.order_number}
+              amountUsd={order.total_usd}
+              amountKhr={order.total_khr ?? usdToKhr(order.total_usd)}
+              merchantName="Brew & Boba Café"
+              customerName={order.customer_name}
+              paymentStatus={paymentStatus}
+            />
+          </div>
+        )}
 
         {/* Right / Main Digital Receipt Paper (Authentic Café Slip Aesthetic) */}
-        <div className={`${order.payment_method === 'khqr' ? 'lg:col-span-7' : 'lg:col-span-12'} order-1 lg:order-2 w-full print:w-full print:max-w-none`}>
+        <div
+          className={`${order.payment_method === 'khqr' ? 'lg:col-span-7' : 'lg:col-span-12'} order-1 lg:order-2 w-full print:w-full print:max-w-none`}
+        >
           <div
             id="printable-receipt"
             className="bg-white rounded-3xl border border-stone-200/90 p-6 sm:p-8 shadow-md relative overflow-hidden font-sans print:border-none print:shadow-none print:p-0 print:m-0"
@@ -311,17 +318,13 @@ export const ReceiptPage: React.FC = () => {
                 <span className="text-stone-500 uppercase tracking-wider text-[11px] font-bold">
                   Customer Name:
                 </span>
-                <span className="font-bold text-stone-900">
-                  {order.customer_name}
-                </span>
+                <span className="font-bold text-stone-900">{order.customer_name}</span>
               </div>
               <div className="flex justify-between items-baseline">
                 <span className="text-stone-500 uppercase tracking-wider text-[11px] font-bold">
                   Customer Phone:
                 </span>
-                <span className="font-mono font-medium text-stone-800">
-                  {order.customer_phone}
-                </span>
+                <span className="font-mono font-medium text-stone-800">{order.customer_phone}</span>
               </div>
             </div>
 
@@ -335,7 +338,10 @@ export const ReceiptPage: React.FC = () => {
               {/* Items List */}
               <div className="divide-y divide-stone-100">
                 {(order.items || []).map((item, idx) => (
-                  <div key={item.id || idx} className="py-3 first:pt-1 last:pb-0 text-xs sm:text-sm space-y-1">
+                  <div
+                    key={item.id || idx}
+                    className="py-3 first:pt-1 last:pb-0 text-xs sm:text-sm space-y-1"
+                  >
                     <div className="flex justify-between items-start gap-3">
                       <div className="font-bold text-stone-900 flex-1">
                         <span className="text-stone-700 mr-1.5">{item.quantity}×</span>
@@ -375,9 +381,7 @@ export const ReceiptPage: React.FC = () => {
             <div className="py-5 border-b-2 border-dashed border-stone-200 space-y-3">
               {/* Subtotal */}
               <div className="flex justify-between items-baseline text-xs sm:text-sm text-stone-600">
-                <span className="font-semibold uppercase tracking-wider text-[11px]">
-                  Subtotal
-                </span>
+                <span className="font-semibold uppercase tracking-wider text-[11px]">Subtotal</span>
                 <div className="text-right">
                   <span className="font-bold text-stone-900 text-sm">
                     {formatUsd(order.subtotal_usd)}
@@ -394,9 +398,7 @@ export const ReceiptPage: React.FC = () => {
                   <span className="text-sm font-black text-stone-900 uppercase tracking-wider block">
                     Total
                   </span>
-                  <span className="text-[10px] text-stone-400">
-                    Exchange: $1 = {formatKhr(1)}
-                  </span>
+                  <span className="text-[10px] text-stone-400">Exchange: $1 = {formatKhr(1)}</span>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-black text-ink tracking-tight leading-none print:text-black">
@@ -416,7 +418,9 @@ export const ReceiptPage: React.FC = () => {
                   Payment Method:
                 </span>
                 <span className="font-extrabold text-stone-900 flex items-center gap-1.5">
-                  <span className={`w-2 h-2 rounded-full ${order.payment_method === 'cash' ? 'bg-emerald-600' : 'bg-[#004f71]'}`} />
+                  <span
+                    className={`w-2 h-2 rounded-full ${order.payment_method === 'cash' ? 'bg-emerald-600' : 'bg-[#004f71]'}`}
+                  />
                   {order.payment_method === 'cash' ? 'Cash on Pickup / Delivery' : 'ABA KHQR'}
                 </span>
               </div>
@@ -453,36 +457,36 @@ export const ReceiptPage: React.FC = () => {
 
             {/* --- PRINT / EMBEDDED MOCK KHQR SECTION --- */}
             {/* Displayed directly inside the receipt ticket for easy printing & compact review */}
-            {order.payment_method === 'khqr' && <div className="py-5 border-b-2 border-dashed border-stone-200 text-center space-y-3">
-              <div className="text-xs font-bold text-stone-700 uppercase tracking-wider">
-                Scan with ABA Mobile or Bakong (Demo)
-              </div>
+            {order.payment_method === 'khqr' && (
+              <div className="py-5 border-b-2 border-dashed border-stone-200 text-center space-y-3">
+                <div className="text-xs font-bold text-stone-700 uppercase tracking-wider">
+                  Scan with ABA Mobile or Bakong (Demo)
+                </div>
 
-              {/* Reusable QR code standee embed */}
-              <div className="max-w-[280px] mx-auto">
-                <AbaKhqrPayment
-                  orderNumber={order.order_number}
-                  amountUsd={order.total_usd}
-                  amountKhr={order.total_khr ?? usdToKhr(order.total_usd)}
-                  merchantName="Brew & Boba Café"
-                  customerName={order.customer_name}
-                  paymentStatus={paymentStatus}
-                  compact={true}
-                  className="shadow-xs border border-stone-300"
-                />
-              </div>
+                {/* Reusable QR code standee embed */}
+                <div className="max-w-[280px] mx-auto">
+                  <AbaKhqrPayment
+                    orderNumber={order.order_number}
+                    amountUsd={order.total_usd}
+                    amountKhr={order.total_khr ?? usdToKhr(order.total_usd)}
+                    merchantName="Brew & Boba Café"
+                    customerName={order.customer_name}
+                    paymentStatus={paymentStatus}
+                    compact={true}
+                    className="shadow-xs border border-stone-300"
+                  />
+                </div>
 
-              {/* Mandatory Prominent Label */}
-              <div className="inline-block py-1 px-3 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-[11px] font-black uppercase tracking-wider">
-                DEMO QR — NO REAL PAYMENT
+                {/* Mandatory Prominent Label */}
+                <div className="inline-block py-1 px-3 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-[11px] font-black uppercase tracking-wider">
+                  DEMO QR — NO REAL PAYMENT
+                </div>
               </div>
-            </div>}
+            )}
 
             {/* --- CAFÉ RECEIPT FOOTER --- */}
             <div className="pt-5 text-center space-y-1 text-xs text-stone-400">
-              <p className="font-bold text-stone-700">
-                Thank you for ordering with Brew & Boba!
-              </p>
+              <p className="font-bold text-stone-700">Thank you for ordering with Brew & Boba!</p>
               <p className="text-[11px]">
                 Please present this receipt ticket or your order number when picking up your drinks.
               </p>

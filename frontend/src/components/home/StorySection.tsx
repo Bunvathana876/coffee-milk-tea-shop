@@ -48,9 +48,7 @@ export const StorySection: React.FC = () => {
                 <span className="text-[10px] uppercase font-bold tracking-widest text-caramel-soft block">
                   Ethically Sourced
                 </span>
-                <p className="font-serif font-bold text-sm text-cream">
-                  100% Highland Arabica
-                </p>
+                <p className="font-serif font-bold text-sm text-cream">100% Highland Arabica</p>
               </div>
               <span className="w-8 h-8 rounded-xl bg-caramel text-espresso-dark flex items-center justify-center font-black">
                 <Sparkles className="w-4 h-4" />
@@ -75,10 +73,13 @@ export const StorySection: React.FC = () => {
             </h2>
 
             <p className="text-sm sm:text-base text-ink-soft leading-relaxed max-w-2xl">
-              Brew &amp; Boba was founded in Phnom Penh with a singular conviction: your morning coffee and afternoon boba deserve honest craft, clean ingredients, and zero shortcuts.
+              Brew &amp; Boba was founded in Phnom Penh with a singular conviction: your morning
+              coffee and afternoon boba deserve honest craft, clean ingredients, and zero shortcuts.
             </p>
             <p className="text-xs sm:text-sm text-ink-soft leading-relaxed max-w-2xl">
-              From hand-selecting micro-lots in the cool plateaus of Mondulkiri to slow-simmering natural tapioca pearls every three hours in dark muscovado cane sugar, every single drink is dialed in to your exact sweetness and preference.
+              From hand-selecting micro-lots in the cool plateaus of Mondulkiri to slow-simmering
+              natural tapioca pearls every three hours in dark muscovado cane sugar, every single
+              drink is dialed in to your exact sweetness and preference.
             </p>
           </div>
 
@@ -93,9 +94,7 @@ export const StorySection: React.FC = () => {
                   {item.icon}
                 </div>
                 <div>
-                  <h3 className="font-serif font-bold text-sm text-ink mb-1">
-                    {item.title}
-                  </h3>
+                  <h3 className="font-serif font-bold text-sm text-ink mb-1">{item.title}</h3>
                   <p className="text-[11px] sm:text-xs text-ink-soft leading-relaxed">
                     {item.text}
                   </p>

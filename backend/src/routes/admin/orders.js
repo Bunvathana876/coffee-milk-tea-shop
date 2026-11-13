@@ -18,12 +18,19 @@ const transitions = {
 router.post('/:id/cash-settlement', requireAdmin, async (req, res, next) => {
   try {
     if (!validId(req.params.id)) return res.status(400).json({ detail: 'Invalid order ID.' });
-    const audit = await withTransaction(query => recordCashSettlement(query, Number(req.params.id), req.staff.id, req.body));
+    const audit = await withTransaction(query =>
+      recordCashSettlement(query, Number(req.params.id), req.staff.id, req.body),
+    );
     res.status(201).json(audit);
   } catch (error) {
-    if (error instanceof SettlementError) return res.status(error.status).json({ detail: error.message });
-    if (error.code === '23505') return res.status(409).json({ detail: 'Cash settlement already recorded.' });
-    if (error.code === '42P01') return res.status(503).json({ detail: 'Cash reconciliation requires the approved database migration.' });
+    if (error instanceof SettlementError)
+      return res.status(error.status).json({ detail: error.message });
+    if (error.code === '23505')
+      return res.status(409).json({ detail: 'Cash settlement already recorded.' });
+    if (error.code === '42P01')
+      return res
+        .status(503)
+        .json({ detail: 'Cash reconciliation requires the approved database migration.' });
     next(error);
   }
 });
@@ -31,21 +38,29 @@ router.post('/:id/cash-settlement', requireAdmin, async (req, res, next) => {
 router.get('/:id/payment-audit', requireAdmin, async (req, res, next) => {
   try {
     if (!validId(req.params.id)) return res.status(400).json({ detail: 'Invalid order ID.' });
-    const result = await dbQuery('SELECT id, order_id, staff_id, method, reference, amount_usd, recorded_at FROM payment_settlements WHERE order_id = $1', [Number(req.params.id)]);
+    const result = await dbQuery(
+      'SELECT id, order_id, staff_id, method, reference, amount_usd, recorded_at FROM payment_settlements WHERE order_id = $1',
+      [Number(req.params.id)],
+    );
     res.json(result.rows);
-  } catch (error) { next(error); }
+  } catch (error) {
+    next(error);
+  }
 });
 
 async function formatOrderWithItems(order, query = dbQuery) {
   if (!order) return null;
-  const itemsRes = await query(`
+  const itemsRes = await query(
+    `
     SELECT
       id, order_id, product_id, product_name, quantity,
       unit_price_usd, subtotal_usd, size, sugar_level, ice_level, toppings
     FROM order_items
     WHERE order_id = $1
     ORDER BY id ASC
-  `, [order.id]);
+  `,
+    [order.id],
+  );
 
   const items = itemsRes.rows.map(item => ({
     ...item,
@@ -153,10 +168,18 @@ router.get('/:id', requireAdmin, async (req, res, next) => {
 router.patch('/:id/status', requireAdmin, async (req, res, next) => {
   try {
     if (!validId(req.params.id)) return res.status(400).json({ detail: 'Invalid order ID.' });
-    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body) ||
-        Object.keys(req.body).some(key => key !== 'order_status') ||
-        typeof req.body.order_status !== 'string' || !(req.body.order_status in transitions)) {
-      return res.status(422).json({ detail: 'Only a valid order status can be changed. Payment changes require a verified workflow.' });
+    if (
+      !req.body ||
+      typeof req.body !== 'object' ||
+      Array.isArray(req.body) ||
+      Object.keys(req.body).some(key => key !== 'order_status') ||
+      typeof req.body.order_status !== 'string' ||
+      !(req.body.order_status in transitions)
+    ) {
+      return res.status(422).json({
+        detail:
+          'Only a valid order status can be changed. Payment changes require a verified workflow.',
+      });
     }
     const orderId = Number(req.params.id);
     const nextStatus = req.body.order_status;
@@ -164,11 +187,17 @@ router.patch('/:id/status', requireAdmin, async (req, res, next) => {
       const currentRes = await query('SELECT * FROM orders WHERE id = $1 FOR UPDATE', [orderId]);
       const current = currentRes.rows[0];
       if (!current) return { status: 404, detail: 'Order not found.' };
-      if (current.order_status !== nextStatus && !transitions[current.order_status]?.includes(nextStatus)) {
+      if (
+        current.order_status !== nextStatus &&
+        !transitions[current.order_status]?.includes(nextStatus)
+      ) {
         return { status: 409, detail: 'This order cannot move to the requested status.' };
       }
       if (nextStatus === 'cancelled' && current.payment_status === 'paid') {
-        return { status: 409, detail: 'Paid orders require a verified refund workflow before cancellation.' };
+        return {
+          status: 409,
+          detail: 'Paid orders require a verified refund workflow before cancellation.',
+        };
       }
       if (current.order_status !== nextStatus) {
         await query('UPDATE orders SET order_status = $1 WHERE id = $2', [nextStatus, orderId]);

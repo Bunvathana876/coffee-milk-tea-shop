@@ -56,9 +56,7 @@ export function HomePage() {
     error: categoriesError,
     refetch: retryCategories,
   } = useCategories();
-  const [customizingProduct, setCustomizingProduct] = useState<Product | null>(
-    null,
-  );
+  const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -72,18 +70,11 @@ export function HomePage() {
   const featured = useMemo(
     () =>
       products
-        .filter(
-          (product) =>
-            selectedCategory === null ||
-            product.category_id === selectedCategory,
-        )
+        .filter(product => selectedCategory === null || product.category_id === selectedCategory)
         .slice(0, 4),
     [products, selectedCategory],
   );
-  const handleAddToCart = (
-    product: Product,
-    customization: DrinkCustomization,
-  ) => {
+  const handleAddToCart = (product: Product, customization: DrinkCustomization) => {
     addItem({
       productId: product.id,
       productName: product.name,
@@ -95,9 +86,7 @@ export function HomePage() {
       unitPriceUsd: customization.unit_price_usd,
       quantity: customization.quantity,
     });
-    setToastMessage(
-      `Added ${customization.quantity} × ${product.name} to cart`,
-    );
+    setToastMessage(`Added ${customization.quantity} × ${product.name} to cart`);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToastMessage(null), 4000);
   };
@@ -225,10 +214,7 @@ export function HomePage() {
           The everyday ritual / Brew &amp; Boba
         </span>
       </section>
-      <div
-        className="cafe-ribbon"
-        aria-label="Coffee, milk tea, and a cup your way"
-      >
+      <div className="cafe-ribbon" aria-label="Coffee, milk tea, and a cup your way">
         <div className="marquee-container" aria-hidden="true">
           <div className="marquee-content">
             <span>Brewed with Love</span>
@@ -268,11 +254,7 @@ export function HomePage() {
           </div>
         </div>
       </div>
-      <section
-        id="drinks"
-        className="cafe-section cafe-container"
-        aria-labelledby="drinks-title"
-      >
+      <section id="drinks" className="cafe-section cafe-container" aria-labelledby="drinks-title">
         <Reveal>
           <div className="section-heading">
             <div>
@@ -308,7 +290,7 @@ export function HomePage() {
           >
             All drinks
           </button>
-          {categories.map((category) => (
+          {categories.map(category => (
             <button
               key={category.id}
               type="button"
@@ -326,12 +308,9 @@ export function HomePage() {
           <ErrorState message={error} onRetry={refetch} />
         ) : featured.length ? (
           <div className="drink-grid">
-            {featured.map((product) => (
+            {featured.map(product => (
               <Reveal key={product.id}>
-                <ProductCard
-                  product={product}
-                  onSelect={setCustomizingProduct}
-                />
+                <ProductCard product={product} onSelect={setCustomizingProduct} />
               </Reveal>
             ))}
           </div>
@@ -346,8 +325,7 @@ export function HomePage() {
           </div>
         )}
         <p className="menu-footnote">
-          Your size. Your sweetness. Your ice. Make it yours before adding to
-          cart.
+          Your size. Your sweetness. Your ice. Make it yours before adding to cart.
         </p>
       </section>
       <div id="about" />
@@ -381,13 +359,12 @@ export function HomePage() {
               <em>Better Moments.</em>
             </h2>
             <p>
-              Brew &amp; Boba brings two lovely rituals to the same table: the
-              familiar comfort of specialty coffee and the playful possibilities of handcrafted milk tea.
+              Brew &amp; Boba brings two lovely rituals to the same table: the familiar comfort of
+              specialty coffee and the playful possibilities of handcrafted milk tea.
             </p>
             <p>
-              Our idea is simple. Find something you love, make it your own, and
-              give yourself a moment to enjoy it. A little less rush. A little
-              more you.
+              Our idea is simple. Find something you love, make it your own, and give yourself a
+              moment to enjoy it. A little less rush. A little more you.
             </p>
             <div className="story-perk-card">
               <img
@@ -410,10 +387,7 @@ export function HomePage() {
           </Reveal>
         </div>
       </section>
-      <section
-        className="cafe-section cafe-container"
-        aria-labelledby="categories-title"
-      >
+      <section className="cafe-section cafe-container" aria-labelledby="categories-title">
         <Reveal>
           <div className="section-heading">
             <div>
@@ -446,9 +420,7 @@ export function HomePage() {
                 to={`/menu?category=${encodeURIComponent(category.name)}`}
                 className="category-row"
               >
-                <span className="category-number">
-                  {String(index + 1).padStart(2, '0')}
-                </span>
+                <span className="category-number">{String(index + 1).padStart(2, '0')}</span>
                 <div>
                   <h3>{category.name}</h3>
                   {category.description && <p>{category.description}</p>}
@@ -459,16 +431,11 @@ export function HomePage() {
           </div>
         ) : (
           <p className="cafe-empty">
-            The menu categories are being prepared.{' '}
-            <Link to="/menu">Browse drinks</Link>
+            The menu categories are being prepared. <Link to="/menu">Browse drinks</Link>
           </p>
         )}
       </section>
-      <section
-        id="visit"
-        className="cafe-experience"
-        aria-labelledby="experience-title"
-      >
+      <section id="visit" className="cafe-experience" aria-labelledby="experience-title">
         <div className="experience-image">
           <img
             src="/images/slow-moments-1200.webp"
@@ -486,15 +453,13 @@ export function HomePage() {
             <em>SIP IS WAITING.</em>
           </h2>
           <p>
-            The first sip. The catch-up. That tiny break between one thing and
-            the next. Here’s to making the everyday feel a little more special.
+            The first sip. The catch-up. That tiny break between one thing and the next. Here’s to
+            making the everyday feel a little more special.
           </p>
           <Link to="/menu" className="cafe-button cafe-button-gold">
             Explore Our Menu <ArrowUpRight size={19} />
           </Link>
-          <span className="experience-note">
-            Good company starts with a good cup.
-          </span>
+          <span className="experience-note">Good company starts with a good cup.</span>
         </Reveal>
       </section>
       <section id="rewards" className="cafe-club cafe-container">
@@ -532,10 +497,7 @@ export function HomePage() {
           </div>
         </Reveal>
       </section>
-      <section
-        className="cafe-section cafe-container faq-layout"
-        aria-labelledby="faq-title"
-      >
+      <section className="cafe-section cafe-container faq-layout" aria-labelledby="faq-title">
         <Reveal>
           <p className="eyebrow">05 / A few good answers</p>
           <h2 id="faq-title">

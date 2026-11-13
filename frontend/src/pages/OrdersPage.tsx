@@ -16,22 +16,18 @@ function OrderHistory({ phone }: { phone: string }) {
   const reload = () => {
     setLoading(true);
     setError(null);
-    setRefresh((value) => value + 1);
+    setRefresh(value => value + 1);
   };
 
   useEffect(() => {
     let active = true;
     getOrdersByPhone(phone)
-      .then((result) => {
+      .then(result => {
         if (active) setOrders(result);
       })
-      .catch((reason) => {
+      .catch(reason => {
         if (active)
-          setError(
-            reason instanceof Error
-              ? reason.message
-              : 'Unable to load your orders.',
-          );
+          setError(reason instanceof Error ? reason.message : 'Unable to load your orders.');
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -64,9 +60,7 @@ function OrderHistory({ phone }: { phone: string }) {
           <div className="w-12 h-12 rounded-2xl bg-cream-deep text-cobalt flex items-center justify-center mx-auto border border-line animate-pulse">
             <Clock className="w-6 h-6" />
           </div>
-          <p className="font-serif font-bold text-base text-ink">
-            Finding your cups…
-          </p>
+          <p className="font-serif font-bold text-base text-ink">Finding your cups…</p>
           <p className="text-xs text-ink-soft">Fetching your latest barista orders</p>
         </div>
       ) : error ? (
@@ -102,7 +96,7 @@ function OrderHistory({ phone }: { phone: string }) {
         </div>
       ) : (
         <div className="orders-list space-y-4">
-          {orders.map((order) => (
+          {orders.map(order => (
             <article
               className="order-history-card account-card flex flex-col md:flex-row md:items-center justify-between gap-5 transition-all hover:border-cobalt/40"
               key={order.id}
@@ -116,10 +110,14 @@ function OrderHistory({ phone }: { phone: string }) {
                       day: 'numeric',
                     })}
                   </p>
-                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${getStatusBadge(order.order_status)}`}>
+                  <span
+                    className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${getStatusBadge(order.order_status)}`}
+                  >
                     Order: {order.order_status}
                   </span>
-                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${getPaymentBadge(order.payment_status)}`}>
+                  <span
+                    className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${getPaymentBadge(order.payment_status)}`}
+                  >
                     Payment: {order.payment_status}
                   </span>
                 </div>
@@ -176,7 +174,9 @@ export function OrdersPage() {
         <div className="space-y-1.5">
           <div className="cart-brand-badge">
             <ShoppingBag className="cart-badge-icon text-cobalt" />
-            <p className="eyebrow font-bold text-xs uppercase tracking-wider text-cobalt">Your Brew &amp; Boba</p>
+            <p className="eyebrow font-bold text-xs uppercase tracking-wider text-cobalt">
+              Your Brew &amp; Boba
+            </p>
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-black text-cobalt tracking-tight uppercase">
             Your Sips, Your Stories.
@@ -219,9 +219,7 @@ export function OrdersPage() {
             <button
               type="button"
               className="cafe-button cafe-button-dark inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-cobalt hover:bg-cobalt-dark text-butter font-black text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer border border-cobalt-dark"
-              onClick={() =>
-                openAuthModalWith({ mode: 'login', redirectTo: '/orders' })
-              }
+              onClick={() => openAuthModalWith({ mode: 'login', redirectTo: '/orders' })}
             >
               <span>Sign in to view orders</span>
               <ArrowUpRight size={18} />

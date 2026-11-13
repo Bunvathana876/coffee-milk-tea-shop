@@ -4,7 +4,10 @@ import type { CreateOrderPayload, Order } from '../types';
 /**
  * Sends a new order payload to POST /api/orders/.
  */
-export async function createOrder(payload: CreateOrderPayload, idempotencyKey?: string): Promise<Order> {
+export async function createOrder(
+  payload: CreateOrderPayload,
+  idempotencyKey?: string,
+): Promise<Order> {
   return request<Order>('/api/orders/', {
     method: 'POST',
     headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,

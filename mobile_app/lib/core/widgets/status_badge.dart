@@ -3,11 +3,7 @@ import '../theme/app_colors.dart';
 
 /// Visual status pill for order tracking and lists.
 class StatusBadge extends StatelessWidget {
-  const StatusBadge({
-    super.key,
-    required this.status,
-    this.fontSize = 12,
-  });
+  const StatusBadge({super.key, required this.status, this.fontSize = 12});
 
   final String status;
   final double fontSize;

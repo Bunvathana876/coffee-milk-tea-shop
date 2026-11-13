@@ -24,22 +24,22 @@ export interface ToppingOption {
 }
 
 export const TOPPING_OPTIONS: ToppingOption[] = [
-  { id: 'brown-sugar-pearls', name: 'Brown Sugar Pearls', price: 0.50 },
-  { id: 'cheese-foam', name: 'Cheese Foam', price: 0.60 },
-  { id: 'coconut-jelly', name: 'Coconut Jelly', price: 0.40 },
-  { id: 'pudding', name: 'Pudding', price: 0.50 },
+  { id: 'brown-sugar-pearls', name: 'Brown Sugar Pearls', price: 0.5 },
+  { id: 'cheese-foam', name: 'Cheese Foam', price: 0.6 },
+  { id: 'coconut-jelly', name: 'Coconut Jelly', price: 0.4 },
+  { id: 'pudding', name: 'Pudding', price: 0.5 },
 ];
 
 export function calculateCustomizedPrice(
   basePrice: number,
   size: DrinkSize,
   quantity: number = 1,
-  toppings: string[] = []
+  toppings: string[] = [],
 ) {
-  const sizeObj = SIZE_OPTIONS.find((s) => s.value === size) ?? SIZE_OPTIONS[1];
+  const sizeObj = SIZE_OPTIONS.find(s => s.value === size) ?? SIZE_OPTIONS[1];
   const toppingsPrice = toppings.reduce((sum, toppingName) => {
     const found = TOPPING_OPTIONS.find(
-      (t) => t.name.toLowerCase() === toppingName.toLowerCase() || t.id === toppingName
+      t => t.name.toLowerCase() === toppingName.toLowerCase() || t.id === toppingName,
     );
     return sum + (found ? found.price : 0);
   }, 0);
@@ -48,4 +48,3 @@ export function calculateCustomizedPrice(
   const subtotal = Number((unitPrice * quantity).toFixed(2));
   return { unitPrice, subtotal, priceAdjustment: sizeObj.priceAdjustment, toppingsPrice };
 }
-

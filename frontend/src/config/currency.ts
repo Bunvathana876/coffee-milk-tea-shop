@@ -56,7 +56,7 @@ export function formatUsd(amount: number): string {
  */
 export function formatKhr(
   amount: number,
-  options?: { isDirectKhr?: boolean; rate?: number }
+  options?: { isDirectKhr?: boolean; rate?: number },
 ): string {
   if (isNaN(amount)) return '៛0';
   const khr = options?.isDirectKhr
@@ -71,4 +71,3 @@ export const formatUSD = formatUsd;
 export const formatKHR = formatKhr;
 export const toKHR = usdToKhr;
 export const KHR_EXCHANGE_RATE = USD_TO_KHR;
-

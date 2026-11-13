@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!token) return;
     let cancelled = false;
     getCustomerProfile(token)
-      .then((profile) => {
+      .then(profile => {
         if (!cancelled) {
           setUser(profile);
           localStorage.setItem(USER_KEY, JSON.stringify(profile));

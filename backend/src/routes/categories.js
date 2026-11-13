@@ -44,7 +44,8 @@ router.get('/:id', async (req, res, next) => {
       return res.status(400).json({ detail: 'Invalid category ID' });
     }
 
-    const catResult = await dbQuery(`
+    const catResult = await dbQuery(
+      `
       SELECT
         c.id, c.name, c.description, c.image, c.is_active, c.created_at,
         COUNT(p.id) as product_count
@@ -52,19 +53,24 @@ router.get('/:id', async (req, res, next) => {
       LEFT JOIN products p ON p.category_id = c.id
       WHERE c.id = $1
       GROUP BY c.id
-    `, [categoryId]);
+    `,
+      [categoryId],
+    );
 
     const category = catResult.rows[0];
     if (!category) {
       return res.status(404).json({ detail: 'Category not found' });
     }
 
-    const prodResult = await dbQuery(`
+    const prodResult = await dbQuery(
+      `
       SELECT id, category_id, name, description, image, base_price_usd, is_available, created_at
       FROM products
       WHERE category_id = $1
       ORDER BY id ASC
-    `, [categoryId]);
+    `,
+      [categoryId],
+    );
 
     const products = prodResult.rows.map(p => ({
       ...p,

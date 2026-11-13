@@ -19,11 +19,7 @@ const POPULAR_SEARCHES = [
   'Cold Brew',
 ];
 
-export const SearchModal: React.FC<SearchModalProps> = ({
-  isOpen,
-  onClose,
-  onSelectProduct,
-}) => {
+export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, onSelectProduct }) => {
   const [query, setQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
@@ -39,7 +35,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
     let isMounted = true;
     getProducts({ isAvailable: true })
-      .then((data) => {
+      .then(data => {
         if (isMounted) {
           setProducts(data);
           setLoading(false);
@@ -66,10 +62,10 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     const q = query.trim().toLowerCase();
     if (!q) return [];
     return products.filter(
-      (p) =>
+      p =>
         p.name.toLowerCase().includes(q) ||
         (p.description && p.description.toLowerCase().includes(q)) ||
-        (p.category_name && p.category_name.toLowerCase().includes(q))
+        (p.category_name && p.category_name.toLowerCase().includes(q)),
     );
   }, [products, query]);
 
@@ -82,7 +78,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     >
       <div
         className="bg-white w-full max-w-2xl rounded-[2rem] border border-line shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {/* Search Bar Input */}
         <div className="p-4 sm:p-5 border-b border-line flex items-center gap-3 bg-cream">
@@ -91,7 +87,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={e => setQuery(e.target.value)}
             placeholder="Search espresso, boba teas, matcha, syrups..."
             className="flex-1 bg-transparent text-sm sm:text-base font-medium text-ink placeholder:text-ink-soft/60 focus:outline-none"
           />
@@ -117,7 +113,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             <Sparkles className="w-3 h-3 text-cobalt" />
             Popular:
           </span>
-          {POPULAR_SEARCHES.map((item) => (
+          {POPULAR_SEARCHES.map(item => (
             <button
               key={item}
               type="button"
@@ -160,7 +156,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
               </p>
             </div>
           ) : (
-            filteredProducts.map((product) => (
+            filteredProducts.map(product => (
               <div
                 key={product.id}
                 onClick={() => {

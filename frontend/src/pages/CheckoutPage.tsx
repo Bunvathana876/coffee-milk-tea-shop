@@ -75,7 +75,7 @@ export const CheckoutPage: React.FC = () => {
   ];
 
   const handleAddQuickNote = (noteText: string) => {
-    setOrderNotes((prev) => (prev ? `${prev}, ${noteText}` : noteText));
+    setOrderNotes(prev => (prev ? `${prev}, ${noteText}` : noteText));
   };
 
   const validateForm = (): boolean => {
@@ -154,7 +154,7 @@ export const CheckoutPage: React.FC = () => {
         customer_email: user?.email || null,
         notes: finalNotes || null,
         payment_method: paymentMethod,
-        items: items.map((item) => ({
+        items: items.map(item => ({
           product_id: item.productId,
           product_name: item.productName,
           quantity: item.quantity,
@@ -174,12 +174,24 @@ export const CheckoutPage: React.FC = () => {
         customer_email: orderPayload.customer_email ?? null,
         notes: orderPayload.notes ?? null,
         payment_method: orderPayload.payment_method ?? 'cash',
-        items: orderPayload.items.map(({ product_id, quantity, size, sugar_level, ice_level, toppings }) => ({
-          product_id, quantity, size, sugar_level, ice_level, toppings: toppings ?? [],
-        })),
+        items: orderPayload.items.map(
+          ({ product_id, quantity, size, sugar_level, ice_level, toppings }) => ({
+            product_id,
+            quantity,
+            size,
+            sugar_level,
+            ice_level,
+            toppings: toppings ?? [],
+          }),
+        ),
       });
-      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(serializedPayload));
-      const fingerprint = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+      const digest = await crypto.subtle.digest(
+        'SHA-256',
+        new TextEncoder().encode(serializedPayload),
+      );
+      const fingerprint = Array.from(new Uint8Array(digest), byte =>
+        byte.toString(16).padStart(2, '0'),
+      ).join('');
       if (pendingOrderRef.current?.fingerprint !== fingerprint) {
         let stored: { fingerprint: string; key: string } | null = null;
         try {
@@ -188,10 +200,12 @@ export const CheckoutPage: React.FC = () => {
         } catch {
           // Continue with an in-memory key if session storage is unavailable.
         }
-        pendingOrderRef.current = stored?.fingerprint === fingerprint && typeof stored.key === 'string' &&
+        pendingOrderRef.current =
+          stored?.fingerprint === fingerprint &&
+          typeof stored.key === 'string' &&
           /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(stored.key)
-          ? stored
-          : { fingerprint, key: crypto.randomUUID() };
+            ? stored
+            : { fingerprint, key: crypto.randomUUID() };
         try {
           sessionStorage.setItem('coffee_pending_order', JSON.stringify(pendingOrderRef.current));
         } catch {
@@ -285,7 +299,8 @@ export const CheckoutPage: React.FC = () => {
           </h2>
           <p className="text-sm text-ink-soft leading-relaxed max-w-md mx-auto">
             Sign in or create an account to place your order. Your {totalQuantity}{' '}
-            {totalQuantity === 1 ? 'drink is' : 'drinks are'} safely saved in your bag ({formatUsd(totalPriceUsd)}).
+            {totalQuantity === 1 ? 'drink is' : 'drinks are'} safely saved in your bag (
+            {formatUsd(totalPriceUsd)}).
           </p>
         </div>
 
@@ -453,10 +468,10 @@ export const CheckoutPage: React.FC = () => {
                     type="text"
                     autoComplete="street-address"
                     value={deliveryAddress}
-                    onChange={(e) => {
+                    onChange={e => {
                       setDeliveryAddress(e.target.value);
                       if (errors.deliveryAddress) {
-                        setErrors((prev) => ({ ...prev, deliveryAddress: undefined }));
+                        setErrors(prev => ({ ...prev, deliveryAddress: undefined }));
                       }
                     }}
                     placeholder="e.g. Condo #402, Street 310, BKK1, Phnom Penh"
@@ -468,7 +483,9 @@ export const CheckoutPage: React.FC = () => {
                   />
                 </div>
                 {errors.deliveryAddress && (
-                  <p role="alert" className="text-xs text-rose-600 font-semibold">{errors.deliveryAddress}</p>
+                  <p role="alert" className="text-xs text-rose-600 font-semibold">
+                    {errors.deliveryAddress}
+                  </p>
                 )}
               </div>
             )}
@@ -477,9 +494,7 @@ export const CheckoutPage: React.FC = () => {
           {/* Section 2: Contact Details & Barista Notes */}
           <section className="checkout-section-card space-y-4">
             <div>
-              <h2 className="font-serif font-black text-lg sm:text-xl text-ink">
-                Your Details
-              </h2>
+              <h2 className="font-serif font-black text-lg sm:text-xl text-ink">Your Details</h2>
               <p className="mt-0.5 text-xs text-ink-soft">
                 We'll notify your phone as soon as your drinks are prepared.
               </p>
@@ -508,9 +523,10 @@ export const CheckoutPage: React.FC = () => {
                     autoComplete="name"
                     value={customerName}
                     disabled={isLoading}
-                    onChange={(e) => {
+                    onChange={e => {
                       setCustomerName(e.target.value);
-                      if (errors.customerName) setErrors((prev) => ({ ...prev, customerName: undefined }));
+                      if (errors.customerName)
+                        setErrors(prev => ({ ...prev, customerName: undefined }));
                     }}
                     placeholder="e.g. Sopheak Chan"
                     className={`min-h-12 w-full rounded-2xl border bg-cream pl-11 pr-4 font-sans text-sm outline-none transition placeholder:text-ink-soft/60 ${
@@ -521,7 +537,9 @@ export const CheckoutPage: React.FC = () => {
                   />
                 </div>
                 {errors.customerName && (
-                  <p role="alert" className="text-xs text-rose-600 font-semibold mt-1">{errors.customerName}</p>
+                  <p role="alert" className="text-xs text-rose-600 font-semibold mt-1">
+                    {errors.customerName}
+                  </p>
                 )}
               </div>
 
@@ -539,9 +557,10 @@ export const CheckoutPage: React.FC = () => {
                     autoComplete="tel"
                     value={customerPhone}
                     disabled={isLoading}
-                    onChange={(e) => {
+                    onChange={e => {
                       setCustomerPhone(e.target.value);
-                      if (errors.customerPhone) setErrors((prev) => ({ ...prev, customerPhone: undefined }));
+                      if (errors.customerPhone)
+                        setErrors(prev => ({ ...prev, customerPhone: undefined }));
                     }}
                     placeholder="e.g. 012 345 678"
                     className={`min-h-12 w-full rounded-2xl border bg-cream pl-11 pr-4 font-sans text-sm outline-none transition placeholder:text-ink-soft/60 ${
@@ -552,7 +571,9 @@ export const CheckoutPage: React.FC = () => {
                   />
                 </div>
                 {errors.customerPhone && (
-                  <p role="alert" className="text-xs text-rose-600 font-semibold mt-1">{errors.customerPhone}</p>
+                  <p role="alert" className="text-xs text-rose-600 font-semibold mt-1">
+                    {errors.customerPhone}
+                  </p>
                 )}
               </div>
             </div>
@@ -566,12 +587,12 @@ export const CheckoutPage: React.FC = () => {
                 id="orderNotes"
                 rows={2}
                 value={orderNotes}
-                onChange={(e) => setOrderNotes(e.target.value)}
+                onChange={e => setOrderNotes(e.target.value)}
                 placeholder="e.g. Pack ice separately, extra napkins, leave at guard house..."
                 className="w-full resize-none rounded-2xl border border-line bg-cream px-4 py-3 font-sans text-sm outline-none transition placeholder:text-ink-soft/60 focus:border-cobalt focus:ring-2 focus:ring-cobalt/20"
               />
               <div className="flex flex-wrap gap-1.5 mt-2">
-                {quickNotes.map((note) => (
+                {quickNotes.map(note => (
                   <button
                     key={note}
                     type="button"
@@ -588,10 +609,10 @@ export const CheckoutPage: React.FC = () => {
           {/* Section 3: Payment Method with Safety Guarantees */}
           <section className="checkout-section-card space-y-4">
             <div>
-              <h2 className="font-serif font-black text-lg sm:text-xl text-ink">
-                Payment Method
-              </h2>
-              <p className="mt-0.5 text-xs text-ink-soft">Secure and simple, dual currency supported.</p>
+              <h2 className="font-serif font-black text-lg sm:text-xl text-ink">Payment Method</h2>
+              <p className="mt-0.5 text-xs text-ink-soft">
+                Secure and simple, dual currency supported.
+              </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -608,7 +629,9 @@ export const CheckoutPage: React.FC = () => {
               >
                 <div
                   className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                    paymentMethod === 'khqr' ? 'bg-cobalt text-butter' : 'bg-cream-deep text-ink-soft'
+                    paymentMethod === 'khqr'
+                      ? 'bg-cobalt text-butter'
+                      : 'bg-cream-deep text-ink-soft'
                   }`}
                 >
                   <QrCode className="w-5 h-5" />
@@ -642,7 +665,9 @@ export const CheckoutPage: React.FC = () => {
               >
                 <div
                   className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
-                    paymentMethod === 'cash' ? 'bg-cobalt text-butter' : 'bg-cream-deep text-ink-soft'
+                    paymentMethod === 'cash'
+                      ? 'bg-cobalt text-butter'
+                      : 'bg-cream-deep text-ink-soft'
                   }`}
                 >
                   <Banknote className="w-5 h-5" />
@@ -665,7 +690,9 @@ export const CheckoutPage: React.FC = () => {
             <div className="p-3 rounded-2xl bg-cream-deep/60 border border-line/60 flex items-start gap-2.5 text-xs text-ink-soft">
               <Info className="w-4 h-4 text-cobalt shrink-0 mt-0.5" />
               <p className="leading-relaxed">
-                <strong>Payment Notice:</strong> ABA KHQR is currently a demonstration flow. Order status and payment verification remain distinct. No payment is settled from a QR preview alone.
+                <strong>Payment Notice:</strong> ABA KHQR is currently a demonstration flow. Order
+                status and payment verification remain distinct. No payment is settled from a QR
+                preview alone.
               </p>
             </div>
           </section>
@@ -684,14 +711,12 @@ export const CheckoutPage: React.FC = () => {
                   {totalQuantity} {totalQuantity === 1 ? 'drink' : 'drinks'}
                 </span>
               </div>
-              <h2 className="mt-1 font-serif text-2xl font-bold">
-                Review Your Sips
-              </h2>
+              <h2 className="mt-1 font-serif text-2xl font-bold">Review Your Sips</h2>
             </div>
 
             {/* Items List */}
             <div className="px-6 py-4 max-h-72 overflow-y-auto divide-y divide-white/10 scrollbar-none">
-              {items.map((item) => (
+              {items.map(item => (
                 <div key={item.id} className="py-3.5 first:pt-0 last:pb-0 flex items-start gap-3">
                   {item.image ? (
                     <img
@@ -724,13 +749,13 @@ export const CheckoutPage: React.FC = () => {
                     </p>
 
                     {item.toppings && item.toppings.length > 0 && (
-                      <p className="text-xs text-butter">
-                        + {item.toppings.join(', ')}
-                      </p>
+                      <p className="text-xs text-butter">+ {item.toppings.join(', ')}</p>
                     )}
 
                     <div className="text-[11px] text-white/50 pt-0.5 flex items-center justify-between">
-                      <span>Qty: {item.quantity} × {formatUsd(item.unitPriceUsd)}</span>
+                      <span>
+                        Qty: {item.quantity} × {formatUsd(item.unitPriceUsd)}
+                      </span>
                       <span>{formatKhr(item.subtotalUsd)}</span>
                     </div>
                   </div>

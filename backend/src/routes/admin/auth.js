@@ -31,7 +31,9 @@ router.post('/login', async (req, res, next) => {
       return res.status(403).json({ detail: 'Forbidden: Unsupported staff role.' });
     }
 
-    await dbQuery('UPDATE staff_users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1', [staff.id]);
+    await dbQuery('UPDATE staff_users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1', [
+      staff.id,
+    ]);
 
     const accessToken = createToken({
       sub: staff.id,

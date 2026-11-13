@@ -104,7 +104,9 @@ export async function bootstrapAdminUser(env = process.env, clientOrOptions = nu
   try {
     // 1. Enforce fail-closed staging branch identity verification
     const targetInfo = await assertAuthorizedStagingTarget(client, databaseUrl);
-    console.log(`[BOOTSTRAP] Target verified: database=${targetInfo.database}, branch=${targetInfo.branch_id}, endpoint=${targetInfo.endpoint_id}`);
+    console.log(
+      `[BOOTSTRAP] Target verified: database=${targetInfo.database}, branch=${targetInfo.branch_id}, endpoint=${targetInfo.endpoint_id}`,
+    );
 
     // 2. Atomic transaction with transaction-scoped advisory lock
     await client.query('BEGIN');
@@ -115,17 +117,23 @@ export async function bootstrapAdminUser(env = process.env, clientOrOptions = nu
 
     // 3. Confirm entire staff_users table is empty before creating the first administrator
     const existingRes = await client.query(
-      'SELECT id, email, role, is_active FROM staff_users ORDER BY id ASC'
+      'SELECT id, email, role, is_active FROM staff_users ORDER BY id ASC',
     );
 
     if (existingRes.rows.length > 0) {
-      const matchingEmail = existingRes.rows.find(u => u.email.toLowerCase() === email.toLowerCase());
+      const matchingEmail = existingRes.rows.find(
+        u => u.email.toLowerCase() === email.toLowerCase(),
+      );
       if (matchingEmail) {
-        throw new Error(`Bootstrap aborted: Staff user already exists with email [${matchingEmail.email}] (id=${matchingEmail.id}, role=${matchingEmail.role}, active=${matchingEmail.is_active}).`);
+        throw new Error(
+          `Bootstrap aborted: Staff user already exists with email [${matchingEmail.email}] (id=${matchingEmail.id}, role=${matchingEmail.role}, active=${matchingEmail.is_active}).`,
+        );
       }
       const count = existingRes.rows.length;
       const first = existingRes.rows[0];
-      throw new Error(`Bootstrap aborted: staff_users table is not empty (${count} existing account${count > 1 ? 's' : ''} found, e.g. [${first.email}] id=${first.id}, role=${first.role}). Administrator provisioning is only permitted on an empty table.`);
+      throw new Error(
+        `Bootstrap aborted: staff_users table is not empty (${count} existing account${count > 1 ? 's' : ''} found, e.g. [${first.email}] id=${first.id}, role=${first.role}). Administrator provisioning is only permitted on an empty table.`,
+      );
     }
 
     // 4. Hash password with bcryptjs (salt rounds = 12)
@@ -133,18 +141,23 @@ export async function bootstrapAdminUser(env = process.env, clientOrOptions = nu
     const passwordHash = bcrypt.hashSync(password, salt);
 
     // 5. Parameterized insert of the first administrator
-    const insertRes = await client.query(`
+    const insertRes = await client.query(
+      `
       INSERT INTO staff_users (email, full_name, role, password_hash, is_active)
       VALUES ($1, $2, 'admin', $3, true)
       RETURNING id, email, full_name, role, is_active, created_at
-    `, [email, name, passwordHash]);
+    `,
+      [email, name, passwordHash],
+    );
 
     const created = insertRes.rows[0];
 
     await client.query('COMMIT');
     inTransaction = false;
 
-    console.log(`[BOOTSTRAP] Successfully provisioned administrator: id=${created.id}, email=${created.email}, role=${created.role}, active=${created.is_active}`);
+    console.log(
+      `[BOOTSTRAP] Successfully provisioned administrator: id=${created.id}, email=${created.email}, role=${created.role}, active=${created.is_active}`,
+    );
     return created;
   } catch (err) {
     if (inTransaction) {
@@ -170,7 +183,9 @@ export async function bootstrapAdminUser(env = process.env, clientOrOptions = nu
 if (process.argv[1] && process.argv[1].endsWith('bootstrapAdmin.js')) {
   if (process.env.CONFIRM_STAGING_BOOTSTRAP !== 'true') {
     console.error('=== Brew & Boba Café: Staging Administrator Bootstrap ===');
-    console.error('This script provisions the initial administrator account on the Neon staging branch.');
+    console.error(
+      'This script provisions the initial administrator account on the Neon staging branch.',
+    );
     console.error('SAFETY GUARD: Execution requires explicit operator confirmation.');
     console.error('');
     console.error('Required environment variables:');

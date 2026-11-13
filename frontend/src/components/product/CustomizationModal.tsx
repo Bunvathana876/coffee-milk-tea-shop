@@ -45,14 +45,12 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
     product.base_price_usd,
     selectedSize,
     quantity,
-    selectedToppings
+    selectedToppings,
   );
 
   const toggleTopping = (toppingName: string) => {
-    setSelectedToppings((prev) =>
-      prev.includes(toppingName)
-        ? prev.filter((t) => t !== toppingName)
-        : [...prev, toppingName]
+    setSelectedToppings(prev =>
+      prev.includes(toppingName) ? prev.filter(t => t !== toppingName) : [...prev, toppingName],
     );
   };
 
@@ -91,7 +89,7 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
   return (
     <div
       className="relative flex w-full sm:max-w-[540px] max-h-[92vh] sm:max-h-[88vh] flex-col overflow-hidden rounded-t-[32px] sm:rounded-[32px] border border-line bg-cream shadow-2xl animate-in fade-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200"
-      onClick={(e) => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
     >
       {/* Retro Blue Header with Ambient Rings */}
       <div className="relative flex h-32 sm:h-36 items-end justify-between overflow-hidden bg-gradient-to-br from-cobalt-dark via-cobalt to-[#0A2660] px-6 pb-5 text-cream shrink-0">
@@ -132,7 +130,10 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
               />
               <span>Customize your drink</span>
             </p>
-            <h2 id={titleId} className="font-serif text-xl sm:text-2xl font-black text-white leading-tight truncate">
+            <h2
+              id={titleId}
+              className="font-serif text-xl sm:text-2xl font-black text-white leading-tight truncate"
+            >
               {product.name}
             </h2>
           </div>
@@ -154,7 +155,9 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
         <div className="flex items-center justify-between rounded-2xl bg-cream-deep px-4 py-3 border border-line/50 shadow-2xs">
           <div>
             <p className="font-sans text-xs sm:text-sm font-bold text-ink">Handcrafted your way</p>
-            <p className="font-sans text-[11px] text-ink-soft">Freshly tailored upon every single order.</p>
+            <p className="font-sans text-[11px] text-ink-soft">
+              Freshly tailored upon every single order.
+            </p>
           </div>
           <img
             src="/brand/hero-fusion-cup.png"
@@ -179,7 +182,7 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
             1. Cup size
           </legend>
           <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
-            {SIZE_OPTIONS.map((option) => {
+            {SIZE_OPTIONS.map(option => {
               const selected = selectedSize === option.value;
               return (
                 <button
@@ -203,8 +206,12 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
                     }`}
                   >
                     {option.description} ·{' '}
-                    <strong className={selected ? 'text-butter font-bold' : 'text-cobalt font-bold'}>
-                      {option.priceAdjustment ? `+${formatUsd(option.priceAdjustment)}` : 'Included'}
+                    <strong
+                      className={selected ? 'text-butter font-bold' : 'text-cobalt font-bold'}
+                    >
+                      {option.priceAdjustment
+                        ? `+${formatUsd(option.priceAdjustment)}`
+                        : 'Included'}
                     </strong>
                   </span>
                 </button>
@@ -224,7 +231,7 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
             </span>
           </div>
           <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-            {SUGAR_OPTIONS.map((sugar) => {
+            {SUGAR_OPTIONS.map(sugar => {
               const selected = selectedSugar === sugar;
               return (
                 <button
@@ -262,7 +269,7 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
             <span className="text-xs font-bold text-cobalt">{selectedIce}</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {ICE_OPTIONS.map((ice) => {
+            {ICE_OPTIONS.map(ice => {
               const selected = selectedIce === ice;
               return (
                 <button
@@ -297,7 +304,7 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
             </span>
           </div>
           <div className="grid gap-2">
-            {TOPPING_OPTIONS.map((topping) => {
+            {TOPPING_OPTIONS.map(topping => {
               const selected = selectedToppings.includes(topping.name);
               return (
                 <button
@@ -341,19 +348,22 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
             type="button"
             aria-label="Decrease quantity"
             disabled={quantity <= 1}
-            onClick={() => setQuantity((c) => Math.max(1, c - 1))}
+            onClick={() => setQuantity(c => Math.max(1, c - 1))}
             className="flex size-10 items-center justify-center rounded-xl text-ink-soft transition hover:bg-cream disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
           >
             <Minus className="size-4" />
           </button>
-          <span aria-live="polite" className="w-8 text-center font-sans text-sm font-black text-ink">
+          <span
+            aria-live="polite"
+            className="w-8 text-center font-sans text-sm font-black text-ink"
+          >
             {quantity}
           </span>
           <button
             type="button"
             aria-label="Increase quantity"
             disabled={quantity >= 20}
-            onClick={() => setQuantity((c) => Math.min(20, c + 1))}
+            onClick={() => setQuantity(c => Math.min(20, c + 1))}
             className="flex size-10 items-center justify-center rounded-xl text-ink-soft transition hover:bg-cream cursor-pointer"
           >
             <Plus className="size-4" />
@@ -369,11 +379,7 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
         >
           <span className="flex flex-col items-start leading-tight">
             <span>
-              {isSubmitting
-                ? 'Adding...'
-                : product.is_available
-                ? 'Add to Cart'
-                : 'Sold out'}
+              {isSubmitting ? 'Adding...' : product.is_available ? 'Add to Cart' : 'Sold out'}
             </span>
             <span className="text-[11px] font-semibold text-butter">
               {formatUsd(subtotal)} · {formatKhr(subtotal)}

@@ -21,7 +21,10 @@ export function calculateItemPrice(basePriceUsd, size = 'Medium', toppings = [])
     return sum + (config.toppingPrices[topping] ?? 0.0);
   }, 0.0);
 
-  const unitPriceCents = Math.round(Number(basePriceUsd) * 100) + Math.round(sizeMod * 100) + Math.round(toppingsMod * 100);
+  const unitPriceCents =
+    Math.round(Number(basePriceUsd) * 100) +
+    Math.round(sizeMod * 100) +
+    Math.round(toppingsMod * 100);
   const unitPrice = unitPriceCents / 100;
   return {
     unitPrice,

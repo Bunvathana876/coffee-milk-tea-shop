@@ -6,43 +6,43 @@ import { Layout } from './components/layout/Layout';
 import { HomePage } from './pages/HomePage';
 
 const MenuPage = lazy(() =>
-  import('./pages/MenuPage').then((module) => ({ default: module.MenuPage })),
+  import('./pages/MenuPage').then(module => ({ default: module.MenuPage })),
 );
 const CartPage = lazy(() =>
-  import('./pages/CartPage').then((module) => ({ default: module.CartPage })),
+  import('./pages/CartPage').then(module => ({ default: module.CartPage })),
 );
 const CheckoutPage = lazy(() =>
-  import('./pages/CheckoutPage').then((module) => ({
+  import('./pages/CheckoutPage').then(module => ({
     default: module.CheckoutPage,
   })),
 );
 const ReceiptPage = lazy(() =>
-  import('./pages/ReceiptPage').then((module) => ({
+  import('./pages/ReceiptPage').then(module => ({
     default: module.ReceiptPage,
   })),
 );
 const RewardsPage = lazy(() =>
-  import('./pages/RewardsPage').then((module) => ({
+  import('./pages/RewardsPage').then(module => ({
     default: module.RewardsPage,
   })),
 );
 const ProfilePage = lazy(() =>
-  import('./pages/ProfilePage').then((module) => ({
+  import('./pages/ProfilePage').then(module => ({
     default: module.ProfilePage,
   })),
 );
 const NotFoundPage = lazy(() =>
-  import('./pages/NotFoundPage').then((module) => ({
+  import('./pages/NotFoundPage').then(module => ({
     default: module.NotFoundPage,
   })),
 );
 const OrdersPage = lazy(() =>
-  import('./pages/OrdersPage').then((module) => ({
+  import('./pages/OrdersPage').then(module => ({
     default: module.OrdersPage,
   })),
 );
 const AboutPage = lazy(() =>
-  import('./pages/AboutPage').then((module) => ({
+  import('./pages/AboutPage').then(module => ({
     default: module.AboutPage,
   })),
 );

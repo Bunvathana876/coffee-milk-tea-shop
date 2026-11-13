@@ -24,7 +24,7 @@ export const StoreSelectorModal: React.FC<StoreSelectorModalProps> = ({
     >
       <div
         className="bg-white w-full max-w-lg rounded-[2rem] border border-line shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {/* Modal Header */}
         <div className="bg-cream px-6 py-5 border-b border-line flex items-center justify-between">
@@ -33,9 +33,7 @@ export const StoreSelectorModal: React.FC<StoreSelectorModalProps> = ({
               <MapPin className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-serif font-black text-lg text-ink">
-                Select Pickup Store
-              </h3>
+              <h3 className="font-serif font-black text-lg text-ink">Select Pickup Store</h3>
               <p className="text-xs text-ink-soft">
                 Choose where you want your drinks prepared for pickup
               </p>
@@ -53,7 +51,7 @@ export const StoreSelectorModal: React.FC<StoreSelectorModalProps> = ({
 
         {/* Store List */}
         <div className="p-6 space-y-3.5 max-h-[65vh] overflow-y-auto">
-          {STORES.map((store) => {
+          {STORES.map(store => {
             const isSelected = store.id === selectedStoreId;
             return (
               <div
@@ -71,9 +69,7 @@ export const StoreSelectorModal: React.FC<StoreSelectorModalProps> = ({
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="font-serif font-bold text-ink text-base">
-                        {store.name}
-                      </span>
+                      <span className="font-serif font-bold text-ink text-base">{store.name}</span>
                       {isSelected && (
                         <span className="px-2 py-0.5 rounded-full bg-cobalt text-white font-black text-[10px] uppercase tracking-wider">
                           Selected

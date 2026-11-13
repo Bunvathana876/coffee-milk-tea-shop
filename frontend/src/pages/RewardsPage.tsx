@@ -39,7 +39,8 @@ export const RewardsPage: React.FC = () => {
       id: 'free-drink',
       title: 'Free Handcrafted Drink',
       costStamps: 10,
-      description: 'Any signature coffee, milk tea, or ceremonial matcha in any size with your choice of sweetness, ice, and toppings.',
+      description:
+        'Any signature coffee, milk tea, or ceremonial matcha in any size with your choice of sweetness, ice, and toppings.',
       category: 'Signature',
       badge: 'Core Benefit',
       isUnlocked: currentStamps === 10 || totalStamps >= 10,
@@ -48,7 +49,8 @@ export const RewardsPage: React.FC = () => {
       id: 'bakery-treat',
       title: 'Artisanal Bakery Pairing',
       costStamps: 5,
-      description: 'Enjoy a warm butter croissant or house-baked matcha scone alongside your favorite beverage.',
+      description:
+        'Enjoy a warm butter croissant or house-baked matcha scone alongside your favorite beverage.',
       category: 'In-Store',
       isUnlocked: currentStamps >= 5,
     },
@@ -56,7 +58,8 @@ export const RewardsPage: React.FC = () => {
       id: 'oat-milk',
       title: 'Complimentary Plant Milk Upgrade',
       costStamps: 3,
-      description: 'Upgrade your latte or boba milk tea to premium Barista Oat Milk or Organic Almond Milk.',
+      description:
+        'Upgrade your latte or boba milk tea to premium Barista Oat Milk or Organic Almond Milk.',
       category: 'Customization',
       badge: 'Quick Unlock',
       isUnlocked: currentStamps >= 3,
@@ -65,7 +68,8 @@ export const RewardsPage: React.FC = () => {
       id: 'birthday-treat',
       title: 'Birthday Celebration Beverage',
       costStamps: 0,
-      description: 'Enjoy a celebratory complimentary drink of your choice during your birthday month at our BKK1 café.',
+      description:
+        'Enjoy a celebratory complimentary drink of your choice during your birthday month at our BKK1 café.',
       category: 'Member Exclusive',
       badge: 'Annual Perk',
       isUnlocked: isAuthenticated,
@@ -92,7 +96,8 @@ export const RewardsPage: React.FC = () => {
             </h1>
 
             <p className="text-xs sm:text-sm text-cream/90 leading-relaxed">
-              Earn a digital stamp with every handcrafted drink ordered online or in-store at our BKK1 flagship bar. No paper cards to lose—just simple, honest sips.
+              Earn a digital stamp with every handcrafted drink ordered online or in-store at our
+              BKK1 flagship bar. No paper cards to lose—just simple, honest sips.
             </p>
 
             {isAuthenticated && user && (
@@ -150,7 +155,8 @@ export const RewardsPage: React.FC = () => {
               Available Brew Club Perks
             </h2>
             <p className="text-xs sm:text-sm text-ink-soft mt-1">
-              Present your digital punch pass to your barista in-store to claim complimentary rewards.
+              Present your digital punch pass to your barista in-store to claim complimentary
+              rewards.
             </p>
           </div>
           <Link
@@ -163,13 +169,11 @@ export const RewardsPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {REWARD_PERKS.map((perk) => (
+          {REWARD_PERKS.map(perk => (
             <article
               key={perk.id}
               className={`account-card flex flex-col justify-between space-y-4 ${
-                perk.isUnlocked
-                  ? 'border-cobalt/40 ring-1 ring-cobalt/20'
-                  : 'opacity-85'
+                perk.isUnlocked ? 'border-cobalt/40 ring-1 ring-cobalt/20' : 'opacity-85'
               }`}
             >
               <div className="space-y-3">
@@ -188,9 +192,7 @@ export const RewardsPage: React.FC = () => {
                   <h3 className="font-serif font-bold text-lg text-ink leading-snug">
                     {perk.title}
                   </h3>
-                  <p className="text-xs text-ink-soft leading-relaxed">
-                    {perk.description}
-                  </p>
+                  <p className="text-xs text-ink-soft leading-relaxed">{perk.description}</p>
                 </div>
               </div>
 
@@ -224,7 +226,9 @@ export const RewardsPage: React.FC = () => {
         <div className="p-4 rounded-2xl bg-cream-deep/60 border border-line flex items-start gap-3 text-xs text-ink-soft">
           <Info className="w-4 h-4 text-cobalt shrink-0 mt-0.5" />
           <p className="leading-relaxed">
-            <strong>Loyalty Transparency:</strong> Digital stamps are automatically credited for every paid beverage order linked to your phone number. Free drinks and member tier perks are verified and redeemed in-person at our BKK1 flagship bar.
+            <strong>Loyalty Transparency:</strong> Digital stamps are automatically credited for
+            every paid beverage order linked to your phone number. Free drinks and member tier perks
+            are verified and redeemed in-person at our BKK1 flagship bar.
           </p>
         </div>
       </section>
@@ -250,7 +254,8 @@ export const RewardsPage: React.FC = () => {
             </div>
             <h3 className="font-serif font-bold text-base text-ink">Order Handcrafted Drinks</h3>
             <p className="text-xs text-ink-soft leading-relaxed">
-              Order online for pickup or provide your phone number at our counter. Every drink you purchase automatically earns you one digital stamp.
+              Order online for pickup or provide your phone number at our counter. Every drink you
+              purchase automatically earns you one digital stamp.
             </p>
           </div>
 
@@ -260,7 +265,8 @@ export const RewardsPage: React.FC = () => {
             </div>
             <h3 className="font-serif font-bold text-base text-ink">Collect Digital Stamps</h3>
             <p className="text-xs text-ink-soft leading-relaxed">
-              Your stamps sync instantly to your phone. Check your live balance anytime right here on this page without needing paper cards.
+              Your stamps sync instantly to your phone. Check your live balance anytime right here
+              on this page without needing paper cards.
             </p>
           </div>
 
@@ -270,7 +276,8 @@ export const RewardsPage: React.FC = () => {
             </div>
             <h3 className="font-serif font-bold text-base text-ink">Enjoy Your Free Beverage</h3>
             <p className="text-xs text-ink-soft leading-relaxed">
-              Once you hit 10 stamps, apply your reward to any signature pour-over, boba, or ceremonial matcha on your next checkout.
+              Once you hit 10 stamps, apply your reward to any signature pour-over, boba, or
+              ceremonial matcha on your next checkout.
             </p>
           </div>
         </div>
@@ -301,15 +308,19 @@ export const RewardsPage: React.FC = () => {
             </p>
           </div>
           <div className="p-5 rounded-2xl bg-white/10 border border-white/15 space-y-2">
-            <span className="text-xs font-bold text-slate-200 uppercase">Silver Brewer (10–29)</span>
+            <span className="text-xs font-bold text-slate-200 uppercase">
+              Silver Brewer (10–29)
+            </span>
             <p className="text-xs text-white/80">
-              All Bronze perks + 1 free bakery treat, free syrup upgrades, and seasonal tasting previews.
+              All Bronze perks + 1 free bakery treat, free syrup upgrades, and seasonal tasting
+              previews.
             </p>
           </div>
           <div className="p-5 rounded-2xl bg-white/10 border border-butter/40 space-y-2 relative overflow-hidden">
             <span className="text-xs font-bold text-butter uppercase">Gold Connoisseur (30+)</span>
             <p className="text-xs text-white/80">
-              All Silver perks + monthly coffee tastings, double stamps every Tuesday, and VIP priority.
+              All Silver perks + monthly coffee tastings, double stamps every Tuesday, and VIP
+              priority.
             </p>
           </div>
         </div>

@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import { dbQuery } from '../../db/database.js';
 import { authenticateStaff, requireAdmin } from '../../middleware/auth.js';
-import { validBoolean, validId, validName, validOptionalText } from '../../utils/adminCatalogValidation.js';
+import {
+  validBoolean,
+  validId,
+  validName,
+  validOptionalText,
+} from '../../utils/adminCatalogValidation.js';
 
 const router = Router();
 router.use(authenticateStaff);
@@ -38,21 +43,33 @@ router.post('/', requireAdmin, async (req, res, next) => {
   try {
     const { name, description, image, is_active = true } = req.body;
 
-    if (!validName(name) || !validOptionalText(description) || !validOptionalText(image, 2048) || !validBoolean(is_active)) {
-      return res.status(422).json({ detail: 'Provide a category name, optional text, and a valid active setting.' });
+    if (
+      !validName(name) ||
+      !validOptionalText(description) ||
+      !validOptionalText(image, 2048) ||
+      !validBoolean(is_active)
+    ) {
+      return res
+        .status(422)
+        .json({ detail: 'Provide a category name, optional text, and a valid active setting.' });
     }
 
     const cleanName = String(name).trim();
-    const existing = await dbQuery('SELECT id FROM categories WHERE LOWER(name) = LOWER($1)', [cleanName]);
+    const existing = await dbQuery('SELECT id FROM categories WHERE LOWER(name) = LOWER($1)', [
+      cleanName,
+    ]);
     if (existing.rows.length > 0) {
       return res.status(400).json({ detail: 'A category with this name already exists.' });
     }
 
-    const result = await dbQuery(`
+    const result = await dbQuery(
+      `
       INSERT INTO categories (name, description, image, is_active)
       VALUES ($1, $2, $3, $4)
       RETURNING *
-    `, [cleanName, description || null, image || null, Boolean(is_active)]);
+    `,
+      [cleanName, description || null, image || null, Boolean(is_active)],
+    );
 
     const created = result.rows[0];
     res.status(201).json({
@@ -85,7 +102,10 @@ router.patch('/:id', requireAdmin, async (req, res, next) => {
       if (!validName(name)) {
         return res.status(422).json({ detail: 'Category name cannot be empty.' });
       }
-      const existing = await dbQuery('SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND id != $2', [cleanName, categoryId]);
+      const existing = await dbQuery(
+        'SELECT id FROM categories WHERE LOWER(name) = LOWER($1) AND id != $2',
+        [cleanName, categoryId],
+      );
       if (existing.rows.length > 0) {
         return res.status(400).json({ detail: 'Another category with this name already exists.' });
       }
@@ -93,27 +113,34 @@ router.patch('/:id', requireAdmin, async (req, res, next) => {
       updates.push(`name = $${params.length}`);
     }
     if (description !== undefined) {
-      if (!validOptionalText(description)) return res.status(422).json({ detail: 'Invalid category description.' });
+      if (!validOptionalText(description))
+        return res.status(422).json({ detail: 'Invalid category description.' });
       params.push(description);
       updates.push(`description = $${params.length}`);
     }
     if (image !== undefined) {
-      if (!validOptionalText(image, 2048)) return res.status(422).json({ detail: 'Invalid category image.' });
+      if (!validOptionalText(image, 2048))
+        return res.status(422).json({ detail: 'Invalid category image.' });
       params.push(image);
       updates.push(`image = $${params.length}`);
     }
     if (is_active !== undefined) {
-      if (!validBoolean(is_active)) return res.status(422).json({ detail: 'Invalid active setting.' });
+      if (!validBoolean(is_active))
+        return res.status(422).json({ detail: 'Invalid active setting.' });
       params.push(is_active);
       updates.push(`is_active = $${params.length}`);
     }
 
     if (updates.length > 0) {
       params.push(categoryId);
-      await dbQuery(`UPDATE categories SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+      await dbQuery(
+        `UPDATE categories SET ${updates.join(', ')} WHERE id = $${params.length}`,
+        params,
+      );
     }
 
-    const updatedRes = await dbQuery(`
+    const updatedRes = await dbQuery(
+      `
       SELECT
         c.id, c.name, c.description, c.image, c.is_active, c.created_at,
         COUNT(p.id) as product_count,
@@ -122,7 +149,9 @@ router.patch('/:id', requireAdmin, async (req, res, next) => {
       LEFT JOIN products p ON p.category_id = c.id
       WHERE c.id = $1
       GROUP BY c.id
-    `, [categoryId]);
+    `,
+      [categoryId],
+    );
 
     const updated = updatedRes.rows[0];
 
@@ -143,10 +172,15 @@ router.delete('/:id', requireAdmin, async (req, res, next) => {
     if (!validId(req.params.id)) return res.status(400).json({ detail: 'Invalid category ID.' });
     const categoryId = Number(req.params.id);
 
-    const countRes = await dbQuery('SELECT COUNT(*) as count FROM products WHERE category_id = $1', [categoryId]);
+    const countRes = await dbQuery(
+      'SELECT COUNT(*) as count FROM products WHERE category_id = $1',
+      [categoryId],
+    );
     const count = Number(countRes.rows[0]?.count || 0);
     if (count > 0) {
-      return res.status(400).json({ detail: `Cannot delete category: it has ${count} associated products. Reassign or delete products first.` });
+      return res.status(400).json({
+        detail: `Cannot delete category: it has ${count} associated products. Reassign or delete products first.`,
+      });
     }
 
     const result = await dbQuery('DELETE FROM categories WHERE id = $1', [categoryId]);

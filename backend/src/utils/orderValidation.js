@@ -11,13 +11,36 @@ export class OrderInputError extends Error {
 
 const sugarLevels = new Set(['0%', '25%', '50%', '75%', '100%']);
 const iceLevels = new Set(['No Ice', 'Less Ice', 'Normal Ice', 'Extra Ice']);
-const orderFields = new Set(['customer_name', 'customer_phone', 'customer_email', 'notes', 'payment_method', 'items', 'currency', 'subtotal_usd', 'total_usd', 'total_khr']);
-const itemFields = new Set(['product_id', 'product_name', 'quantity', 'unit_price_usd', 'subtotal_usd', 'size', 'sugar_level', 'ice_level', 'toppings']);
+const orderFields = new Set([
+  'customer_name',
+  'customer_phone',
+  'customer_email',
+  'notes',
+  'payment_method',
+  'items',
+  'currency',
+  'subtotal_usd',
+  'total_usd',
+  'total_khr',
+]);
+const itemFields = new Set([
+  'product_id',
+  'product_name',
+  'quantity',
+  'unit_price_usd',
+  'subtotal_usd',
+  'size',
+  'sugar_level',
+  'ice_level',
+  'toppings',
+]);
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 function requiredText(value, label, maxLength) {
   if (typeof value !== 'string' || !value.trim() || value.trim().length > maxLength) {
-    throw new OrderInputError(`${label} must be a nonempty string of at most ${maxLength} characters.`);
+    throw new OrderInputError(
+      `${label} must be a nonempty string of at most ${maxLength} characters.`,
+    );
   }
   return value.trim();
 }
@@ -59,7 +82,11 @@ export function validateOrderPayload(body) {
     if (Object.keys(item).some(field => !itemFields.has(field))) {
       throw new OrderInputError(`${label} contains an unknown customization field.`);
     }
-    if (!Number.isSafeInteger(item.product_id) || item.product_id < 1 || item.product_id > 2147483647) {
+    if (
+      !Number.isSafeInteger(item.product_id) ||
+      item.product_id < 1 ||
+      item.product_id > 2147483647
+    ) {
       throw new OrderInputError(`${label} product_id must be a positive integer.`);
     }
     if (!Number.isSafeInteger(item.quantity) || item.quantity < 1 || item.quantity > 50) {
@@ -71,20 +98,36 @@ export function validateOrderPayload(body) {
     if (typeof size !== 'string' || !Object.hasOwn(config.sizePriceModifiers, size)) {
       throw new OrderInputError(`${label} has an unavailable size.`);
     }
-    if (!sugarLevels.has(sugar_level)) throw new OrderInputError(`${label} has an unavailable sugar level.`);
-    if (!iceLevels.has(ice_level)) throw new OrderInputError(`${label} has an unavailable ice level.`);
-    if (item.toppings !== undefined && !Array.isArray(item.toppings) && typeof item.toppings !== 'string') {
+    if (!sugarLevels.has(sugar_level))
+      throw new OrderInputError(`${label} has an unavailable sugar level.`);
+    if (!iceLevels.has(ice_level))
+      throw new OrderInputError(`${label} has an unavailable ice level.`);
+    if (
+      item.toppings !== undefined &&
+      !Array.isArray(item.toppings) &&
+      typeof item.toppings !== 'string'
+    ) {
       throw new OrderInputError(`${label} toppings must be a list or comma-separated string.`);
     }
     if (Array.isArray(item.toppings) && item.toppings.some(value => typeof value !== 'string')) {
       throw new OrderInputError(`${label} toppings must contain only names.`);
     }
     const toppings = parseToppings(item.toppings ?? []);
-    if (toppings.length > Object.keys(config.toppingPrices).length || new Set(toppings).size !== toppings.length ||
-        toppings.some(name => !Object.hasOwn(config.toppingPrices, name))) {
+    if (
+      toppings.length > Object.keys(config.toppingPrices).length ||
+      new Set(toppings).size !== toppings.length ||
+      toppings.some(name => !Object.hasOwn(config.toppingPrices, name))
+    ) {
       throw new OrderInputError(`${label} has an unknown or duplicate topping.`);
     }
-    return { product_id: item.product_id, quantity: item.quantity, size, sugar_level, ice_level, toppings };
+    return {
+      product_id: item.product_id,
+      quantity: item.quantity,
+      size,
+      sugar_level,
+      ice_level,
+      toppings,
+    };
   });
 
   return { customer_name, customer_phone, customer_email, notes, payment_method, items };
@@ -107,7 +150,11 @@ export function calculateOrderItem(product, item) {
   if (!Number.isFinite(basePrice) || basePrice < 0 || Math.round(basePrice * 100) > 9999999999) {
     throw new Error('Invalid catalog price.');
   }
-  const { unitPriceCents, toppingsString } = calculateItemPrice(basePrice, item.size, item.toppings);
+  const { unitPriceCents, toppingsString } = calculateItemPrice(
+    basePrice,
+    item.size,
+    item.toppings,
+  );
   const subtotalCents = unitPriceCents * item.quantity;
   if (!Number.isSafeInteger(subtotalCents) || subtotalCents > 9999999999) {
     throw new OrderInputError('Order item exceeds the supported USD amount.');

@@ -8,12 +8,7 @@ export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
  * Basic pulsing skeleton block with warm cafe aesthetic
  */
 export const Skeleton: React.FC<SkeletonProps> = ({ className = '', ...props }) => {
-  return (
-    <div
-      className={`bg-stone-200/70 animate-pulse rounded-2xl ${className}`}
-      {...props}
-    />
-  );
+  return <div className={`bg-stone-200/70 animate-pulse rounded-2xl ${className}`} {...props} />;
 };
 
 /**
@@ -54,7 +49,7 @@ export const ProductCardSkeleton: React.FC = () => {
 export const CategoryPillSkeleton: React.FC = () => {
   return (
     <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-      {[1, 2, 3, 4, 5, 6].map((i) => (
+      {[1, 2, 3, 4, 5, 6].map(i => (
         <div
           key={i}
           className="h-9 w-24 sm:w-28 rounded-2xl bg-stone-200/60 animate-pulse shrink-0"

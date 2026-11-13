@@ -21,11 +21,22 @@ void main() {
     api.updateAuthToken('test-customer-token');
 
     await expectLater(
-      api.createOrder(customerName: 'Test', customerPhone: '012345678', items: [], idempotencyKey: 'test-key-12345678'),
+      api.createOrder(
+        customerName: 'Test',
+        customerPhone: '012345678',
+        items: [],
+        idempotencyKey: 'test-key-12345678',
+      ),
       throwsA(isA<HttpException>()),
     );
-    await expectLater(api.getOrdersByPhone('012345678'), throwsA(isA<HttpException>()));
-    await expectLater(api.getOrderByReference('ORD-TEST'), throwsA(isA<HttpException>()));
+    await expectLater(
+      api.getOrdersByPhone('012345678'),
+      throwsA(isA<HttpException>()),
+    );
+    await expectLater(
+      api.getOrderByReference('ORD-TEST'),
+      throwsA(isA<HttpException>()),
+    );
 
     expect(requests.map((request) => request.method), ['POST', 'GET', 'GET']);
     for (final request in requests) {
@@ -35,39 +46,62 @@ void main() {
     client.close();
   });
 
-  test('authentication rejection cannot become a simulated placed order', () async {
-    SharedPreferences.setMockInitialValues({});
-    final storage = await LocalStorageService.init();
-    final api = ApiService(
-      baseUrl: 'http://example.test',
-      client: MockClient((_) async => http.Response('{"detail":"Invalid customer token."}', 401)),
-    );
-    api.updateAuthToken('expired-test-token');
-    final repository = OrderRepository(apiService: api, localStorageService: storage);
+  test(
+    'authentication rejection cannot become a simulated placed order',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final storage = await LocalStorageService.init();
+      final api = ApiService(
+        baseUrl: 'http://example.test',
+        client: MockClient(
+          (_) async =>
+              http.Response('{"detail":"Invalid customer token."}', 401),
+        ),
+      );
+      api.updateAuthToken('expired-test-token');
+      final repository = OrderRepository(
+        apiService: api,
+        localStorageService: storage,
+      );
 
-    await expectLater(
-      repository.placeOrder(customerName: 'Test', customerPhone: '012345678', items: []),
-      throwsA(isA<HttpException>()),
-    );
-    expect(storage.getRecentOrderRefs(), isEmpty);
-  });
+      await expectLater(
+        repository.placeOrder(
+          customerName: 'Test',
+          customerPhone: '012345678',
+          items: [],
+        ),
+        throwsA(isA<HttpException>()),
+      );
+      expect(storage.getRecentOrderRefs(), isEmpty);
+    },
+  );
 
-  test('network outage does not create a server order or history reference', () async {
-    SharedPreferences.setMockInitialValues({});
-    final storage = await LocalStorageService.init();
-    final api = ApiService(
-      baseUrl: 'http://example.test',
-      client: MockClient((_) async => throw const SocketException('offline')),
-    );
-    final repository = OrderRepository(apiService: api, localStorageService: storage);
+  test(
+    'network outage does not create a server order or history reference',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final storage = await LocalStorageService.init();
+      final api = ApiService(
+        baseUrl: 'http://example.test',
+        client: MockClient((_) async => throw const SocketException('offline')),
+      );
+      final repository = OrderRepository(
+        apiService: api,
+        localStorageService: storage,
+      );
 
-    await expectLater(
-      repository.placeOrder(customerName: 'Test', customerPhone: '012345678', items: []),
-      throwsA(isA<SocketException>()),
-    );
-    expect(storage.getRecentOrderRefs(), isEmpty);
-    expect(storage.getPendingOrder(), isNotNull);
-  });
+      await expectLater(
+        repository.placeOrder(
+          customerName: 'Test',
+          customerPhone: '012345678',
+          items: [],
+        ),
+        throwsA(isA<SocketException>()),
+      );
+      expect(storage.getRecentOrderRefs(), isEmpty);
+      expect(storage.getPendingOrder(), isNotNull);
+    },
+  );
 
   test('retrying the same mobile order reuses its idempotency key', () async {
     SharedPreferences.setMockInitialValues({});
@@ -81,13 +115,24 @@ void main() {
         return http.Response('{"detail":"Rejected"}', 422);
       }),
     );
-    final repository = OrderRepository(apiService: api, localStorageService: storage);
+    final repository = OrderRepository(
+      apiService: api,
+      localStorageService: storage,
+    );
     await expectLater(
-      repository.placeOrder(customerName: 'Test', customerPhone: '012345678', items: []),
+      repository.placeOrder(
+        customerName: 'Test',
+        customerPhone: '012345678',
+        items: [],
+      ),
       throwsA(isA<SocketException>()),
     );
     await expectLater(
-      repository.placeOrder(customerName: 'Test', customerPhone: '012345678', items: []),
+      repository.placeOrder(
+        customerName: 'Test',
+        customerPhone: '012345678',
+        items: [],
+      ),
       throwsA(isA<HttpException>()),
     );
     expect(keys, hasLength(2));

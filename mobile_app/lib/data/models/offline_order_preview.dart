@@ -6,6 +6,9 @@ class OfflineOrderPreview {
   final double estimatedTotalUsd;
 
   OfflineOrderPreview(List<CartItemModel> cartItems)
-      : items = List.unmodifiable(cartItems),
-        estimatedTotalUsd = cartItems.fold(0, (sum, item) => sum + item.subtotalUsd);
+    : items = List.unmodifiable(cartItems),
+      estimatedTotalUsd = cartItems.fold(
+        0,
+        (sum, item) => sum + item.subtotalUsd,
+      );
 }
