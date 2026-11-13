@@ -11,8 +11,13 @@ export function validOptionalText(value, max = 1000) {
 }
 
 export function validPrice(value) {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0 &&
-    value <= 9999999.99 && Math.abs(Math.round(value * 100) - value * 100) < 1e-6;
+  return (
+    typeof value === 'number' &&
+    Number.isFinite(value) &&
+    value > 0 &&
+    value <= 9999999.99 &&
+    Math.abs(Math.round(value * 100) - value * 100) < 1e-6
+  );
 }
 
 export function validBoolean(value) {

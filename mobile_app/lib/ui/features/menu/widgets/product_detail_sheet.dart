@@ -29,10 +29,8 @@ class ProductDetailSheet extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => ProductDetailSheet(
-        product: product,
-        onAddToCart: onAddToCart,
-      ),
+      builder: (ctx) =>
+          ProductDetailSheet(product: product, onAddToCart: onAddToCart),
     );
   }
 
@@ -97,11 +95,14 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                       child: SizedBox(
                         width: 90,
                         height: 90,
-                        child: widget.product.image != null && widget.product.image!.isNotEmpty
+                        child:
+                            widget.product.image != null &&
+                                widget.product.image!.isNotEmpty
                             ? CachedNetworkImage(
                                 imageUrl: widget.product.image!,
                                 fit: BoxFit.cover,
-                                errorWidget: (context, url, error) => _buildPlaceholder(),
+                                errorWidget: (context, url, error) =>
+                                    _buildPlaceholder(),
                               )
                             : _buildPlaceholder(),
                       ),
@@ -128,8 +129,12 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            CurrencyFormatter.formatDual(widget.product.basePriceUsd),
-                            style: AppTypography.priceLarge.copyWith(fontSize: 15),
+                            CurrencyFormatter.formatDual(
+                              widget.product.basePriceUsd,
+                            ),
+                            style: AppTypography.priceLarge.copyWith(
+                              fontSize: 15,
+                            ),
                           ),
                         ],
                       ),
@@ -144,13 +149,21 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                           toppings: _selectedToppings.toList(),
                           quantity: 1,
                         );
-                        final isFav = shop.isFavorite(currentItem) || shop.isProductFavorited(widget.product.id);
+                        final isFav =
+                            shop.isFavorite(currentItem) ||
+                            shop.isProductFavorited(widget.product.id);
                         return IconButton(
                           icon: Icon(
-                            isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                            color: isFav ? AppColors.accentRed : AppColors.textSecondary,
+                            isFav
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            color: isFav
+                                ? AppColors.accentRed
+                                : AppColors.textSecondary,
                           ),
-                          tooltip: isFav ? 'Remove from favorites' : 'Save to favorites',
+                          tooltip: isFav
+                              ? 'Remove from favorites'
+                              : 'Save to favorites',
                           onPressed: () {
                             shop.toggleFavoriteCustomItem(currentItem);
                           },
@@ -176,7 +189,9 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                   children: AppConfig.availableSizes.map((size) {
                     final modifier = AppConfig.sizePriceModifiers[size] ?? 0.0;
                     final isSelected = _selectedSize == size;
-                    final priceLabel = modifier > 0 ? '+${CurrencyFormatter.formatUsd(modifier)}' : 'Standard';
+                    final priceLabel = modifier > 0
+                        ? '+${CurrencyFormatter.formatUsd(modifier)}'
+                        : 'Standard';
 
                     return Expanded(
                       child: Padding(
@@ -252,12 +267,19 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                       borderRadius: BorderRadius.circular(20),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppColors.primary.withAlpha(25) : AppColors.surfaceMuted,
+                          color: isSelected
+                              ? AppColors.primary.withAlpha(25)
+                              : AppColors.surfaceMuted,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: isSelected ? AppColors.primary : Colors.transparent,
+                            color: isSelected
+                                ? AppColors.primary
+                                : Colors.transparent,
                             width: 1.5,
                           ),
                         ),
@@ -265,17 +287,25 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              isSelected ? Icons.check_circle_rounded : Icons.add_circle_outline_rounded,
+                              isSelected
+                                  ? Icons.check_circle_rounded
+                                  : Icons.add_circle_outline_rounded,
                               size: 16,
-                              color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : AppColors.textSecondary,
                             ),
                             const SizedBox(width: 6),
                             Text(
                               topping,
                               style: TextStyle(
                                 fontSize: 12,
-                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.textPrimary,
                               ),
                             ),
                             const SizedBox(width: 4),
@@ -284,7 +314,9 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.textSecondary,
                               ),
                             ),
                           ],
@@ -310,7 +342,9 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.remove, size: 18),
-                            onPressed: _quantity > 1 ? () => setState(() => _quantity--) : null,
+                            onPressed: _quantity > 1
+                                ? () => setState(() => _quantity--)
+                                : null,
                             color: AppColors.textPrimary,
                           ),
                           Padding(
@@ -326,7 +360,9 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                           ),
                           IconButton(
                             icon: const Icon(Icons.add, size: 18),
-                            onPressed: _quantity < 20 ? () => setState(() => _quantity++) : null,
+                            onPressed: _quantity < 20
+                                ? () => setState(() => _quantity++)
+                                : null,
                             color: AppColors.textPrimary,
                           ),
                         ],
@@ -350,7 +386,9 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
             ),
             decoration: const BoxDecoration(
               color: AppColors.surface,
-              border: Border(top: BorderSide(color: AppColors.surfaceBorder, width: 1)),
+              border: Border(
+                top: BorderSide(color: AppColors.surfaceBorder, width: 1),
+              ),
             ),
             child: Row(
               children: [
@@ -386,10 +424,16 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
                         widget.onAddToCart(cartItem);
                         Navigator.pop(context);
                       },
-                      icon: const Icon(Icons.shopping_bag_outlined, color: Colors.white),
+                      icon: const Icon(
+                        Icons.shopping_bag_outlined,
+                        color: Colors.white,
+                      ),
                       label: const Text(
                         'Add to Order',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
@@ -408,7 +452,13 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
         Text(title, style: AppTypography.titleSmall),
         if (required) ...[
           const SizedBox(width: 4),
-          const Text('*', style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold)),
+          const Text(
+            '*',
+            style: TextStyle(
+              color: AppColors.secondary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ],
     );
@@ -427,7 +477,9 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withAlpha(20) : AppColors.surface,
+          color: isSelected
+              ? AppColors.primary.withAlpha(20)
+              : AppColors.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
@@ -494,7 +546,11 @@ class _ProductDetailSheetState extends State<ProductDetailSheet> {
     return Container(
       color: AppColors.surfaceMuted,
       child: const Center(
-        child: Icon(Icons.local_cafe_rounded, color: AppColors.primaryLight, size: 36),
+        child: Icon(
+          Icons.local_cafe_rounded,
+          color: AppColors.primaryLight,
+          size: 36,
+        ),
       ),
     );
   }

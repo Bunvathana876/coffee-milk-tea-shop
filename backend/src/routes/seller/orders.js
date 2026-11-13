@@ -9,12 +9,15 @@ router.use(authenticateSeller);
  * Returns active store IDs assigned to the seller.
  */
 async function getSellerActiveStoreIds(sellerId) {
-  const result = await dbQuery(`
+  const result = await dbQuery(
+    `
     SELECT sa.store_id
     FROM seller_store_assignments sa
     JOIN stores s ON sa.store_id = s.id
     WHERE sa.seller_id = $1 AND s.is_active = TRUE
-  `, [sellerId]);
+  `,
+    [sellerId],
+  );
 
   return (result.rows || []).map(r => Number(r.store_id));
 }
@@ -46,7 +49,9 @@ router.get('/', async (req, res, next) => {
     let targetStoreIds = activeStoreIds;
     if (requestedStoreId) {
       if (!activeStoreIds.includes(requestedStoreId)) {
-        return res.status(403).json({ detail: 'Access denied: You are not assigned to this store.' });
+        return res
+          .status(403)
+          .json({ detail: 'Access denied: You are not assigned to this store.' });
       }
       targetStoreIds = [requestedStoreId];
     }
@@ -65,7 +70,8 @@ router.get('/', async (req, res, next) => {
     const total = countRes.rows[0]?.count || 0;
 
     const listParams = [...params, limit, offset];
-    const listRes = await dbQuery(`
+    const listRes = await dbQuery(
+      `
       SELECT
         id, order_number, customer_name, customer_phone, customer_email,
         subtotal_usd, total_usd, total_khr, payment_method, payment_status,
@@ -74,7 +80,9 @@ router.get('/', async (req, res, next) => {
       ${whereSql}
       ORDER BY id DESC
       LIMIT $${listParams.length - 1} OFFSET $${listParams.length}
-    `, listParams);
+    `,
+      listParams,
+    );
 
     const items = listRes.rows.map(o => ({
       id: o.id,
@@ -119,14 +127,17 @@ router.get('/:id', async (req, res, next) => {
       return res.status(404).json({ detail: 'Order not found.' });
     }
 
-    const orderRes = await dbQuery(`
+    const orderRes = await dbQuery(
+      `
       SELECT
         id, order_number, customer_name, customer_phone, customer_email,
         notes, subtotal_usd, total_usd, total_khr, payment_method,
         payment_status, order_status, store_id, created_at
       FROM orders
       WHERE id = $1 AND store_id = ANY($2)
-    `, [orderId, activeStoreIds]);
+    `,
+      [orderId, activeStoreIds],
+    );
 
     if (orderRes.rows.length === 0) {
       return res.status(404).json({ detail: 'Order not found.' });
@@ -134,14 +145,17 @@ router.get('/:id', async (req, res, next) => {
 
     const order = orderRes.rows[0];
 
-    const itemsRes = await dbQuery(`
+    const itemsRes = await dbQuery(
+      `
       SELECT
         id, order_id, product_id, product_name, quantity,
         unit_price_usd, subtotal_usd, size, sugar_level, ice_level, toppings
       FROM order_items
       WHERE order_id = $1
       ORDER BY id ASC
-    `, [orderId]);
+    `,
+      [orderId],
+    );
 
     res.json({
       id: order.id,
@@ -173,7 +187,9 @@ router.get('/:id', async (req, res, next) => {
 // Reject order mutations fail-closed in this phase
 router.all('*', (req, res) => {
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    return res.status(405).json({ detail: 'Seller order mutations are not permitted in this phase.' });
+    return res
+      .status(405)
+      .json({ detail: 'Seller order mutations are not permitted in this phase.' });
   }
   res.status(404).json({ detail: 'Not found.' });
 });

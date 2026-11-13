@@ -40,11 +40,13 @@ class CartItemTile extends StatelessWidget {
               child: SizedBox(
                 width: 68,
                 height: 68,
-                child: item.product.image != null && item.product.image!.isNotEmpty
+                child:
+                    item.product.image != null && item.product.image!.isNotEmpty
                     ? CachedNetworkImage(
                         imageUrl: item.product.image!,
                         fit: BoxFit.cover,
-                        errorWidget: (context, url, error) => _buildPlaceholder(),
+                        errorWidget: (context, url, error) =>
+                            _buildPlaceholder(),
                       )
                     : _buildPlaceholder(),
               ),
@@ -68,7 +70,11 @@ class CartItemTile extends StatelessWidget {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, size: 16, color: AppColors.textTertiary),
+                        icon: const Icon(
+                          Icons.close,
+                          size: 16,
+                          color: AppColors.textTertiary,
+                        ),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                         onPressed: onRemove,
@@ -107,13 +113,17 @@ class CartItemTile extends StatelessWidget {
                           children: [
                             Text(
                               CurrencyFormatter.formatUsd(item.subtotalUsd),
-                              style: AppTypography.priceLarge.copyWith(fontSize: 15),
+                              style: AppTypography.priceLarge.copyWith(
+                                fontSize: 15,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
                               CurrencyFormatter.formatKhr(item.subtotalUsd),
-                              style: AppTypography.priceSmall.copyWith(fontSize: 10),
+                              style: AppTypography.priceSmall.copyWith(
+                                fontSize: 10,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -131,18 +141,26 @@ class CartItemTile extends StatelessWidget {
                           children: [
                             InkWell(
                               onTap: onDecrement,
-                              borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
+                              borderRadius: const BorderRadius.horizontal(
+                                left: Radius.circular(10),
+                              ),
                               child: Padding(
                                 padding: const EdgeInsets.all(6),
                                 child: Icon(
-                                  item.quantity == 1 ? Icons.delete_outline_rounded : Icons.remove,
+                                  item.quantity == 1
+                                      ? Icons.delete_outline_rounded
+                                      : Icons.remove,
                                   size: 16,
-                                  color: item.quantity == 1 ? AppColors.statusCancelled : AppColors.textPrimary,
+                                  color: item.quantity == 1
+                                      ? AppColors.statusCancelled
+                                      : AppColors.textPrimary,
                                 ),
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
                               child: Text(
                                 '${item.quantity}',
                                 style: const TextStyle(
@@ -154,10 +172,16 @@ class CartItemTile extends StatelessWidget {
                             ),
                             InkWell(
                               onTap: onIncrement,
-                              borderRadius: const BorderRadius.horizontal(right: Radius.circular(10)),
+                              borderRadius: const BorderRadius.horizontal(
+                                right: Radius.circular(10),
+                              ),
                               child: Padding(
                                 padding: const EdgeInsets.all(6),
-                                child: const Icon(Icons.add, size: 16, color: AppColors.textPrimary),
+                                child: const Icon(
+                                  Icons.add,
+                                  size: 16,
+                                  color: AppColors.textPrimary,
+                                ),
                               ),
                             ),
                           ],
@@ -196,7 +220,11 @@ class CartItemTile extends StatelessWidget {
     return Container(
       color: AppColors.surfaceMuted,
       child: const Center(
-        child: Icon(Icons.local_cafe_rounded, color: AppColors.primaryLight, size: 28),
+        child: Icon(
+          Icons.local_cafe_rounded,
+          color: AppColors.primaryLight,
+          size: 28,
+        ),
       ),
     );
   }

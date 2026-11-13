@@ -45,20 +45,29 @@ export async function logSecurityEvent({
   const queryExecutor = queryClient || dbQuery;
 
   try {
-    await queryExecutor(`
+    await queryExecutor(
+      `
       INSERT INTO security_audit_logs (actor_id, actor_role, action, target_type, target_id, details, ip_address)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `, [
-      Number(actor_id) || 0,
-      String(actor_role || 'unknown'),
-      String(action),
-      String(target_type),
-      target_id ? Number(target_id) : null,
-      detailsJson,
-      ip_address ? String(ip_address).slice(0, 100) : null,
-    ]);
+    `,
+      [
+        Number(actor_id) || 0,
+        String(actor_role || 'unknown'),
+        String(action),
+        String(target_type),
+        target_id ? Number(target_id) : null,
+        detailsJson,
+        ip_address ? String(ip_address).slice(0, 100) : null,
+      ],
+    );
   } catch (err) {
-    console.error(`[Security Audit Error]: Failed to record audit log for action "${action}":`, err.message);
-    throw new SecurityAuditError(`Failed to persist security audit event for ${action}: ${err.message}`, err);
+    console.error(
+      `[Security Audit Error]: Failed to record audit log for action "${action}":`,
+      err.message,
+    );
+    throw new SecurityAuditError(
+      `Failed to persist security audit event for ${action}: ${err.message}`,
+      err,
+    );
   }
 }

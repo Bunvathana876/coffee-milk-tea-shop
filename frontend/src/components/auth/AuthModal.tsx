@@ -1,6 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Lock, Phone, User, Mail, Eye, EyeOff, Loader2, Sparkles, ArrowRight } from 'lucide-react';
+import {
+  X,
+  Lock,
+  Phone,
+  User,
+  Mail,
+  Eye,
+  EyeOff,
+  Loader2,
+  Sparkles,
+  ArrowRight,
+} from 'lucide-react';
 import { useAuth } from '../../features/auth/AuthContext';
 
 interface AuthModalProps {
@@ -98,7 +109,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (redirectTo) navigate(redirectTo);
     } catch (err: unknown) {
       setErrorMessage(
-        err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+        err instanceof Error ? err.message : 'Something went wrong. Please try again.',
       );
     }
   };
@@ -113,7 +124,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     >
       <div
         className="w-full sm:max-w-md max-h-[95vh] overflow-y-auto bg-cream rounded-t-3xl sm:rounded-3xl shadow-2xl border border-line animate-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {/* Modal Header */}
         <div className="relative px-6 pt-7 pb-4 text-center">
@@ -140,7 +151,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <span>The Brew Club™</span>
           </div>
 
-          <h2 id="auth-title" className="text-2xl sm:text-3xl font-serif font-black text-cobalt tracking-tight uppercase">
+          <h2
+            id="auth-title"
+            className="text-2xl sm:text-3xl font-serif font-black text-cobalt tracking-tight uppercase"
+          >
             {isRegister ? 'Join The Brew Club.' : 'Welcome Back!'}
           </h2>
           <p className="text-xs sm:text-sm text-ink-soft mt-1 max-w-xs mx-auto">
@@ -171,7 +185,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 placeholder="Full name"
                 aria-label="Full name"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                onChange={e => setFullName(e.target.value)}
                 className={inputClass}
               />
             </div>
@@ -187,7 +201,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               placeholder={isRegister ? 'Phone number' : 'Phone number or email'}
               aria-label={isRegister ? 'Phone number' : 'Phone number or email'}
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={e => setPhone(e.target.value)}
               className={inputClass}
             />
           </div>
@@ -201,7 +215,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 placeholder="Email (optional)"
                 aria-label="Email (optional)"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={e => setEmail(e.target.value)}
                 className={inputClass}
               />
             </div>
@@ -215,7 +229,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               placeholder="Password"
               aria-label="Password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={e => setPassword(e.target.value)}
               className={`${inputClass} pr-12`}
             />
             <button

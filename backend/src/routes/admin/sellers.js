@@ -33,7 +33,9 @@ router.get('/', async (req, res, next) => {
 
     if (search) {
       params.push(`%${search}%`);
-      whereClauses.push(`(LOWER(full_name) LIKE $${params.length} OR LOWER(email) LIKE $${params.length})`);
+      whereClauses.push(
+        `(LOWER(full_name) LIKE $${params.length} OR LOWER(email) LIKE $${params.length})`,
+      );
     }
 
     const whereSql = `WHERE ${whereClauses.join(' AND ')}`;
@@ -41,7 +43,7 @@ router.get('/', async (req, res, next) => {
     // Query total matching
     const countRes = await dbQuery(
       `SELECT COUNT(*)::int AS count FROM staff_users ${whereSql}`,
-      params
+      params,
     );
     const total = countRes.rows[0]?.count || 0;
 
@@ -68,45 +70,53 @@ router.get('/', async (req, res, next) => {
     listParams.push(offset);
     const offsetIdx = listParams.length;
 
-    const listRes = await dbQuery(`
+    const listRes = await dbQuery(
+      `
       SELECT id, email, full_name, role, is_active, created_at, last_login_at
       FROM staff_users
       ${whereSql}
       ORDER BY id ASC
       LIMIT $${limitIdx} OFFSET $${offsetIdx}
-    `, listParams);
+    `,
+      listParams,
+    );
 
     const storesCountRes = await dbQuery('SELECT COUNT(*)::int AS count FROM stores');
     const storeCount = storesCountRes.rows[0]?.count || 0;
     const configured = storeCount > 0;
 
-    const items = await Promise.all(listRes.rows.map(async row => {
-      const assignments = await dbQuery(`
+    const items = await Promise.all(
+      listRes.rows.map(async row => {
+        const assignments = await dbQuery(
+          `
         SELECT s.id, s.name, s.code, s.is_active
         FROM seller_store_assignments sa
         JOIN stores s ON sa.store_id = s.id
         WHERE sa.seller_id = $1
-      `, [row.id]);
-      const assignedStores = (assignments.rows || []).map(s => ({
-        id: s.id,
-        name: s.name,
-        code: s.code,
-        is_active: Boolean(s.is_active),
-      }));
+      `,
+          [row.id],
+        );
+        const assignedStores = (assignments.rows || []).map(s => ({
+          id: s.id,
+          name: s.name,
+          code: s.code,
+          is_active: Boolean(s.is_active),
+        }));
 
-      return {
-        id: row.id,
-        email: row.email,
-        full_name: row.full_name,
-        role: row.role,
-        is_active: Boolean(row.is_active),
-        created_at: row.created_at,
-        last_login_at: row.last_login_at || null,
-        store_name: assignedStores[0]?.name || null,
-        store_id: assignedStores[0]?.id || null,
-        assigned_stores: assignedStores,
-      };
-    }));
+        return {
+          id: row.id,
+          email: row.email,
+          full_name: row.full_name,
+          role: row.role,
+          is_active: Boolean(row.is_active),
+          created_at: row.created_at,
+          last_login_at: row.last_login_at || null,
+          store_name: assignedStores[0]?.name || null,
+          store_id: assignedStores[0]?.id || null,
+          assigned_stores: assignedStores,
+        };
+      }),
+    );
 
     res.json({
       configured,
@@ -117,7 +127,8 @@ router.get('/', async (req, res, next) => {
       limit,
       offset,
       metrics,
-      message: 'Seller accounts and store assignments will appear here after secure seller access is configured.',
+      message:
+        'Seller accounts and store assignments will appear here after secure seller access is configured.',
     });
   } catch (err) {
     next(err);
@@ -153,9 +164,13 @@ router.post('/', async (req, res, next) => {
     }
 
     // Check email uniqueness across all staff/seller accounts
-    const existing = await dbQuery('SELECT id FROM staff_users WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+    const existing = await dbQuery('SELECT id FROM staff_users WHERE LOWER(email) = LOWER($1)', [
+      cleanEmail,
+    ]);
     if (existing.rows && existing.rows.length > 0) {
-      return res.status(409).json({ detail: 'A staff or seller account with this email already exists.' });
+      return res
+        .status(409)
+        .json({ detail: 'A staff or seller account with this email already exists.' });
     }
 
     let parsedStoreId = null;
@@ -175,21 +190,27 @@ router.post('/', async (req, res, next) => {
     const passwordHash = bcrypt.hashSync(cleanPassword, 10);
     const activeBool = Boolean(is_active);
 
-    const newSeller = await withTransaction(async (query) => {
-      const insertRes = await query(`
+    const newSeller = await withTransaction(async query => {
+      const insertRes = await query(
+        `
         INSERT INTO staff_users (email, full_name, role, password_hash, is_active)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING id, email, full_name, role, is_active, created_at
-      `, [cleanEmail, cleanName, 'seller', passwordHash, activeBool]);
+      `,
+        [cleanEmail, cleanName, 'seller', passwordHash, activeBool],
+      );
 
       const created = insertRes.rows[0];
 
       if (parsedStoreId) {
-        await query(`
+        await query(
+          `
           INSERT INTO seller_store_assignments (seller_id, store_id)
           VALUES ($1, $2)
           ON CONFLICT (seller_id, store_id) DO NOTHING
-        `, [created.id, parsedStoreId]);
+        `,
+          [created.id, parsedStoreId],
+        );
       }
 
       await logSecurityEvent({
@@ -198,7 +219,12 @@ router.post('/', async (req, res, next) => {
         action: 'seller_created',
         target_type: 'seller',
         target_id: created.id,
-        details: { email: created.email, full_name: created.full_name, is_active: created.is_active, store_id: parsedStoreId },
+        details: {
+          email: created.email,
+          full_name: created.full_name,
+          is_active: created.is_active,
+          store_id: parsedStoreId,
+        },
         ip_address: req.ip,
         queryClient: query,
       });
@@ -234,11 +260,14 @@ router.get('/:id', async (req, res, next) => {
       return res.status(400).json({ detail: 'Invalid seller ID.' });
     }
 
-    const result = await dbQuery(`
+    const result = await dbQuery(
+      `
       SELECT id, email, full_name, role, is_active, created_at, last_login_at
       FROM staff_users
       WHERE id = $1 AND role = 'seller'
-    `, [id]);
+    `,
+      [id],
+    );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ detail: 'Seller not found.' });
@@ -246,12 +275,15 @@ router.get('/:id', async (req, res, next) => {
 
     const seller = result.rows[0];
 
-    const assignments = await dbQuery(`
+    const assignments = await dbQuery(
+      `
       SELECT s.id, s.name, s.code, s.is_active
       FROM seller_store_assignments sa
       JOIN stores s ON sa.store_id = s.id
       WHERE sa.seller_id = $1
-    `, [id]);
+    `,
+      [id],
+    );
     const assignedStores = (assignments.rows || []).map(s => ({
       id: s.id,
       name: s.name,
@@ -292,11 +324,14 @@ router.patch('/:id/status', async (req, res, next) => {
       return res.status(400).json({ detail: 'is_active must be a boolean value.' });
     }
 
-    const checkRes = await dbQuery(`
+    const checkRes = await dbQuery(
+      `
       SELECT id, email, full_name, role, is_active
       FROM staff_users
       WHERE id = $1 AND role = 'seller'
-    `, [id]);
+    `,
+      [id],
+    );
 
     if (checkRes.rows.length === 0) {
       return res.status(404).json({ detail: 'Seller not found.' });
@@ -304,12 +339,15 @@ router.patch('/:id/status', async (req, res, next) => {
 
     const seller = checkRes.rows[0];
 
-    await withTransaction(async (query) => {
-      await query(`
+    await withTransaction(async query => {
+      await query(
+        `
         UPDATE staff_users
         SET is_active = $1
         WHERE id = $2 AND role = 'seller'
-      `, [is_active, id]);
+      `,
+        [is_active, id],
+      );
 
       await logSecurityEvent({
         actor_id: req.staff.id,
@@ -351,14 +389,19 @@ async function handleUpdateSeller(req, res, next) {
     const allowedKeys = ['full_name', 'password'];
     const unsupportedKeys = Object.keys(req.body).filter(k => !allowedKeys.includes(k));
     if (unsupportedKeys.length > 0) {
-      return res.status(400).json({ detail: `Unsupported field(s) in update: ${unsupportedKeys.join(', ')}` });
+      return res
+        .status(400)
+        .json({ detail: `Unsupported field(s) in update: ${unsupportedKeys.join(', ')}` });
     }
 
-    const checkRes = await dbQuery(`
+    const checkRes = await dbQuery(
+      `
       SELECT id, email, full_name, role, is_active
       FROM staff_users
       WHERE id = $1 AND role = 'seller'
-    `, [id]);
+    `,
+      [id],
+    );
 
     if (checkRes.rows.length === 0) {
       return res.status(404).json({ detail: 'Seller not found.' });
@@ -366,7 +409,9 @@ async function handleUpdateSeller(req, res, next) {
 
     const { full_name, password } = req.body;
     if (full_name === undefined && password === undefined) {
-      return res.status(400).json({ detail: 'At least one field (full_name or password) must be provided.' });
+      return res
+        .status(400)
+        .json({ detail: 'At least one field (full_name or password) must be provided.' });
     }
 
     const updateFields = [];
@@ -394,18 +439,24 @@ async function handleUpdateSeller(req, res, next) {
     params.push(id);
     const idIdx = params.length;
 
-    const updated = await withTransaction(async (query) => {
-      await query(`
+    const updated = await withTransaction(async query => {
+      await query(
+        `
         UPDATE staff_users
         SET ${updateFields.join(', ')}
         WHERE id = $${idIdx} AND role = 'seller'
-      `, params);
+      `,
+        params,
+      );
 
-      const updatedRes = await query(`
+      const updatedRes = await query(
+        `
         SELECT id, email, full_name, role, is_active, created_at, last_login_at
         FROM staff_users
         WHERE id = $1
-      `, [id]);
+      `,
+        [id],
+      );
 
       await logSecurityEvent({
         actor_id: req.staff.id,
@@ -424,12 +475,15 @@ async function handleUpdateSeller(req, res, next) {
       return updatedRes.rows[0];
     });
 
-    const assignments = await dbQuery(`
+    const assignments = await dbQuery(
+      `
       SELECT s.id, s.name, s.code, s.is_active
       FROM seller_store_assignments sa
       JOIN stores s ON sa.store_id = s.id
       WHERE sa.seller_id = $1
-    `, [id]);
+    `,
+      [id],
+    );
     const assignedStores = (assignments.rows || []).map(s => ({
       id: s.id,
       name: s.name,
@@ -478,18 +532,24 @@ router.get('/:id/stores', async (req, res, next) => {
       return res.status(400).json({ detail: 'Invalid seller ID.' });
     }
 
-    const sellerCheck = await dbQuery('SELECT id, email, full_name, role FROM staff_users WHERE id = $1 AND role = $2', [id, 'seller']);
+    const sellerCheck = await dbQuery(
+      'SELECT id, email, full_name, role FROM staff_users WHERE id = $1 AND role = $2',
+      [id, 'seller'],
+    );
     if (sellerCheck.rows.length === 0) {
       return res.status(404).json({ detail: 'Seller not found.' });
     }
 
-    const assignments = await dbQuery(`
+    const assignments = await dbQuery(
+      `
       SELECT s.id, s.name, s.code, s.address, s.is_active, s.created_at, sa.created_at AS assigned_at
       FROM seller_store_assignments sa
       JOIN stores s ON sa.store_id = s.id
       WHERE sa.seller_id = $1
       ORDER BY s.id ASC
-    `, [id]);
+    `,
+      [id],
+    );
 
     res.json({
       seller_id: id,
@@ -526,24 +586,32 @@ router.post('/:id/stores', async (req, res, next) => {
     }
 
     // Verify seller exists
-    const sellerRes = await dbQuery('SELECT id, full_name, email, role FROM staff_users WHERE id = $1 AND role = $2', [sellerId, 'seller']);
+    const sellerRes = await dbQuery(
+      'SELECT id, full_name, email, role FROM staff_users WHERE id = $1 AND role = $2',
+      [sellerId, 'seller'],
+    );
     if (sellerRes.rows.length === 0) {
       return res.status(404).json({ detail: 'Seller not found.' });
     }
 
     // Verify store exists
-    const storeRes = await dbQuery('SELECT id, name, code, is_active FROM stores WHERE id = $1', [storeId]);
+    const storeRes = await dbQuery('SELECT id, name, code, is_active FROM stores WHERE id = $1', [
+      storeId,
+    ]);
     if (storeRes.rows.length === 0) {
       return res.status(404).json({ detail: 'Store not found.' });
     }
 
-    await withTransaction(async (query) => {
+    await withTransaction(async query => {
       // Insert assignment
-      await query(`
+      await query(
+        `
         INSERT INTO seller_store_assignments (seller_id, store_id)
         VALUES ($1, $2)
         ON CONFLICT (seller_id, store_id) DO NOTHING
-      `, [sellerId, storeId]);
+      `,
+        [sellerId, storeId],
+      );
 
       await logSecurityEvent({
         actor_id: req.staff.id,
@@ -578,17 +646,28 @@ router.delete('/:id/stores/:storeId', async (req, res, next) => {
     const sellerId = parseInt(req.params.id, 10);
     const storeId = parseInt(req.params.storeId, 10);
 
-    if (!Number.isInteger(sellerId) || sellerId <= 0 || !Number.isInteger(storeId) || storeId <= 0) {
+    if (
+      !Number.isInteger(sellerId) ||
+      sellerId <= 0 ||
+      !Number.isInteger(storeId) ||
+      storeId <= 0
+    ) {
       return res.status(400).json({ detail: 'Invalid seller ID or store ID.' });
     }
 
-    const sellerRes = await dbQuery('SELECT id FROM staff_users WHERE id = $1 AND role = $2', [sellerId, 'seller']);
+    const sellerRes = await dbQuery('SELECT id FROM staff_users WHERE id = $1 AND role = $2', [
+      sellerId,
+      'seller',
+    ]);
     if (sellerRes.rows.length === 0) {
       return res.status(404).json({ detail: 'Seller not found.' });
     }
 
-    await withTransaction(async (query) => {
-      await query('DELETE FROM seller_store_assignments WHERE seller_id = $1 AND store_id = $2', [sellerId, storeId]);
+    await withTransaction(async query => {
+      await query('DELETE FROM seller_store_assignments WHERE seller_id = $1 AND store_id = $2', [
+        sellerId,
+        storeId,
+      ]);
 
       await logSecurityEvent({
         actor_id: req.staff.id,

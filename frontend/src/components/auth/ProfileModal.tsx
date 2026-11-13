@@ -10,11 +10,7 @@ interface ProfileModalProps {
   onOpenRewards?: () => void;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({
-  isOpen,
-  onClose,
-  onOpenRewards,
-}) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, onOpenRewards }) => {
   const { user, logout } = useAuth();
 
   // Escape key listener and background scroll lock
@@ -53,7 +49,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     >
       <div
         className="w-full max-w-lg bg-cream rounded-3xl shadow-2xl border border-line overflow-hidden animate-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="relative p-6 bg-gradient-to-br from-cobalt-dark via-cobalt to-[#0A2660] text-white flex items-center justify-between">
@@ -63,7 +59,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-serif font-black text-lg text-white tracking-tight">{user.full_name}</h3>
+                <h3 className="font-serif font-black text-lg text-white tracking-tight">
+                  {user.full_name}
+                </h3>
                 <span className="px-2 py-0.5 rounded-full bg-butter/20 text-butter border border-butter/30 text-[10px] font-black uppercase tracking-wider">
                   {tierName}
                 </span>

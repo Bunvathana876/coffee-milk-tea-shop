@@ -8,7 +8,7 @@ class CartProvider extends ChangeNotifier {
   final LocalStorageService _localStorageService;
 
   CartProvider({required LocalStorageService localStorageService})
-      : _localStorageService = localStorageService {
+    : _localStorageService = localStorageService {
     _loadPersistedCart();
   }
 

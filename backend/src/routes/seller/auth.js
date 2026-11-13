@@ -22,7 +22,7 @@ router.post('/login', async (req, res, next) => {
     const cleanEmail = String(email).trim().toLowerCase();
     const result = await dbQuery(
       'SELECT id, email, full_name, role, password_hash, is_active FROM staff_users WHERE LOWER(email) = LOWER($1)',
-      [cleanEmail]
+      [cleanEmail],
     );
 
     const account = result.rows[0];
@@ -34,7 +34,9 @@ router.post('/login', async (req, res, next) => {
 
     // Must be active
     if (!account.is_active) {
-      return res.status(401).json({ detail: 'Seller account is inactive. Please contact an administrator.' });
+      return res
+        .status(401)
+        .json({ detail: 'Seller account is inactive. Please contact an administrator.' });
     }
 
     const isMatch = bcrypt.compareSync(String(password), account.password_hash);
@@ -43,7 +45,9 @@ router.post('/login', async (req, res, next) => {
     }
 
     // Record last login timestamp
-    await dbQuery('UPDATE staff_users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1', [account.id]);
+    await dbQuery('UPDATE staff_users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1', [
+      account.id,
+    ]);
 
     const token = createToken({
       sub: account.id,
@@ -62,13 +66,16 @@ router.post('/login', async (req, res, next) => {
       ip_address: req.ip,
     });
 
-    const assignmentsRes = await dbQuery(`
+    const assignmentsRes = await dbQuery(
+      `
       SELECT s.id, s.name, s.code, s.is_active
       FROM seller_store_assignments sa
       JOIN stores s ON sa.store_id = s.id
       WHERE sa.seller_id = $1 AND s.is_active = TRUE
       ORDER BY s.id ASC
-    `, [account.id]);
+    `,
+      [account.id],
+    );
     const assignedStores = (assignmentsRes.rows || []).map(s => ({
       id: s.id,
       name: s.name,
@@ -102,13 +109,16 @@ router.post('/login', async (req, res, next) => {
  * Returns profile details for the authenticated active seller.
  */
 router.get('/me', authenticateSeller, async (req, res) => {
-  const assignmentsRes = await dbQuery(`
+  const assignmentsRes = await dbQuery(
+    `
     SELECT s.id, s.name, s.code, s.is_active
     FROM seller_store_assignments sa
     JOIN stores s ON sa.store_id = s.id
     WHERE sa.seller_id = $1 AND s.is_active = TRUE
     ORDER BY s.id ASC
-  `, [req.seller.id]);
+  `,
+    [req.seller.id],
+  );
   const assignedStores = (assignmentsRes.rows || []).map(s => ({
     id: s.id,
     name: s.name,

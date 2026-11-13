@@ -50,7 +50,8 @@ export const VisitSection: React.FC = () => {
             </h2>
 
             <p className="text-sm sm:text-base text-ink-soft leading-relaxed max-w-xl">
-              Step in for a quiet single-origin pour-over, catch up with friends on our shaded patio, or pick up your mobile order in under 10 minutes.
+              Step in for a quiet single-origin pour-over, catch up with friends on our shaded
+              patio, or pick up your mobile order in under 10 minutes.
             </p>
           </div>
 
@@ -62,12 +63,8 @@ export const VisitSection: React.FC = () => {
                 <MapPin className="w-4 h-4" />
                 <span>Our Address</span>
               </div>
-              <p className="text-sm font-bold text-ink">
-                #42, Street 214, Sangkat BKK1
-              </p>
-              <p className="text-xs text-ink-soft">
-                Khan Chamkarmon, Phnom Penh, Cambodia
-              </p>
+              <p className="text-sm font-bold text-ink">#42, Street 214, Sangkat BKK1</p>
+              <p className="text-xs text-ink-soft">Khan Chamkarmon, Phnom Penh, Cambodia</p>
             </div>
 
             {/* Hours */}
@@ -76,12 +73,8 @@ export const VisitSection: React.FC = () => {
                 <Clock className="w-4 h-4" />
                 <span>Opening Hours</span>
               </div>
-              <p className="text-sm font-bold text-ink">
-                Daily: 7:00 AM – 9:00 PM
-              </p>
-              <p className="text-xs text-ink-soft">
-                Kitchen last call at 8:45 PM
-              </p>
+              <p className="text-sm font-bold text-ink">Daily: 7:00 AM – 9:00 PM</p>
+              <p className="text-xs text-ink-soft">Kitchen last call at 8:45 PM</p>
             </div>
           </div>
 

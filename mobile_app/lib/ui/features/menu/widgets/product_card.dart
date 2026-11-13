@@ -9,11 +9,7 @@ import '../../../../providers/shop_provider.dart';
 
 /// Drink card in the catalog grid.
 class ProductCard extends StatelessWidget {
-  const ProductCard({
-    super.key,
-    required this.product,
-    required this.onTap,
-  });
+  const ProductCard({super.key, required this.product, required this.onTap});
 
   final ProductModel product;
   final VoidCallback onTap;
@@ -50,11 +46,14 @@ class ProductCard extends StatelessWidget {
                               child: SizedBox(
                                 width: 24,
                                 height: 24,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               ),
                             ),
                           ),
-                          errorWidget: (context, url, error) => _buildPlaceholder(),
+                          errorWidget: (context, url, error) =>
+                              _buildPlaceholder(),
                         )
                       : _buildPlaceholder(),
                 ),
@@ -66,7 +65,10 @@ class ProductCard extends StatelessWidget {
                     child: Align(
                       alignment: Alignment.topLeft,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withAlpha(160),
                           borderRadius: BorderRadius.circular(8),
@@ -106,8 +108,12 @@ class ProductCard extends StatelessWidget {
                         ],
                       ),
                       child: Icon(
-                        isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                        color: isFav ? AppColors.secondary : AppColors.textSecondary,
+                        isFav
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        color: isFav
+                            ? AppColors.secondary
+                            : AppColors.textSecondary,
                         size: 16,
                       ),
                     ),
@@ -141,7 +147,9 @@ class ProductCard extends StatelessWidget {
                             Flexible(
                               child: Text(
                                 product.description!,
-                                style: AppTypography.bodySmall.copyWith(height: 1.25),
+                                style: AppTypography.bodySmall.copyWith(
+                                  height: 1.25,
+                                ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -161,7 +169,9 @@ class ProductCard extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                CurrencyFormatter.formatUsd(product.basePriceUsd),
+                                CurrencyFormatter.formatUsd(
+                                  product.basePriceUsd,
+                                ),
                                 style: AppTypography.priceLarge.copyWith(
                                   fontSize: 15,
                                   height: 1.1,
@@ -171,7 +181,9 @@ class ProductCard extends StatelessWidget {
                               ),
                               const SizedBox(height: 1),
                               Text(
-                                CurrencyFormatter.formatKhr(product.basePriceUsd),
+                                CurrencyFormatter.formatKhr(
+                                  product.basePriceUsd,
+                                ),
                                 style: AppTypography.priceSmall.copyWith(
                                   fontSize: 11,
                                   height: 1.1,

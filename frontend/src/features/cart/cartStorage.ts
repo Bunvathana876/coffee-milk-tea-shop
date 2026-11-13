@@ -70,9 +70,9 @@ export function loadCart(): CartItem[] {
     // Support either an array of items or an object with an items property
     const rawItems: unknown[] | null = Array.isArray(parsed)
       ? parsed
-      : (parsed && typeof parsed === 'object' && Array.isArray((parsed as { items?: unknown }).items)
+      : parsed && typeof parsed === 'object' && Array.isArray((parsed as { items?: unknown }).items)
         ? (parsed as { items: unknown[] }).items
-        : null);
+        : null;
 
     if (!rawItems) {
       console.warn('Invalid cart structure in localStorage. Clearing.');
@@ -143,4 +143,3 @@ export function getInitialCartState(): CartState {
     ...calculateCartTotals(loadedItems),
   };
 }
-

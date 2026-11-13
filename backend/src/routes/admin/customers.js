@@ -48,7 +48,9 @@ router.get('/', requireAdmin, async (req, res, next) => {
     if (search && String(search).trim()) {
       params.push(`%${String(search).trim()}%`);
       const pIdx = params.length;
-      conditions.push(`(c.full_name ILIKE $${pIdx} OR c.email ILIKE $${pIdx} OR c.phone ILIKE $${pIdx})`);
+      conditions.push(
+        `(c.full_name ILIKE $${pIdx} OR c.email ILIKE $${pIdx} OR c.phone ILIKE $${pIdx})`,
+      );
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -138,7 +140,8 @@ router.get('/:id', requireAdmin, async (req, res, next) => {
     }
 
     const customerId = Number(req.params.id);
-    const result = await dbQuery(`
+    const result = await dbQuery(
+      `
       SELECT
         c.id,
         c.full_name,
@@ -154,7 +157,9 @@ router.get('/:id', requireAdmin, async (req, res, next) => {
       LEFT JOIN orders o ON o.customer_id = c.id
       WHERE c.id = $1
       GROUP BY c.id
-    `, [customerId]);
+    `,
+      [customerId],
+    );
 
     const customer = result.rows[0];
     if (!customer) {

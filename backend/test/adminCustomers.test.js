@@ -22,32 +22,44 @@ test.before(async () => {
   baseUrl = `http://localhost:${port}`;
 
   // Ensure staff accounts exist in memory db
-  const adminRes = await dbQuery(`
+  const adminRes = await dbQuery(
+    `
     INSERT INTO staff_users (email, full_name, role, password_hash, is_active)
     VALUES ($1, $2, $3, $4, TRUE)
     RETURNING id
-  `, ['admin-test@brewboba.com', 'Admin User', 'admin', 'hash']);
+  `,
+    ['admin-test@brewboba.com', 'Admin User', 'admin', 'hash'],
+  );
   adminToken = createToken({ sub: adminRes.rows[0].id, role: 'admin' });
 
-  const staffRes = await dbQuery(`
+  const staffRes = await dbQuery(
+    `
     INSERT INTO staff_users (email, full_name, role, password_hash, is_active)
     VALUES ($1, $2, $3, $4, TRUE)
     RETURNING id
-  `, ['staff-test@brewboba.com', 'Staff User', 'staff', 'hash']);
+  `,
+    ['staff-test@brewboba.com', 'Staff User', 'staff', 'hash'],
+  );
   staffToken = createToken({ sub: staffRes.rows[0].id, role: 'staff' });
 
   customerToken = createToken({ sub: 999, role: 'customer' });
 
   // Insert two test customers
-  await dbQuery(`
+  await dbQuery(
+    `
     INSERT INTO customer_users (full_name, phone, email, password_hash, loyalty_stamps, is_active, last_login_at)
     VALUES ($1, $2, $3, $4, 0, TRUE, CURRENT_TIMESTAMP)
-  `, ['Alice Boba', '012345678', 'alice@example.com', 'supersecretpasswordhash']);
+  `,
+    ['Alice Boba', '012345678', 'alice@example.com', 'supersecretpasswordhash'],
+  );
 
-  await dbQuery(`
+  await dbQuery(
+    `
     INSERT INTO customer_users (full_name, phone, email, password_hash, loyalty_stamps, is_active, last_login_at)
     VALUES ($1, $2, $3, $4, 0, TRUE, CURRENT_TIMESTAMP)
-  `, ['Bob Milk', '098765432', 'bob@example.com', 'anotherpasswordhash']);
+  `,
+    ['Bob Milk', '098765432', 'bob@example.com', 'anotherpasswordhash'],
+  );
 });
 
 test.after(() => {

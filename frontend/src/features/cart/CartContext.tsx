@@ -53,11 +53,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subtotalUsd: state.subtotalUsd,
       totalPriceUsd: state.totalPriceUsd,
       totalPriceKhr: state.totalPriceKhr,
-      addItem: (item) => dispatch({ type: 'ADD_ITEM', payload: item }),
-      removeItem: (id) => dispatch({ type: 'REMOVE_ITEM', payload: { id } }),
-      increaseQuantity: (id) => dispatch({ type: 'INCREASE_QUANTITY', payload: { id } }),
-      decreaseQuantity: (id) => dispatch({ type: 'DECREASE_QUANTITY', payload: { id } }),
-      updateQuantity: (id, quantity) => dispatch({ type: 'UPDATE_QUANTITY', payload: { id, quantity } }),
+      addItem: item => dispatch({ type: 'ADD_ITEM', payload: item }),
+      removeItem: id => dispatch({ type: 'REMOVE_ITEM', payload: { id } }),
+      increaseQuantity: id => dispatch({ type: 'INCREASE_QUANTITY', payload: { id } }),
+      decreaseQuantity: id => dispatch({ type: 'DECREASE_QUANTITY', payload: { id } }),
+      updateQuantity: (id, quantity) =>
+        dispatch({ type: 'UPDATE_QUANTITY', payload: { id, quantity } }),
       clearCart: () => {
         clearStoredCart();
         dispatch({ type: 'CLEAR_CART' });

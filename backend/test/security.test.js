@@ -7,15 +7,25 @@ const { requireAdmin } = await import('../src/middleware/auth.js');
 test('staff-account management requires the current admin role', () => {
   const denied = { statusCode: null, body: null };
   const response = {
-    status(code) { denied.statusCode = code; return this; },
-    json(body) { denied.body = body; return this; },
+    status(code) {
+      denied.statusCode = code;
+      return this;
+    },
+    json(body) {
+      denied.body = body;
+      return this;
+    },
   };
   let nextCalled = false;
-  requireAdmin({ staff: { role: 'staff' } }, response, () => { nextCalled = true; });
+  requireAdmin({ staff: { role: 'staff' } }, response, () => {
+    nextCalled = true;
+  });
   assert.equal(denied.statusCode, 403);
   assert.equal(nextCalled, false);
 
-  requireAdmin({ staff: { role: 'admin' } }, response, () => { nextCalled = true; });
+  requireAdmin({ staff: { role: 'admin' } }, response, () => {
+    nextCalled = true;
+  });
   assert.equal(nextCalled, true);
 });
 

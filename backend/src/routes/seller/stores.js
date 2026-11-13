@@ -11,13 +11,16 @@ router.use(authenticateSeller);
  */
 router.get('/', async (req, res, next) => {
   try {
-    const result = await dbQuery(`
+    const result = await dbQuery(
+      `
       SELECT s.id, s.name, s.code, s.address, s.is_active, s.created_at, sa.created_at AS assigned_at
       FROM seller_store_assignments sa
       JOIN stores s ON sa.store_id = s.id
       WHERE sa.seller_id = $1 AND s.is_active = TRUE
       ORDER BY s.id ASC
-    `, [req.seller.id]);
+    `,
+      [req.seller.id],
+    );
 
     const items = result.rows.map(s => ({
       id: s.id,

@@ -45,8 +45,14 @@ test('1. Authentication Validation Rules', () => {
   };
 
   assert.equal(validateRegister('A', '012345678', 'secret123'), 'Please enter your name.');
-  assert.equal(validateRegister('Sopheak', '12345', 'secret123'), 'Please enter a valid phone number (at least 8 digits).');
-  assert.equal(validateRegister('Sopheak', '012345678', '123'), 'Password must be at least 6 characters.');
+  assert.equal(
+    validateRegister('Sopheak', '12345', 'secret123'),
+    'Please enter a valid phone number (at least 8 digits).',
+  );
+  assert.equal(
+    validateRegister('Sopheak', '012345678', '123'),
+    'Password must be at least 6 characters.',
+  );
   assert.equal(validateRegister('Sopheak Chan', '012345678', 'secret123'), null);
 });
 
@@ -122,11 +128,16 @@ test('3. Loyalty Stamp and Reward Tier Calculations', () => {
 
 test('4. Order Status vs Payment Status Decoupling', () => {
   // Verifies that 'pending' payment never equals 'completed' or 'paid'
-  const isOrderConfirmed = (orderStatus: string) => ['confirmed', 'preparing', 'ready', 'completed'].includes(orderStatus.toLowerCase());
+  const isOrderConfirmed = (orderStatus: string) =>
+    ['confirmed', 'preparing', 'ready', 'completed'].includes(orderStatus.toLowerCase());
   const isPaymentSettled = (paymentStatus: string) => paymentStatus.toLowerCase() === 'paid';
 
   assert.equal(isOrderConfirmed('ready'), true);
-  assert.equal(isPaymentSettled('pending'), false, 'Pending payment must not be considered settled');
+  assert.equal(
+    isPaymentSettled('pending'),
+    false,
+    'Pending payment must not be considered settled',
+  );
   assert.equal(isPaymentSettled('paid'), true);
 });
 
@@ -148,7 +159,10 @@ test('5. Profile Update Validation & Sanitization', () => {
   const shortName = validateProfileUpdate({ full_name: 'A' });
   assert.equal(shortName.valid, false);
 
-  const validUpdate = validateProfileUpdate({ full_name: 'Sopheak Chan ', email: ' Sopheak@Example.COM ' });
+  const validUpdate = validateProfileUpdate({
+    full_name: 'Sopheak Chan ',
+    email: ' Sopheak@Example.COM ',
+  });
   assert.equal(validUpdate.valid, true);
   assert.equal(validUpdate.sanitized?.full_name, 'Sopheak Chan');
   assert.equal(validUpdate.sanitized?.email, 'sopheak@example.com');

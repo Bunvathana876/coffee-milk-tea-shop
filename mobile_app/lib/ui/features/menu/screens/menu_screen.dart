@@ -99,7 +99,9 @@ class _MenuScreenState extends State<MenuScreen> {
                               const SizedBox(width: 12),
                               CircleAvatar(
                                 radius: 22,
-                                backgroundColor: AppColors.primary.withAlpha(20),
+                                backgroundColor: AppColors.primary.withAlpha(
+                                  20,
+                                ),
                                 child: const Icon(
                                   Icons.coffee_rounded,
                                   color: AppColors.primary,
@@ -116,7 +118,10 @@ class _MenuScreenState extends State<MenuScreen> {
                             onChanged: (val) => shop.setSearchQuery(val),
                             decoration: InputDecoration(
                               hintText: 'Search iced latte, boba, matcha...',
-                              prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+                              prefixIcon: const Icon(
+                                Icons.search,
+                                color: AppColors.textSecondary,
+                              ),
                               suffixIcon: _searchController.text.isNotEmpty
                                   ? IconButton(
                                       icon: const Icon(Icons.clear, size: 18),
@@ -126,7 +131,10 @@ class _MenuScreenState extends State<MenuScreen> {
                                       },
                                     )
                                   : null,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -136,7 +144,10 @@ class _MenuScreenState extends State<MenuScreen> {
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [AppColors.primary, AppColors.primaryLight],
+                                colors: [
+                                  AppColors.primary,
+                                  AppColors.primaryLight,
+                                ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
@@ -153,13 +164,19 @@ class _MenuScreenState extends State<MenuScreen> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: AppColors.secondary,
-                                          borderRadius: BorderRadius.circular(6),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
                                         ),
                                         child: const Text(
                                           'TODAY\'S SPECIAL',
@@ -247,7 +264,9 @@ class _MenuScreenState extends State<MenuScreen> {
                   if (shop.isLoading)
                     const SliverFillRemaining(
                       child: Center(
-                        child: CircularProgressIndicator(color: AppColors.primary),
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
                       ),
                     )
                   else if (shop.filteredProducts.isEmpty)
@@ -255,7 +274,8 @@ class _MenuScreenState extends State<MenuScreen> {
                       child: EmptyState(
                         icon: Icons.search_off_rounded,
                         title: 'No drinks found',
-                        description: 'Try searching with another keyword or pick a different category.',
+                        description:
+                            'Try searching with another keyword or pick a different category.',
                         actionLabel: 'Reset Filters',
                         onAction: () {
                           _searchController.clear();
@@ -270,41 +290,43 @@ class _MenuScreenState extends State<MenuScreen> {
                         20,
                         8,
                         20,
-                        cart.isEmpty ? 24 : 96, // extra bottom padding when floating cart bar is shown
+                        cart.isEmpty
+                            ? 24
+                            : 96, // extra bottom padding when floating cart bar is shown
                       ),
                       sliver: SliverGrid(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisExtent: 248,
-                          crossAxisSpacing: 14,
-                          mainAxisSpacing: 14,
-                        ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final product = shop.filteredProducts[index];
-                            return ProductCard(
-                              product: product,
-                              onTap: () {
-                                ProductDetailSheet.show(
-                                  context,
-                                  product: product,
-                                  onAddToCart: (customizedItem) {
-                                    cart.addItem(customizedItem);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Added "${customizedItem.product.name}" to order!'),
-                                        duration: const Duration(seconds: 2),
-                                        backgroundColor: AppColors.primary,
-                                        behavior: SnackBarBehavior.floating,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              mainAxisExtent: 248,
+                              crossAxisSpacing: 14,
+                              mainAxisSpacing: 14,
+                            ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final product = shop.filteredProducts[index];
+                          return ProductCard(
+                            product: product,
+                            onTap: () {
+                              ProductDetailSheet.show(
+                                context,
+                                product: product,
+                                onAddToCart: (customizedItem) {
+                                  cart.addItem(customizedItem);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Added "${customizedItem.product.name}" to order!',
                                       ),
-                                    );
-                                  },
-                                );
-                              },
-                            );
-                          },
-                          childCount: shop.filteredProducts.length,
-                        ),
+                                      duration: const Duration(seconds: 2),
+                                      backgroundColor: AppColors.primary,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        }, childCount: shop.filteredProducts.length),
                       ),
                     ),
                 ],
@@ -323,7 +345,10 @@ class _MenuScreenState extends State<MenuScreen> {
                     onTap: widget.onNavigateToCart,
                     borderRadius: BorderRadius.circular(18),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 14,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primary,
                         borderRadius: BorderRadius.circular(18),
@@ -338,7 +363,10 @@ class _MenuScreenState extends State<MenuScreen> {
                       child: Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 5,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.secondary,
                               borderRadius: BorderRadius.circular(10),
@@ -367,7 +395,9 @@ class _MenuScreenState extends State<MenuScreen> {
                                   ),
                                 ),
                                 Text(
-                                  CurrencyFormatter.formatDual(cart.subtotalUsd),
+                                  CurrencyFormatter.formatDual(
+                                    cart.subtotalUsd,
+                                  ),
                                   style: TextStyle(
                                     color: Colors.white.withAlpha(200),
                                     fontSize: 12,
@@ -387,7 +417,11 @@ class _MenuScreenState extends State<MenuScreen> {
                                 ),
                               ),
                               SizedBox(width: 6),
-                              Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
                             ],
                           ),
                         ],

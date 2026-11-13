@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   BarChart3,
   Boxes,
@@ -10,34 +10,32 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  Moon,
   Package,
   Search,
   Settings,
   ShieldCheck,
   ShoppingBag,
   Store,
-  Sun,
   Users,
   UserRound,
   X,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
-import { useAuth } from '../auth/authContext'
-import type { PortalRole } from '../lib/access'
-import { useTheme } from './ThemeContext'
-import { CommandPalette } from './CommandPalette'
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { useAuth } from '../auth/authContext';
+import type { PortalRole } from '../lib/access';
+import { useTheme } from './ThemeContext';
+import { CommandPalette } from './CommandPalette';
 
 export interface NavItem {
-  label: string
-  to: string
-  icon: LucideIcon
-  planned?: boolean
+  label: string;
+  to: string;
+  icon: LucideIcon;
+  planned?: boolean;
 }
 
 export interface NavGroup {
-  groupTitle: string
-  items: NavItem[]
+  groupTitle: string;
+  items: NavItem[];
 }
 
 export const adminNavGroups: NavGroup[] = [
@@ -65,7 +63,7 @@ export const adminNavGroups: NavGroup[] = [
       { label: 'Settings', to: '/admin/settings', icon: Settings },
     ],
   },
-]
+];
 
 export const sellerNavGroups: NavGroup[] = [
   {
@@ -85,11 +83,9 @@ export const sellerNavGroups: NavGroup[] = [
   },
   {
     groupTitle: 'WORKSPACE',
-    items: [
-      { label: 'Profile', to: '/seller/profile', icon: UserRound, planned: true },
-    ],
+    items: [{ label: 'Profile', to: '/seller/profile', icon: UserRound, planned: true }],
   },
-]
+];
 
 // Preserved flat item sequence for backwards compatibility with tests and lookups
 const adminNavigationFlat: NavItem[] = [
@@ -102,7 +98,7 @@ const adminNavigationFlat: NavItem[] = [
   { label: 'Sellers', to: '/admin/sellers', icon: Store, planned: true },
   { label: 'Analytics', to: '/admin/analytics', icon: BarChart3 },
   { label: 'Settings', to: '/admin/settings', icon: Settings },
-]
+];
 
 const sellerNavigationFlat: NavItem[] = [
   { label: 'Dashboard', to: '/seller/dashboard', icon: LayoutDashboard, planned: true },
@@ -111,7 +107,7 @@ const sellerNavigationFlat: NavItem[] = [
   { label: 'Inventory', to: '/seller/inventory', icon: Boxes, planned: true },
   { label: 'Analytics', to: '/seller/analytics', icon: BarChart3, planned: true },
   { label: 'Profile', to: '/seller/profile', icon: UserRound, planned: true },
-]
+];
 
 const routeTitles: Record<string, { title: string; section: string }> = {
   '/admin/dashboard': { title: 'Café Overview', section: 'Overview' },
@@ -129,52 +125,44 @@ const routeTitles: Record<string, { title: string; section: string }> = {
   '/seller/inventory': { title: 'Inventory', section: 'Management' },
   '/seller/analytics': { title: 'Store Analytics', section: 'Overview' },
   '/seller/profile': { title: 'Seller Profile', section: 'Workspace' },
-}
+};
 
 export function navigationFor(area: PortalRole): NavItem[] {
-  return area === 'admin' ? adminNavigationFlat : sellerNavigationFlat
+  return area === 'admin' ? adminNavigationFlat : sellerNavigationFlat;
 }
 
 export function groupsFor(area: PortalRole): NavGroup[] {
-  return area === 'admin' ? adminNavGroups : sellerNavGroups
+  return area === 'admin' ? adminNavGroups : sellerNavGroups;
 }
 
 export function PortalLayout({ area }: { area: PortalRole }) {
-  const { user, logout } = useAuth()
-  const location = useLocation()
-  const {
-    sidebarCollapsed,
-    toggleSidebar,
-    openCommandPalette,
-    effectiveTheme,
-    setTheme,
-  } = useTheme()
+  const { user, logout } = useAuth();
+  const location = useLocation();
+  const { sidebarCollapsed, toggleSidebar, openCommandPalette } = useTheme();
 
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [search, setSearch] = useState('')
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape' && mobileOpen) {
-        setMobileOpen(false)
+        setMobileOpen(false);
       }
     }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [mobileOpen])
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileOpen]);
 
-  const groups = groupsFor(area)
-  const allItems = navigationFor(area)
+  const groups = groupsFor(area);
+  const allItems = navigationFor(area);
   const filteredItems = search.trim()
-    ? allItems.filter(item =>
-        item.label.toLowerCase().includes(search.toLowerCase())
-      )
-    : null
+    ? allItems.filter(item => item.label.toLowerCase().includes(search.toLowerCase()))
+    : null;
 
   const currentRouteMeta = routeTitles[location.pathname] || {
     title: area === 'admin' ? 'Admin Workspace' : 'Seller Workspace',
     section: 'Control Center',
-  }
+  };
 
   return (
     <div
@@ -208,7 +196,7 @@ export function PortalLayout({ area }: { area: PortalRole }) {
                 src="/brand/brew-boba-mascot-badge.png"
                 alt="Brew & Boba Mascot"
                 onError={e => {
-                  ;(e.currentTarget as HTMLElement).style.display = 'none'
+                  (e.currentTarget as HTMLElement).style.display = 'none';
                 }}
               />
               <Coffee size={22} strokeWidth={2.2} aria-hidden="true" />
@@ -258,9 +246,7 @@ export function PortalLayout({ area }: { area: PortalRole }) {
                   key={item.to}
                   to={item.to}
                   onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) =>
-                    `nav-link${isActive ? ' active' : ''}`
-                  }
+                  className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                   title={sidebarCollapsed ? item.label : undefined}
                 >
                   <item.icon size={18} aria-hidden="true" />
@@ -268,9 +254,7 @@ export function PortalLayout({ area }: { area: PortalRole }) {
                   {item.planned && <span className="planned-tag">Planned</span>}
                 </NavLink>
               ))}
-              {filteredItems.length === 0 && (
-                <p className="nav-empty">No matching pages</p>
-              )}
+              {filteredItems.length === 0 && <p className="nav-empty">No matching pages</p>}
             </div>
           ) : (
             groups.map(group => (
@@ -281,16 +265,12 @@ export function PortalLayout({ area }: { area: PortalRole }) {
                     key={item.to}
                     to={item.to}
                     onClick={() => setMobileOpen(false)}
-                    className={({ isActive }) =>
-                      `nav-link${isActive ? ' active' : ''}`
-                    }
+                    className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
                     title={sidebarCollapsed ? item.label : undefined}
                   >
                     <item.icon size={18} aria-hidden="true" />
                     <span>{item.label}</span>
-                    {item.planned && (
-                      <span className="planned-tag">Planned</span>
-                    )}
+                    {item.planned && <span className="planned-tag">Planned</span>}
                   </NavLink>
                 ))}
               </div>
@@ -300,9 +280,7 @@ export function PortalLayout({ area }: { area: PortalRole }) {
 
         <div className="sidebar-footer">
           <div className="identity">
-            <span className="avatar">
-              {user?.full_name?.slice(0, 1).toUpperCase() || 'A'}
-            </span>
+            <span className="avatar">{user?.full_name?.slice(0, 1).toUpperCase() || 'A'}</span>
             <div className="identity-copy">
               <strong>{user?.full_name || 'Administrator'}</strong>
               <small>{user?.email || 'admin@brewboba.com'}</small>
@@ -335,9 +313,7 @@ export function PortalLayout({ area }: { area: PortalRole }) {
             <button
               className="icon-button collapse-toggle"
               type="button"
-              aria-label={
-                sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'
-              }
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               aria-expanded={!sidebarCollapsed}
               onClick={toggleSidebar}
             >
@@ -371,30 +347,6 @@ export function PortalLayout({ area }: { area: PortalRole }) {
               </kbd>
             </button>
 
-            <button
-              type="button"
-              className="icon-button theme-toggle-btn"
-              onClick={() =>
-                setTheme(effectiveTheme === 'dark' ? 'light' : 'dark')
-              }
-              aria-label={
-                effectiveTheme === 'dark'
-                  ? 'Switch to light theme'
-                  : 'Switch to dark theme'
-              }
-              title={
-                effectiveTheme === 'dark'
-                  ? 'Switch to light theme'
-                  : 'Switch to dark theme'
-              }
-            >
-              {effectiveTheme === 'dark' ? (
-                <Sun size={18} aria-hidden="true" />
-              ) : (
-                <Moon size={18} aria-hidden="true" />
-              )}
-            </button>
-
             <span className="session-status-badge">
               <span className="live-dot" aria-hidden="true" />
               <span>Server Verified</span>
@@ -417,5 +369,5 @@ export function PortalLayout({ area }: { area: PortalRole }) {
 
       <CommandPalette />
     </div>
-  )
+  );
 }

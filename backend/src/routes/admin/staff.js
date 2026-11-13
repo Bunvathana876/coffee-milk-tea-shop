@@ -38,7 +38,9 @@ router.post('/', async (req, res, next) => {
     }
 
     const cleanEmail = String(email).trim().toLowerCase();
-    const existing = await dbQuery('SELECT id FROM staff_users WHERE LOWER(email) = LOWER($1)', [cleanEmail]);
+    const existing = await dbQuery('SELECT id FROM staff_users WHERE LOWER(email) = LOWER($1)', [
+      cleanEmail,
+    ]);
     if (existing.rows.length > 0) {
       return res.status(400).json({ detail: 'A staff account with this email already exists.' });
     }
@@ -46,11 +48,14 @@ router.post('/', async (req, res, next) => {
     const salt = bcrypt.genSaltSync(10);
     const passwordHash = bcrypt.hashSync(password, salt);
 
-    const result = await dbQuery(`
+    const result = await dbQuery(
+      `
       INSERT INTO staff_users (email, full_name, role, password_hash, is_active)
       VALUES ($1, $2, $3, $4, TRUE)
       RETURNING id, email, full_name, role, is_active, created_at, last_login_at
-    `, [cleanEmail, String(full_name).trim(), role, passwordHash]);
+    `,
+      [cleanEmail, String(full_name).trim(), role, passwordHash],
+    );
 
     const created = result.rows[0];
 
@@ -95,11 +100,13 @@ router.patch('/:id', async (req, res, next) => {
     if (targetStaff.role === 'admin' && targetStaff.is_active && (willDeactivate || willDemote)) {
       const otherAdmins = await dbQuery(
         "SELECT COUNT(*)::int AS count FROM staff_users WHERE role = 'admin' AND is_active = TRUE AND id != $1",
-        [staffId]
+        [staffId],
       );
       const remainingCount = Number(otherAdmins.rows[0]?.count || 0);
       if (remainingCount === 0) {
-        return res.status(400).json({ detail: 'Cannot deactivate or demote the last active administrator.' });
+        return res
+          .status(400)
+          .json({ detail: 'Cannot deactivate or demote the last active administrator.' });
       }
     }
 
@@ -126,10 +133,16 @@ router.patch('/:id', async (req, res, next) => {
 
     if (updates.length > 0) {
       params.push(staffId);
-      await dbQuery(`UPDATE staff_users SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
+      await dbQuery(
+        `UPDATE staff_users SET ${updates.join(', ')} WHERE id = $${params.length}`,
+        params,
+      );
     }
 
-    const updatedRes = await dbQuery('SELECT id, email, full_name, role, is_active, created_at, last_login_at FROM staff_users WHERE id = $1', [staffId]);
+    const updatedRes = await dbQuery(
+      'SELECT id, email, full_name, role, is_active, created_at, last_login_at FROM staff_users WHERE id = $1',
+      [staffId],
+    );
     const updated = updatedRes.rows[0];
 
     await logSecurityEvent({

@@ -15,16 +15,16 @@ class ApiService {
   String _authToken = '';
   final http.Client _client;
 
-  ApiService({
-    String? baseUrl,
-    http.Client? client,
-  })  : _baseUrl = baseUrl ?? AppConfig.defaultApiBaseUrl,
-        _client = client ?? http.Client();
+  ApiService({String? baseUrl, http.Client? client})
+    : _baseUrl = baseUrl ?? AppConfig.defaultApiBaseUrl,
+      _client = client ?? http.Client();
 
   String get baseUrl => _baseUrl;
 
   void updateBaseUrl(String newUrl) {
-    _baseUrl = newUrl.endsWith('/') ? newUrl.substring(0, newUrl.length - 1) : newUrl;
+    _baseUrl = newUrl.endsWith('/')
+        ? newUrl.substring(0, newUrl.length - 1)
+        : newUrl;
   }
 
   void updateAuthToken(String token) {
@@ -32,42 +32,60 @@ class ApiService {
   }
 
   Map<String, String> get _orderHeaders => {
-        'Authorization': 'Bearer $_authToken',
-      };
+    'Authorization': 'Bearer $_authToken',
+  };
 
   static const Duration timeoutDuration = Duration(seconds: 8);
 
   OrderModel _parseServerOrder(http.Response response) {
-    if (response.bodyBytes.isEmpty) throw const FormatException('Empty order response.');
+    if (response.bodyBytes.isEmpty) {
+      throw const FormatException('Empty order response.');
+    }
     return _parseServerOrderData(jsonDecode(utf8.decode(response.bodyBytes)));
   }
 
   OrderModel _parseServerOrderData(Object? decoded) {
     if (decoded is! Map<String, dynamic> ||
-        decoded['id'] is! int || (decoded['id'] as int) <= 0 ||
-        decoded['order_number'] is! String || (decoded['order_number'] as String).trim().isEmpty ||
-        decoded['customer_name'] is! String || decoded['customer_phone'] is! String ||
-        decoded['subtotal_usd'] is! num || decoded['total_usd'] is! num ||
+        decoded['id'] is! int ||
+        (decoded['id'] as int) <= 0 ||
+        decoded['order_number'] is! String ||
+        (decoded['order_number'] as String).trim().isEmpty ||
+        decoded['customer_name'] is! String ||
+        decoded['customer_phone'] is! String ||
+        decoded['subtotal_usd'] is! num ||
+        decoded['total_usd'] is! num ||
         decoded['total_khr'] is! num ||
-        decoded['payment_status'] is! String || (decoded['payment_status'] as String).isEmpty ||
-        decoded['order_status'] is! String || (decoded['order_status'] as String).isEmpty ||
+        decoded['payment_status'] is! String ||
+        (decoded['payment_status'] as String).isEmpty ||
+        decoded['order_status'] is! String ||
+        (decoded['order_status'] as String).isEmpty ||
         decoded['created_at'] is! String ||
         DateTime.tryParse(decoded['created_at'] as String) == null ||
-        decoded['items'] is! List || (decoded['items'] as List).isEmpty ||
-        !(decoded['items'] as List).every((item) =>
-            item is Map<String, dynamic> &&
-            item['id'] is int && item['product_name'] is String &&
-            item['quantity'] is int && (item['quantity'] as int) > 0 &&
-            item['unit_price_usd'] is num && item['subtotal_usd'] is num)) {
+        decoded['items'] is! List ||
+        (decoded['items'] as List).isEmpty ||
+        !(decoded['items'] as List).every(
+          (item) =>
+              item is Map<String, dynamic> &&
+              item['id'] is int &&
+              item['product_name'] is String &&
+              item['quantity'] is int &&
+              (item['quantity'] as int) > 0 &&
+              item['unit_price_usd'] is num &&
+              item['subtotal_usd'] is num,
+        )) {
       throw const FormatException('Invalid order response.');
     }
     return OrderModel.fromJson(decoded);
   }
 
   List<OrderModel> _parseServerOrderList(http.Response response) {
-    if (response.bodyBytes.isEmpty) throw const FormatException('Empty order history response.');
+    if (response.bodyBytes.isEmpty) {
+      throw const FormatException('Empty order history response.');
+    }
     final decoded = jsonDecode(utf8.decode(response.bodyBytes));
-    if (decoded is! List) throw const FormatException('Invalid order history response.');
+    if (decoded is! List) {
+      throw const FormatException('Invalid order history response.');
+    }
     return decoded.map((item) => _parseServerOrderData(item)).toList();
   }
 
@@ -89,23 +107,31 @@ class ApiService {
   // -------------------------------------------------------------
   Future<List<CategoryModel>> getCategories({bool activeOnly = true}) async {
     try {
-      final uri = Uri.parse('$_baseUrl/api/categories').replace(
-        queryParameters: {'active_only': activeOnly.toString()},
-      );
+      final uri = Uri.parse(
+        '$_baseUrl/api/categories',
+      ).replace(queryParameters: {'active_only': activeOnly.toString()});
       final response = await _client.get(uri).timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
-        final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
+        final List<dynamic> jsonList = jsonDecode(
+          utf8.decode(response.bodyBytes),
+        );
         return jsonList
             .map((item) => CategoryModel.fromJson(item as Map<String, dynamic>))
             .toList();
       } else {
-        throw HttpException('Failed to load categories: ${response.statusCode}');
+        throw HttpException(
+          'Failed to load categories: ${response.statusCode}',
+        );
       }
     } on SocketException {
-      throw const SocketException('Unable to reach café server. Please check your network.');
+      throw const SocketException(
+        'Unable to reach café server. Please check your network.',
+      );
     } on TimeoutException {
-      throw TimeoutException('Request timed out while connecting to café server.');
+      throw TimeoutException(
+        'Request timed out while connecting to café server.',
+      );
     }
   }
 
@@ -118,9 +144,7 @@ class ApiService {
     bool isAvailable = true,
   }) async {
     try {
-      final params = <String, String>{
-        'is_available': isAvailable.toString(),
-      };
+      final params = <String, String>{'is_available': isAvailable.toString()};
       if (categoryId != null) {
         params['category_id'] = categoryId.toString();
       }
@@ -128,11 +152,15 @@ class ApiService {
         params['search'] = search.trim();
       }
 
-      final uri = Uri.parse('$_baseUrl/api/products').replace(queryParameters: params);
+      final uri = Uri.parse(
+        '$_baseUrl/api/products',
+      ).replace(queryParameters: params);
       final response = await _client.get(uri).timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
-        final List<dynamic> jsonList = jsonDecode(utf8.decode(response.bodyBytes));
+        final List<dynamic> jsonList = jsonDecode(
+          utf8.decode(response.bodyBytes),
+        );
         return jsonList
             .map((item) => ProductModel.fromJson(item as Map<String, dynamic>))
             .toList();
@@ -140,9 +168,13 @@ class ApiService {
         throw HttpException('Failed to load products: ${response.statusCode}');
       }
     } on SocketException {
-      throw const SocketException('Unable to reach café server. Please check your network.');
+      throw const SocketException(
+        'Unable to reach café server. Please check your network.',
+      );
     } on TimeoutException {
-      throw TimeoutException('Request timed out while connecting to café server.');
+      throw TimeoutException(
+        'Request timed out while connecting to café server.',
+      );
     }
   }
 
@@ -168,29 +200,35 @@ class ApiService {
       if (idempotencyKey != null) headers['Idempotency-Key'] = idempotencyKey;
 
       final response = await _client
-          .post(
-            uri,
-            headers: headers,
-            body: body,
-          )
+          .post(uri, headers: headers, body: body)
           .timeout(timeoutDuration);
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         return _parseServerOrder(response);
       } else {
         if (response.statusCode == 401 || response.statusCode == 403) {
-          throw const HttpException('Please sign in to place a confirmed order.');
+          throw const HttpException(
+            'Please sign in to place a confirmed order.',
+          );
         }
         if (response.statusCode == 409) {
-          throw const HttpException('This retry conflicts with an earlier order. Please review your cart.');
+          throw const HttpException(
+            'This retry conflicts with an earlier order. Please review your cart.',
+          );
         }
         if (response.statusCode == 400 || response.statusCode == 422) {
-          throw const HttpException('Please review your order details and try again.');
+          throw const HttpException(
+            'Please review your order details and try again.',
+          );
         }
-        throw const HttpException('The café could not confirm this order. Please try again.');
+        throw const HttpException(
+          'The café could not confirm this order. Please try again.',
+        );
       }
     } on SocketException {
-      throw const SocketException('Unable to reach café server to place order.');
+      throw const SocketException(
+        'Unable to reach café server to place order.',
+      );
     } on TimeoutException {
       throw TimeoutException('Order request timed out.');
     }
@@ -201,27 +239,35 @@ class ApiService {
   // -------------------------------------------------------------
   Future<List<OrderModel>> getMyOrders() async {
     final uri = Uri.parse('$_baseUrl/api/orders');
-    final response = await _client.get(uri, headers: _orderHeaders).timeout(timeoutDuration);
+    final response = await _client
+        .get(uri, headers: _orderHeaders)
+        .timeout(timeoutDuration);
     if (response.statusCode == 200) return _parseServerOrderList(response);
     if (response.statusCode == 401 || response.statusCode == 403) {
       throw const HttpException('Please sign in to view your orders.');
     }
-    throw const HttpException('Order history is unavailable. Please try again.');
+    throw const HttpException(
+      'Order history is unavailable. Please try again.',
+    );
   }
 
   Future<List<OrderModel>> getOrdersByPhone(String phone) async {
     try {
-      final uri = Uri.parse('$_baseUrl/api/orders/lookup/phone').replace(
-        queryParameters: {'phone': phone.trim()},
-      );
-      final response = await _client.get(uri, headers: _orderHeaders).timeout(timeoutDuration);
+      final uri = Uri.parse(
+        '$_baseUrl/api/orders/lookup/phone',
+      ).replace(queryParameters: {'phone': phone.trim()});
+      final response = await _client
+          .get(uri, headers: _orderHeaders)
+          .timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
         return _parseServerOrderList(response);
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         throw const HttpException('Please sign in to view your orders.');
       } else {
-        throw const HttpException('Order history is unavailable. Please try again.');
+        throw const HttpException(
+          'Order history is unavailable. Please try again.',
+        );
       }
     } on SocketException {
       throw const SocketException('Unable to connect to café server.');
@@ -237,16 +283,22 @@ class ApiService {
     try {
       final cleanRef = Uri.encodeComponent(orderNumber.trim());
       final uri = Uri.parse('$_baseUrl/api/orders/ref/$cleanRef');
-      final response = await _client.get(uri, headers: _orderHeaders).timeout(timeoutDuration);
+      final response = await _client
+          .get(uri, headers: _orderHeaders)
+          .timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
         return _parseServerOrder(response);
       } else if (response.statusCode == 404) {
-        throw const HttpException('Order not found. Please verify your reference number.');
+        throw const HttpException(
+          'Order not found. Please verify your reference number.',
+        );
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         throw const HttpException('Please sign in to view your orders.');
       } else {
-        throw const HttpException('Order lookup is unavailable. Please try again.');
+        throw const HttpException(
+          'Order lookup is unavailable. Please try again.',
+        );
       }
     } on SocketException {
       throw const SocketException('Unable to reach café server.');
@@ -283,7 +335,9 @@ class ApiService {
           )
           .timeout(timeoutDuration);
 
-      final Map<String, dynamic> jsonData = jsonDecode(utf8.decode(response.bodyBytes));
+      final Map<String, dynamic> jsonData = jsonDecode(
+        utf8.decode(response.bodyBytes),
+      );
       if (response.statusCode == 201 || response.statusCode == 200) {
         return jsonData;
       } else {
@@ -314,7 +368,9 @@ class ApiService {
           )
           .timeout(timeoutDuration);
 
-      final Map<String, dynamic> jsonData = jsonDecode(utf8.decode(response.bodyBytes));
+      final Map<String, dynamic> jsonData = jsonDecode(
+        utf8.decode(response.bodyBytes),
+      );
       if (response.statusCode == 200) {
         return jsonData;
       } else {
@@ -341,7 +397,8 @@ class ApiService {
         .timeout(timeoutDuration);
 
     if (response.statusCode == 200) {
-      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      return jsonDecode(utf8.decode(response.bodyBytes))
+          as Map<String, dynamic>;
     }
     throw const HttpException('Unable to refresh your café rewards right now.');
   }

@@ -48,7 +48,10 @@ export async function authenticateCustomer(req, res, next) {
       return res.status(401).json({ detail: 'Invalid or expired customer token.' });
     }
 
-    const result = await dbQuery('SELECT id, full_name, phone, email, loyalty_stamps, is_active FROM customer_users WHERE id = $1', [decoded.sub]);
+    const result = await dbQuery(
+      'SELECT id, full_name, phone, email, loyalty_stamps, is_active FROM customer_users WHERE id = $1',
+      [decoded.sub],
+    );
     const customer = result.rows[0];
 
     if (!customer || !customer.is_active) {
@@ -77,7 +80,10 @@ export async function authenticateStaff(req, res, next) {
       return res.status(403).json({ detail: 'Forbidden: Insufficient privileges.' });
     }
 
-    const result = await dbQuery('SELECT id, email, full_name, role, is_active FROM staff_users WHERE id = $1', [decoded.sub]);
+    const result = await dbQuery(
+      'SELECT id, email, full_name, role, is_active FROM staff_users WHERE id = $1',
+      [decoded.sub],
+    );
     const staff = result.rows[0];
 
     if (!staff || !staff.is_active) {
@@ -86,7 +92,9 @@ export async function authenticateStaff(req, res, next) {
 
     // Tokens issued before a role change cannot retain or acquire privileges.
     if (!isSupportedStaffRole(staff.role) || staff.role !== decoded.role) {
-      return res.status(403).json({ detail: 'Forbidden: Staff role has changed or is unsupported.' });
+      return res
+        .status(403)
+        .json({ detail: 'Forbidden: Staff role has changed or is unsupported.' });
     }
 
     req.staff = staff;
@@ -119,7 +127,10 @@ export async function authenticateSeller(req, res, next) {
       return res.status(403).json({ detail: 'Forbidden: Insufficient privileges.' });
     }
 
-    const result = await dbQuery('SELECT id, email, full_name, role, is_active FROM staff_users WHERE id = $1', [decoded.sub]);
+    const result = await dbQuery(
+      'SELECT id, email, full_name, role, is_active FROM staff_users WHERE id = $1',
+      [decoded.sub],
+    );
     const seller = result.rows[0];
 
     if (!seller || !seller.is_active) {

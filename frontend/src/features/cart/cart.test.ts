@@ -286,7 +286,14 @@ test('9. Order Payload and Idempotency Digest Determinism', async () => {
     notes: '[STORE PICKUP: BKK1 Branch]',
     payment_method: 'khqr',
     items: [
-      { product_id: 1, quantity: 2, size: 'Medium', sugar_level: '50%', ice_level: 'Normal Ice', toppings: [] },
+      {
+        product_id: 1,
+        quantity: 2,
+        size: 'Medium',
+        sugar_level: '50%',
+        ice_level: 'Normal Ice',
+        toppings: [],
+      },
     ],
   };
 
@@ -297,14 +304,27 @@ test('9. Order Payload and Idempotency Digest Determinism', async () => {
     notes: '[STORE PICKUP: BKK1 Branch]',
     payment_method: 'khqr',
     items: [
-      { product_id: 1, quantity: 2, size: 'Medium', sugar_level: '50%', ice_level: 'Normal Ice', toppings: [] },
+      {
+        product_id: 1,
+        quantity: 2,
+        size: 'Medium',
+        sugar_level: '50%',
+        ice_level: 'Normal Ice',
+        toppings: [],
+      },
     ],
   };
 
-  const digest1 = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(payload1)));
+  const digest1 = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(JSON.stringify(payload1)),
+  );
   const fp1 = Array.from(new Uint8Array(digest1), b => b.toString(16).padStart(2, '0')).join('');
 
-  const digest2 = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(payload2)));
+  const digest2 = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(JSON.stringify(payload2)),
+  );
   const fp2 = Array.from(new Uint8Array(digest2), b => b.toString(16).padStart(2, '0')).join('');
 
   assert.equal(fp1, fp2, 'Identical orders must generate matching idempotency fingerprints');

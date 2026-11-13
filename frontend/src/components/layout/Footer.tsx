@@ -13,11 +13,7 @@ export function Footer() {
             <br />
             <em>to look forward to.</em>
           </p>
-          <Link
-            to="/menu"
-            className="footer-order"
-            aria-label="Explore the drink menu"
-          >
+          <Link to="/menu" className="footer-order" aria-label="Explore the drink menu">
             <ArrowRight size={34} />
           </Link>
         </div>
@@ -64,8 +60,7 @@ export function Footer() {
             onClick={() =>
               window.scrollTo({
                 top: 0,
-                behavior: window.matchMedia('(prefers-reduced-motion: reduce)')
-                  .matches
+                behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
                   ? 'instant'
                   : 'smooth',
               })

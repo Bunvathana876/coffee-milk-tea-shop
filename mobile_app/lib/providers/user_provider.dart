@@ -13,8 +13,8 @@ class UserProvider extends ChangeNotifier {
   UserProvider({
     required LocalStorageService localStorageService,
     required ApiService apiService,
-  })  : _localStorageService = localStorageService,
-        _apiService = apiService {
+  }) : _localStorageService = localStorageService,
+       _apiService = apiService {
     _loadProfile();
   }
 
@@ -36,12 +36,14 @@ class UserProvider extends ChangeNotifier {
   String get customerEmail => _customerEmail;
   String get authToken => _authToken;
   bool get isAuthenticated => _authToken.isNotEmpty;
-  bool get hasServerSession => _authToken.isNotEmpty && !_authToken.startsWith('local_token_');
+  bool get hasServerSession =>
+      _authToken.isNotEmpty && !_authToken.startsWith('local_token_');
   String get apiUrl => _apiUrl.isNotEmpty ? _apiUrl : _apiService.baseUrl;
   bool get isServerOnline => _isServerOnline;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  bool get hasSavedProfile => _customerName.isNotEmpty && _customerPhone.isNotEmpty;
+  bool get hasSavedProfile =>
+      _customerName.isNotEmpty && _customerPhone.isNotEmpty;
   int get loyaltyStamps => _loyaltyStamps;
   int get legacyLocalStamps => _legacyLocalStamps;
   bool get loyaltyIsFresh => _loyaltyIsFresh;
@@ -158,8 +160,11 @@ class UserProvider extends ChangeNotifier {
 
   Future<void> _applyAuthResponse(Map<String, dynamic> response) async {
     final token = (response['access_token'] as String?) ?? '';
-    final userMap = (response['user'] as Map<String, dynamic>?) ?? <String, dynamic>{};
-    if (token.isEmpty || userMap['loyalty_stamps'] is! num || userMap['phone'] is! String) {
+    final userMap =
+        (response['user'] as Map<String, dynamic>?) ?? <String, dynamic>{};
+    if (token.isEmpty ||
+        userMap['loyalty_stamps'] is! num ||
+        userMap['phone'] is! String) {
       throw const FormatException('Invalid customer authentication response.');
     }
     final name = (userMap['full_name'] as String?) ?? '';
@@ -197,9 +202,13 @@ class UserProvider extends ChangeNotifier {
     final cleanEmail = (email ?? '').trim().toLowerCase();
 
     final exists = accounts.any((acc) {
-      final accPhone = (acc['phone'] as String? ?? '').replaceAll(RegExp(r'\D'), '');
+      final accPhone = (acc['phone'] as String? ?? '').replaceAll(
+        RegExp(r'\D'),
+        '',
+      );
       final accEmail = (acc['email'] as String? ?? '').trim().toLowerCase();
-      return accPhone == cleanPhone || (cleanEmail.isNotEmpty && accEmail == cleanEmail);
+      return accPhone == cleanPhone ||
+          (cleanEmail.isNotEmpty && accEmail == cleanEmail);
     });
 
     if (exists) {
@@ -251,7 +260,8 @@ class UserProvider extends ChangeNotifier {
       final accPhone = (acc['phone'] as String? ?? '').trim().toLowerCase();
       final accDigits = accPhone.replaceAll(RegExp(r'\D'), '');
       final accEmail = (acc['email'] as String? ?? '').trim().toLowerCase();
-      final phoneMatch = accPhone == cleanId || (digitsId.isNotEmpty && accDigits == digitsId);
+      final phoneMatch =
+          accPhone == cleanId || (digitsId.isNotEmpty && accDigits == digitsId);
       final emailMatch = accEmail.isNotEmpty && accEmail == cleanId;
       return (phoneMatch || emailMatch) && acc['password'] == password;
     }).firstOrNull;
@@ -325,7 +335,9 @@ class UserProvider extends ChangeNotifier {
     final token = _authToken;
     try {
       final profile = await _apiService.getCustomerMe(token);
-      if (token != _authToken || profile['loyalty_stamps'] is! num || profile['phone'] is! String) {
+      if (token != _authToken ||
+          profile['loyalty_stamps'] is! num ||
+          profile['phone'] is! String) {
         return false;
       }
       final stamps = (profile['loyalty_stamps'] as num).toInt();
@@ -334,7 +346,10 @@ class UserProvider extends ChangeNotifier {
       _loyaltyStamps = stamps;
       _loyaltyIsFresh = true;
       await _localStorageService.setAccountPhone(_accountPhone);
-      await _localStorageService.setConfirmedLoyaltyStamps(_accountPhone, stamps);
+      await _localStorageService.setConfirmedLoyaltyStamps(
+        _accountPhone,
+        stamps,
+      );
       notifyListeners();
       return true;
     } catch (_) {
@@ -355,9 +370,12 @@ class UserProvider extends ChangeNotifier {
     final clean = newUrl.trim();
     if (clean.isNotEmpty) {
       final parsed = Uri.tryParse(clean);
-      if (parsed == null || !['http', 'https'].contains(parsed.scheme) ||
-          parsed.host.isEmpty || parsed.userInfo.isNotEmpty) {
-        _errorMessage = 'Enter a full café API URL beginning with http:// or https://.';
+      if (parsed == null ||
+          !['http', 'https'].contains(parsed.scheme) ||
+          parsed.host.isEmpty ||
+          parsed.userInfo.isNotEmpty) {
+        _errorMessage =
+            'Enter a full café API URL beginning with http:// or https://.';
         notifyListeners();
         return;
       }

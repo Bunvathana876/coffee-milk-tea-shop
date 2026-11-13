@@ -76,8 +76,6 @@ export type CartAction =
   | { type: 'RESTORE_CART'; payload: { items: CartItem[] } }
   | { type: 'CLEAR_CART' };
 
-
-
 export interface OrderItem {
   id?: number;
   order_id?: number;

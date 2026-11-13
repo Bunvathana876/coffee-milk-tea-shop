@@ -1,30 +1,22 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import {
-  AlertCircle,
-  FolderTree,
-  Layers,
-  Plus,
-  RotateCcw,
-  Search,
-  Sparkles,
-} from 'lucide-react'
-import { useAuth } from '../auth/authContext'
-import { ConfirmAction } from '../components/ConfirmAction'
-import { Drawer } from '../components/Drawer'
-import { EmptyState, ErrorState, LoadingState } from '../components/States'
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { AlertCircle, FolderTree, Layers, Plus, RotateCcw, Search, Sparkles } from 'lucide-react';
+import { useAuth } from '../auth/authContext';
+import { ConfirmAction } from '../components/ConfirmAction';
+import { Drawer } from '../components/Drawer';
+import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import {
   createCategory,
   deleteCategory,
   getCategories,
   updateCategory,
   type Category,
-} from '../lib/api'
+} from '../lib/api';
 
 interface CategoryFormData {
-  name: string
-  description: string
-  image: string
-  is_active: boolean
+  name: string;
+  description: string;
+  image: string;
+  is_active: boolean;
 }
 
 const blankForm: CategoryFormData = {
@@ -32,61 +24,65 @@ const blankForm: CategoryFormData = {
   description: '',
   image: '',
   is_active: true,
-}
+};
 
-export const CATEGORY_THUMBNAIL_FALLBACK = '/brand/brew-boba-mascot-badge.png'
+export const CATEGORY_THUMBNAIL_FALLBACK = '/brand/brew-boba-mascot-badge.png';
 
 export function CategoriesPage() {
-  const { token } = useAuth()
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [formError, setFormError] = useState('')
-  const [revision, setRevision] = useState(0)
+  const { token } = useAuth();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [formError, setFormError] = useState('');
+  const [revision, setRevision] = useState(0);
 
   // Drawer / editor state
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [form, setForm] = useState<CategoryFormData>(blankForm)
-  const [imagePreviewError, setImagePreviewError] = useState(false)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState<CategoryFormData>(blankForm);
+  const [imagePreviewError, setImagePreviewError] = useState(false);
 
   // Search & filter
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   // Action confirmations
-  const [busy, setBusy] = useState(false)
-  const [confirm, setConfirm] = useState<{ id: number; name: string; action: 'deactivate' | 'delete' } | null>(null)
+  const [busy, setBusy] = useState(false);
+  const [confirm, setConfirm] = useState<{
+    id: number;
+    name: string;
+    action: 'deactivate' | 'delete';
+  } | null>(null);
 
   useEffect(() => {
-    if (!token) return
-    let active = true
+    if (!token) return;
+    let active = true;
     getCategories(token)
       .then(rows => {
         if (active) {
-          setCategories(rows)
-          setLoading(false)
+          setCategories(rows);
+          setLoading(false);
         }
       })
       .catch(cause => {
         if (active) {
-          setError(cause instanceof Error ? cause.message : 'Categories are unavailable.')
-          setLoading(false)
+          setError(cause instanceof Error ? cause.message : 'Categories are unavailable.');
+          setLoading(false);
         }
-      })
+      });
     return () => {
-      active = false
-    }
-  }, [token, revision])
+      active = false;
+    };
+  }, [token, revision]);
 
   // Computed statistics from real fetched records
   const stats = useMemo(() => {
-    const total = categories.length
-    const active = categories.filter(c => c.is_active).length
-    const inactive = total - active
-    const totalProducts = categories.reduce((sum, c) => sum + (c.product_count || 0), 0)
-    return { total, active, inactive, totalProducts }
-  }, [categories])
+    const total = categories.length;
+    const active = categories.filter(c => c.is_active).length;
+    const inactive = total - active;
+    const totalProducts = categories.reduce((sum, c) => sum + (c.product_count || 0), 0);
+    return { total, active, inactive, totalProducts };
+  }, [categories]);
 
   // Filtered categories
   const visible = useMemo(() => {
@@ -94,55 +90,55 @@ export function CategoriesPage() {
       const matchesStatus =
         statusFilter === 'all' ||
         (statusFilter === 'active' && category.is_active) ||
-        (statusFilter === 'inactive' && !category.is_active)
-      const query = search.trim().toLowerCase()
+        (statusFilter === 'inactive' && !category.is_active);
+      const query = search.trim().toLowerCase();
       const matchesSearch =
         !query ||
         category.name.toLowerCase().includes(query) ||
-        (category.description ?? '').toLowerCase().includes(query)
+        (category.description ?? '').toLowerCase().includes(query);
 
-      return matchesStatus && matchesSearch
-    })
-  }, [categories, statusFilter, search])
+      return matchesStatus && matchesSearch;
+    });
+  }, [categories, statusFilter, search]);
 
   function reload() {
-    setError('')
-    setLoading(true)
-    setRevision(value => value + 1)
+    setError('');
+    setLoading(true);
+    setRevision(value => value + 1);
   }
 
   function handleOpenCreate() {
-    setEditingId(null)
-    setForm(blankForm)
-    setFormError('')
-    setImagePreviewError(false)
-    setIsDrawerOpen(true)
+    setEditingId(null);
+    setForm(blankForm);
+    setFormError('');
+    setImagePreviewError(false);
+    setIsDrawerOpen(true);
   }
 
   function handleOpenEdit(category: Category) {
-    setEditingId(category.id)
+    setEditingId(category.id);
     setForm({
       name: category.name,
       description: category.description ?? '',
       image: category.image ?? '',
       is_active: category.is_active,
-    })
-    setFormError('')
-    setImagePreviewError(false)
-    setIsDrawerOpen(true)
+    });
+    setFormError('');
+    setImagePreviewError(false);
+    setIsDrawerOpen(true);
   }
 
   function handleCloseDrawer() {
-    if (busy) return
-    setIsDrawerOpen(false)
-    setEditingId(null)
-    setForm(blankForm)
-    setFormError('')
+    if (busy) return;
+    setIsDrawerOpen(false);
+    setEditingId(null);
+    setForm(blankForm);
+    setFormError('');
   }
 
   async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    if (!token) return
+    event.preventDefault();
+    if (!token) return;
 
     if (
       !form.name.trim() ||
@@ -150,12 +146,14 @@ export function CategoriesPage() {
       form.description.length > 1000 ||
       form.image.length > 2048
     ) {
-      setFormError('Enter a name up to 120 characters and keep the optional fields within their limits.')
-      return
+      setFormError(
+        'Enter a name up to 120 characters and keep the optional fields within their limits.',
+      );
+      return;
     }
 
-    setBusy(true)
-    setFormError('')
+    setBusy(true);
+    setFormError('');
 
     try {
       const body = {
@@ -163,58 +161,58 @@ export function CategoriesPage() {
         description: form.description.trim() || null,
         image: form.image.trim() || null,
         is_active: form.is_active,
-      }
+      };
 
       if (editingId) {
-        await updateCategory(token, editingId, body)
+        await updateCategory(token, editingId, body);
       } else {
-        await createCategory(token, body)
+        await createCategory(token, body);
       }
 
-      handleCloseDrawer()
-      reload()
+      handleCloseDrawer();
+      reload();
     } catch (cause) {
-      setFormError(cause instanceof Error ? cause.message : 'Could not save category.')
+      setFormError(cause instanceof Error ? cause.message : 'Could not save category.');
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
   }
 
   async function handleConfirmAction() {
-    if (!token || !confirm) return
-    setBusy(true)
-    setError('')
+    if (!token || !confirm) return;
+    setBusy(true);
+    setError('');
     try {
       if (confirm.action === 'delete') {
-        await deleteCategory(token, confirm.id)
+        await deleteCategory(token, confirm.id);
       } else {
-        await updateCategory(token, confirm.id, { is_active: false })
+        await updateCategory(token, confirm.id, { is_active: false });
       }
       if (editingId === confirm.id) {
-        handleCloseDrawer()
+        handleCloseDrawer();
       }
-      setConfirm(null)
-      reload()
+      setConfirm(null);
+      reload();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not change category.')
+      setError(cause instanceof Error ? cause.message : 'Could not change category.');
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
   }
 
   async function handleToggleActive(category: Category) {
-    if (!token || busy) return
+    if (!token || busy) return;
     if (category.is_active) {
-      setConfirm({ id: category.id, name: category.name, action: 'deactivate' })
+      setConfirm({ id: category.id, name: category.name, action: 'deactivate' });
     } else {
-      setBusy(true)
+      setBusy(true);
       try {
-        await updateCategory(token, category.id, { is_active: true })
-        reload()
+        await updateCategory(token, category.id, { is_active: true });
+        reload();
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Could not activate category.')
+        setError(cause instanceof Error ? cause.message : 'Could not activate category.');
       } finally {
-        setBusy(false)
+        setBusy(false);
       }
     }
   }
@@ -291,11 +289,7 @@ export function CategoriesPage() {
                 value={search}
                 onChange={event => setSearch(event.target.value)}
               />
-              <Search
-                size={15}
-                className="search-icon"
-                aria-hidden="true"
-              />
+              <Search size={15} className="search-icon" aria-hidden="true" />
             </div>
 
             <label className="sr-only" htmlFor="category-status-filter">
@@ -322,8 +316,8 @@ export function CategoriesPage() {
                 type="button"
                 className="button-secondary"
                 onClick={() => {
-                  setSearch('')
-                  setStatusFilter('all')
+                  setSearch('');
+                  setStatusFilter('all');
                 }}
               >
                 Reset filters
@@ -363,7 +357,9 @@ export function CategoriesPage() {
                   <th scope="col">Category</th>
                   <th scope="col">Products</th>
                   <th scope="col">Status</th>
-                  <th scope="col" className="numeric">Actions</th>
+                  <th scope="col" className="numeric">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -376,10 +372,10 @@ export function CategoriesPage() {
                             src={category.image?.trim() || CATEGORY_THUMBNAIL_FALLBACK}
                             alt=""
                             onError={e => {
-                              const target = e.currentTarget as HTMLImageElement
+                              const target = e.currentTarget as HTMLImageElement;
                               if (!target.dataset.fallback) {
-                                target.dataset.fallback = 'true'
-                                target.src = CATEGORY_THUMBNAIL_FALLBACK
+                                target.dataset.fallback = 'true';
+                                target.src = CATEGORY_THUMBNAIL_FALLBACK;
                               }
                             }}
                           />
@@ -470,12 +466,7 @@ export function CategoriesPage() {
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              form="category-form"
-              className="button-primary"
-              disabled={busy}
-            >
+            <button type="submit" form="category-form" className="button-primary" disabled={busy}>
               {busy ? 'Saving…' : editingId ? 'Save Category' : 'Create Category'}
             </button>
           </>
@@ -515,8 +506,8 @@ export function CategoriesPage() {
               maxLength={2048}
               placeholder="https://example.com/categories/milk-tea.webp"
               onChange={event => {
-                setForm({ ...form, image: event.target.value })
-                setImagePreviewError(false)
+                setForm({ ...form, image: event.target.value });
+                setImagePreviewError(false);
               }}
             />
           </label>
@@ -568,5 +559,5 @@ export function CategoriesPage() {
         />
       )}
     </div>
-  )
+  );
 }

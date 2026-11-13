@@ -212,7 +212,9 @@ export function downloadReceiptPdf(order: Order, paymentStatus = 'PENDING'): voi
   doc.text('Payment Method:', margin, y);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 79, 113); // ABA Blue
-  doc.text(order.payment_method === 'cash' ? 'Cash at counter' : 'KHQR demo', rightX, y, { align: 'right' });
+  doc.text(order.payment_method === 'cash' ? 'Cash at counter' : 'KHQR demo', rightX, y, {
+    align: 'right',
+  });
   y += 4;
 
   doc.setFont('helvetica', 'normal');
@@ -235,93 +237,98 @@ export function downloadReceiptPdf(order: Order, paymentStatus = 'PENDING'): voi
 
   // --- 6. MOCK ABA KHQR CODE (only for the selected demo method) ---
   if (order.payment_method === 'khqr') {
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(0, 79, 113); // ABA Blue
-  doc.text('ABA KHQR (DEMO SCAN)', centerX, y, { align: 'center' });
-  y += 3;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(0, 79, 113); // ABA Blue
+    doc.text('ABA KHQR (DEMO SCAN)', centerX, y, { align: 'center' });
+    y += 3;
 
-  // Generate Safe Synthetic QR Payload
-  const computedKhr = order.total_khr ?? usdToKhr(order.total_usd);
-  const demoPayload = `khqr-demo://mock-pay?merchant=Coffee%20%26%20Milk%20Tea%20Caf%C3%A9&order=${order.order_number}&usd=${order.total_usd.toFixed(2)}&khr=${computedKhr}&demo_notice=DEMO_QR_NO_REAL_PAYMENT`;
+    // Generate Safe Synthetic QR Payload
+    const computedKhr = order.total_khr ?? usdToKhr(order.total_usd);
+    const demoPayload = `khqr-demo://mock-pay?merchant=Coffee%20%26%20Milk%20Tea%20Caf%C3%A9&order=${order.order_number}&usd=${order.total_usd.toFixed(2)}&khr=${computedKhr}&demo_notice=DEMO_QR_NO_REAL_PAYMENT`;
 
-  try {
-    const matrix = generateQrMatrix(demoPayload);
-    const qrSize = 30; // 30 mm square
-    const qrX = (pageWidth - qrSize) / 2;
-    const qrY = y;
-    const modSize = qrSize / matrix.length;
+    try {
+      const matrix = generateQrMatrix(demoPayload);
+      const qrSize = 30; // 30 mm square
+      const qrX = (pageWidth - qrSize) / 2;
+      const qrY = y;
+      const modSize = qrSize / matrix.length;
 
-    // White QR Background Box
-    doc.setFillColor(255, 255, 255);
-    doc.rect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, 'F');
+      // White QR Background Box
+      doc.setFillColor(255, 255, 255);
+      doc.rect(qrX - 1, qrY - 1, qrSize + 2, qrSize + 2, 'F');
 
-    // Draw Vector QR Modules
-    doc.setFillColor(0, 0, 0);
-    for (let r = 0; r < matrix.length; r++) {
-      for (let c = 0; c < matrix[r].length; c++) {
-        if (matrix[r][c]) {
-          doc.rect(qrX + c * modSize, qrY + r * modSize, modSize, modSize, 'F');
+      // Draw Vector QR Modules
+      doc.setFillColor(0, 0, 0);
+      for (let r = 0; r < matrix.length; r++) {
+        for (let c = 0; c < matrix[r].length; c++) {
+          if (matrix[r][c]) {
+            doc.rect(qrX + c * modSize, qrY + r * modSize, modSize, modSize, 'F');
+          }
         }
       }
+
+      // Corner Alignment Brackets
+      doc.setDrawColor(0, 79, 113);
+      doc.setLineWidth(0.4);
+      // Top-Left
+      doc.line(qrX - 2, qrY - 2, qrX + 2, qrY - 2);
+      doc.line(qrX - 2, qrY - 2, qrX - 2, qrY + 2);
+      // Top-Right
+      doc.line(qrX + qrSize + 2, qrY - 2, qrX + qrSize - 2, qrY - 2);
+      doc.line(qrX + qrSize + 2, qrY - 2, qrX + qrSize + 2, qrY + 2);
+      // Bottom-Left
+      doc.line(qrX - 2, qrY + qrSize + 2, qrX + 2, qrY + qrSize + 2);
+      doc.line(qrX - 2, qrY + qrSize + 2, qrX - 2, qrY + qrSize - 2);
+      // Bottom-Right
+      doc.line(qrX + qrSize + 2, qrY + qrSize + 2, qrX + qrSize - 2, qrY + qrSize + 2);
+      doc.line(qrX + qrSize + 2, qrY + qrSize + 2, qrX + qrSize + 2, qrY + qrSize - 2);
+
+      // Center Red KHQR Emblem
+      const emblemSize = 6;
+      const emblemX = centerX - emblemSize / 2;
+      const emblemY = qrY + (qrSize - emblemSize) / 2;
+      doc.setFillColor(225, 37, 27); // KHQR Red
+      doc.setDrawColor(255, 255, 255);
+      doc.setLineWidth(0.3);
+      doc.rect(emblemX, emblemY, emblemSize, emblemSize, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(4);
+      doc.setTextColor(255, 255, 255);
+      doc.text('KHQR', centerX, emblemY + 2.5, { align: 'center' });
+      doc.text('៛ / $', centerX, emblemY + 4.5, { align: 'center' });
+
+      y += qrSize + 3;
+    } catch {
+      y += 10;
     }
 
-    // Corner Alignment Brackets
-    doc.setDrawColor(0, 79, 113);
-    doc.setLineWidth(0.4);
-    // Top-Left
-    doc.line(qrX - 2, qrY - 2, qrX + 2, qrY - 2);
-    doc.line(qrX - 2, qrY - 2, qrX - 2, qrY + 2);
-    // Top-Right
-    doc.line(qrX + qrSize + 2, qrY - 2, qrX + qrSize - 2, qrY - 2);
-    doc.line(qrX + qrSize + 2, qrY - 2, qrX + qrSize + 2, qrY + 2);
-    // Bottom-Left
-    doc.line(qrX - 2, qrY + qrSize + 2, qrX + 2, qrY + qrSize + 2);
-    doc.line(qrX - 2, qrY + qrSize + 2, qrX - 2, qrY + qrSize - 2);
-    // Bottom-Right
-    doc.line(qrX + qrSize + 2, qrY + qrSize + 2, qrX + qrSize - 2, qrY + qrSize + 2);
-    doc.line(qrX + qrSize + 2, qrY + qrSize + 2, qrX + qrSize + 2, qrY + qrSize - 2);
+    // --- 7. DEMO PAYMENT WARNING BANNER ---
+    doc.setFillColor(254, 242, 242); // Rose tint
+    doc.setDrawColor(248, 113, 113); // Rose border
+    doc.setLineWidth(0.2);
+    const warnBoxWidth = contentWidth;
+    const warnBoxX = margin;
+    doc.rect(warnBoxX, y, warnBoxWidth, 7, 'FD');
 
-    // Center Red KHQR Emblem
-    const emblemSize = 6;
-    const emblemX = centerX - emblemSize / 2;
-    const emblemY = qrY + (qrSize - emblemSize) / 2;
-    doc.setFillColor(225, 37, 27); // KHQR Red
-    doc.setDrawColor(255, 255, 255);
-    doc.setLineWidth(0.3);
-    doc.rect(emblemX, emblemY, emblemSize, emblemSize, 'FD');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(4);
-    doc.setTextColor(255, 255, 255);
-    doc.text('KHQR', centerX, emblemY + 2.5, { align: 'center' });
-    doc.text('៛ / $', centerX, emblemY + 4.5, { align: 'center' });
+    doc.setFontSize(6.5);
+    doc.setTextColor(185, 28, 28); // Dark red
+    doc.text('DEMO QR — NO REAL PAYMENT', centerX, y + 3, { align: 'center' });
 
-    y += qrSize + 3;
-  } catch {
-    y += 10;
-  }
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(5);
+    doc.setTextColor(153, 27, 27);
+    doc.text(
+      'Demonstration code only. No financial transaction or bank connection.',
+      centerX,
+      y + 5.5,
+      {
+        align: 'center',
+      },
+    );
 
-  // --- 7. DEMO PAYMENT WARNING BANNER ---
-  doc.setFillColor(254, 242, 242); // Rose tint
-  doc.setDrawColor(248, 113, 113); // Rose border
-  doc.setLineWidth(0.2);
-  const warnBoxWidth = contentWidth;
-  const warnBoxX = margin;
-  doc.rect(warnBoxX, y, warnBoxWidth, 7, 'FD');
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(6.5);
-  doc.setTextColor(185, 28, 28); // Dark red
-  doc.text('DEMO QR — NO REAL PAYMENT', centerX, y + 3, { align: 'center' });
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(5);
-  doc.setTextColor(153, 27, 27);
-  doc.text('Demonstration code only. No financial transaction or bank connection.', centerX, y + 5.5, {
-    align: 'center',
-  });
-
-  y += 9.5;
+    y += 9.5;
   }
   drawDashedDivider(doc, margin, y, rightX);
   y += 4;

@@ -10,12 +10,7 @@ export interface CartItemProps {
   onRemove: (id: string) => void;
 }
 
-export const CartItem: React.FC<CartItemProps> = ({
-  item,
-  onIncrease,
-  onDecrease,
-  onRemove,
-}) => {
+export const CartItem: React.FC<CartItemProps> = ({ item, onIncrease, onDecrease, onRemove }) => {
   return (
     <div className="cart-item-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       {/* Product Image & Details */}
@@ -52,7 +47,7 @@ export const CartItem: React.FC<CartItemProps> = ({
             <span className="px-2 py-0.5 rounded-lg bg-cream-deep text-ink-soft font-bold border border-line">
               {item.iceLevel}
             </span>
-            {item.toppings?.map((topping) => (
+            {item.toppings?.map(topping => (
               <span
                 key={topping}
                 className="px-2 py-0.5 rounded-lg bg-matcha/15 text-matcha font-bold border border-matcha/25"
@@ -100,9 +95,7 @@ export const CartItem: React.FC<CartItemProps> = ({
           <div className="font-serif font-black text-sm sm:text-base text-ink tracking-tight">
             {formatUsd(item.subtotalUsd)}
           </div>
-          <div className="text-[11px] text-ink-soft font-medium">
-            {formatKhr(item.subtotalUsd)}
-          </div>
+          <div className="text-[11px] text-ink-soft font-medium">{formatKhr(item.subtotalUsd)}</div>
         </div>
 
         {/* Accessible Delete Item Button */}

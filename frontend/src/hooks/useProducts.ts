@@ -18,7 +18,6 @@ export function useProducts(filters?: ProductFilters) {
     setError(null);
     try {
       const data = await getProducts({
-
         categoryId,
         category,
         search,
@@ -39,7 +38,6 @@ export function useProducts(filters?: ProductFilters) {
       setError(null);
       try {
         const data = await getProducts({
-
           categoryId,
           category,
           search,
@@ -67,4 +65,3 @@ export function useProducts(filters?: ProductFilters) {
 
   return { products, loading, error, refetch: loadProducts };
 }
-

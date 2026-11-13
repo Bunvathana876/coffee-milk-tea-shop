@@ -12,17 +12,17 @@
  * Payment status is tracked independently from fulfillment status.
  */
 
-export type CanonicalOrderStatus = 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled'
+export type CanonicalOrderStatus = 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled';
 
 export interface OrderStatusConfig {
-  key: string
-  label: string
-  color: string
-  hex: string
-  gradient: [string, string]
-  badgeClass: string
-  dotClass: string
-  description: string
+  key: string;
+  label: string;
+  color: string;
+  hex: string;
+  gradient: [string, string];
+  badgeClass: string;
+  dotClass: string;
+  description: string;
 }
 
 export const CANONICAL_ORDER_STATUSES: readonly CanonicalOrderStatus[] = [
@@ -31,7 +31,7 @@ export const CANONICAL_ORDER_STATUSES: readonly CanonicalOrderStatus[] = [
   'ready',
   'completed',
   'cancelled',
-] as const
+] as const;
 
 export const ORDER_STATUS_CONFIG: Record<CanonicalOrderStatus | 'unknown', OrderStatusConfig> = {
   pending: {
@@ -94,49 +94,49 @@ export const ORDER_STATUS_CONFIG: Record<CanonicalOrderStatus | 'unknown', Order
     dotClass: 'status-dot-unknown',
     description: 'Unrecognized order status',
   },
-}
+};
 
 export interface StatusBadgeResult {
-  className: string
-  label: string
-  color: string
-  hex: string
+  className: string;
+  label: string;
+  color: string;
+  hex: string;
 }
 
 export function getOrderStatusBadge(status: string | null | undefined): StatusBadgeResult {
-  const norm = (status || '').toLowerCase().trim() as CanonicalOrderStatus
+  const norm = (status || '').toLowerCase().trim() as CanonicalOrderStatus;
   if (norm in ORDER_STATUS_CONFIG) {
-    const config = ORDER_STATUS_CONFIG[norm]
+    const config = ORDER_STATUS_CONFIG[norm];
     return {
       className: config.badgeClass,
       label: config.label,
       color: config.color,
       hex: config.hex,
-    }
+    };
   }
   return {
     className: 'status-badge status-unknown',
     label: status ? String(status) : 'Unknown',
     color: '#94A3B8',
     hex: '#94A3B8',
-  }
+  };
 }
 
 export interface PaymentBadgeResult {
-  className: string
-  label: string
+  className: string;
+  label: string;
 }
 
 export function getPaymentStatusBadge(status: string | null | undefined): PaymentBadgeResult {
-  const norm = (status || '').toLowerCase().trim()
+  const norm = (status || '').toLowerCase().trim();
   switch (norm) {
     case 'paid':
-      return { className: 'payment-badge payment-paid', label: 'Paid' }
+      return { className: 'payment-badge payment-paid', label: 'Paid' };
     case 'unpaid':
-      return { className: 'payment-badge payment-unpaid', label: 'Unpaid' }
+      return { className: 'payment-badge payment-unpaid', label: 'Unpaid' };
     case 'failed':
-      return { className: 'payment-badge payment-failed', label: 'Failed' }
+      return { className: 'payment-badge payment-failed', label: 'Failed' };
     default:
-      return { className: 'payment-badge payment-unknown', label: status || 'Unknown' }
+      return { className: 'payment-badge payment-unknown', label: status || 'Unknown' };
   }
 }

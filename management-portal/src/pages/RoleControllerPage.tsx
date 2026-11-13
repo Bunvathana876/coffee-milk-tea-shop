@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   AlertCircle,
   Building2,
@@ -15,10 +15,10 @@ import {
   UserCheck,
   Users,
   XCircle,
-} from 'lucide-react'
-import { useAuth } from '../auth/authContext'
-import { ConfirmAction } from '../components/ConfirmAction'
-import { ErrorState } from '../components/States'
+} from 'lucide-react';
+import { useAuth } from '../auth/authContext';
+import { ConfirmAction } from '../components/ConfirmAction';
+import { ErrorState } from '../components/States';
 import {
   getSellers,
   getStaff,
@@ -28,18 +28,18 @@ import {
   type SellerMetrics,
   type StaffUser,
   type Store as StoreType,
-} from '../lib/api'
+} from '../lib/api';
 
-export type PermissionScope = 'allowed' | 'denied' | 'scoped' | 'not_implemented'
+export type PermissionScope = 'allowed' | 'denied' | 'scoped' | 'not_implemented';
 
 export interface PermissionRow {
-  id: string
-  name: string
-  category: string
-  admin: PermissionScope
-  staff: PermissionScope
-  seller: PermissionScope
-  notes: string
+  id: string;
+  name: string;
+  category: string;
+  admin: PermissionScope;
+  staff: PermissionScope;
+  seller: PermissionScope;
+  notes: string;
 }
 
 export const PERMISSION_MATRIX: PermissionRow[] = [
@@ -142,7 +142,7 @@ export const PERMISSION_MATRIX: PermissionRow[] = [
     seller: 'denied',
     notes: 'Protected: cannot demote or deactivate last admin',
   },
-]
+];
 
 export function getPermissionBadge(scope: PermissionScope) {
   switch (scope) {
@@ -152,21 +152,21 @@ export function getPermissionBadge(scope: PermissionScope) {
         className:
           'permission-badge permission-badge-allowed bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-300 dark:border-emerald-600',
         icon: CheckCircle2,
-      }
+      };
     case 'scoped':
       return {
         label: 'Store-scoped',
         className:
           'permission-badge permission-badge-scoped bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/70 dark:text-blue-300 dark:border-blue-600',
         icon: Building2,
-      }
+      };
     case 'denied':
       return {
         label: 'Denied',
         className:
           'permission-badge permission-badge-denied bg-red-100 text-red-800 border-red-300 dark:bg-red-950/70 dark:text-red-300 dark:border-red-600',
         icon: XCircle,
-      }
+      };
     case 'not_implemented':
     default:
       return {
@@ -174,132 +174,132 @@ export function getPermissionBadge(scope: PermissionScope) {
         className:
           'permission-badge permission-badge-not-implemented bg-slate-200 text-slate-700 border-slate-300 dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-600',
         icon: AlertCircle,
-      }
+      };
   }
 }
 
 export function RoleControllerPage() {
-  const { token } = useAuth()
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
-  const [revision, setRevision] = useState(0)
+  const { token } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [revision, setRevision] = useState(0);
 
   // Data states
-  const [staffUsers, setStaffUsers] = useState<StaffUser[] | null>(null)
-  const [sellers, setSellers] = useState<Seller[]>([])
-  const [sellerMetrics, setSellerMetrics] = useState<SellerMetrics | null>(null)
-  const [stores, setStores] = useState<StoreType[] | null>(null)
+  const [staffUsers, setStaffUsers] = useState<StaffUser[] | null>(null);
+  const [sellers, setSellers] = useState<Seller[]>([]);
+  const [sellerMetrics, setSellerMetrics] = useState<SellerMetrics | null>(null);
+  const [stores, setStores] = useState<StoreType[] | null>(null);
 
   // Filter & Search states
-  const [sellerSearch, setSellerSearch] = useState('')
-  const [sellerStatusFilter, setSellerStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [sellerSearch, setSellerSearch] = useState('');
+  const [sellerStatusFilter, setSellerStatusFilter] = useState<'all' | 'active' | 'inactive'>(
+    'all',
+  );
 
   // Action states
-  const [statusConfirmSeller, setStatusConfirmSeller] = useState<Seller | null>(null)
-  const [statusBusy, setStatusBusy] = useState(false)
-  const [feedbackMessage, setFeedbackMessage] = useState('')
+  const [statusConfirmSeller, setStatusConfirmSeller] = useState<Seller | null>(null);
+  const [statusBusy, setStatusBusy] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
 
   const reload = useCallback(() => {
-    setRevision(r => r + 1)
-  }, [])
+    setRevision(r => r + 1);
+  }, []);
 
   useEffect(() => {
-    if (!token) return
-    let active = true
-    setLoading(true)
-    setError('')
+    if (!token) return;
+    let active = true;
+    setLoading(true);
+    setError('');
 
-    Promise.allSettled([
-      getStaff(token),
-      getSellers(token, { limit: 100 }),
-      getStores(token),
-    ]).then(([staffRes, sellersRes, storesRes]) => {
-      if (!active) return
+    Promise.allSettled([getStaff(token), getSellers(token, { limit: 100 }), getStores(token)])
+      .then(([staffRes, sellersRes, storesRes]) => {
+        if (!active) return;
 
-      if (staffRes.status === 'fulfilled') {
-        setStaffUsers(staffRes.value)
-      } else {
-        setStaffUsers(null)
-      }
+        if (staffRes.status === 'fulfilled') {
+          setStaffUsers(staffRes.value);
+        } else {
+          setStaffUsers(null);
+        }
 
-      if (sellersRes.status === 'fulfilled') {
-        setSellers(sellersRes.value.items || [])
-        setSellerMetrics(sellersRes.value.metrics || null)
-      } else {
-        setSellers([])
-        setSellerMetrics(null)
-      }
+        if (sellersRes.status === 'fulfilled') {
+          setSellers(sellersRes.value.items || []);
+          setSellerMetrics(sellersRes.value.metrics || null);
+        } else {
+          setSellers([]);
+          setSellerMetrics(null);
+        }
 
-      if (storesRes.status === 'fulfilled') {
-        setStores(storesRes.value.items || [])
-      } else {
-        setStores(null)
-      }
+        if (storesRes.status === 'fulfilled') {
+          setStores(storesRes.value.items || []);
+        } else {
+          setStores(null);
+        }
 
-      setLastRefreshed(new Date())
-      setLoading(false)
-    }).catch(err => {
-      if (!active) return
-      setError(err instanceof Error ? err.message : 'Failed to load role controller data.')
-      setLoading(false)
-    })
+        setLastRefreshed(new Date());
+        setLoading(false);
+      })
+      .catch(err => {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : 'Failed to load role controller data.');
+        setLoading(false);
+      });
 
     return () => {
-      active = false
-    }
-  }, [token, revision])
+      active = false;
+    };
+  }, [token, revision]);
 
   // Count administrators and staff safely from real database records
   const adminCount = useMemo(() => {
-    if (!staffUsers) return null
-    return staffUsers.filter(u => u.role === 'admin' && u.is_active).length
-  }, [staffUsers])
+    if (!staffUsers) return null;
+    return staffUsers.filter(u => u.role === 'admin' && u.is_active).length;
+  }, [staffUsers]);
 
   const staffCount = useMemo(() => {
-    if (!staffUsers) return null
-    return staffUsers.filter(u => u.role === 'staff' && u.is_active).length
-  }, [staffUsers])
+    if (!staffUsers) return null;
+    return staffUsers.filter(u => u.role === 'staff' && u.is_active).length;
+  }, [staffUsers]);
 
   const sellerCount = useMemo(() => {
-    if (sellerMetrics) return sellerMetrics.total_sellers
-    return sellers.length
-  }, [sellerMetrics, sellers])
+    if (sellerMetrics) return sellerMetrics.total_sellers;
+    return sellers.length;
+  }, [sellerMetrics, sellers]);
 
   // Filtered sellers for table
   const filteredSellers = useMemo(() => {
     return sellers.filter(s => {
-      if (sellerStatusFilter === 'active' && !s.is_active) return false
-      if (sellerStatusFilter === 'inactive' && s.is_active) return false
+      if (sellerStatusFilter === 'active' && !s.is_active) return false;
+      if (sellerStatusFilter === 'inactive' && s.is_active) return false;
       if (sellerSearch.trim()) {
-        const query = sellerSearch.trim().toLowerCase()
-        const matchesName = s.full_name?.toLowerCase().includes(query)
-        const matchesEmail = s.email?.toLowerCase().includes(query)
-        if (!matchesName && !matchesEmail) return false
+        const query = sellerSearch.trim().toLowerCase();
+        const matchesName = s.full_name?.toLowerCase().includes(query);
+        const matchesEmail = s.email?.toLowerCase().includes(query);
+        if (!matchesName && !matchesEmail) return false;
       }
-      return true
-    })
-  }, [sellers, sellerStatusFilter, sellerSearch])
+      return true;
+    });
+  }, [sellers, sellerStatusFilter, sellerSearch]);
 
   // Toggle seller status handler
   async function handleConfirmStatusChange() {
-    if (!token || !statusConfirmSeller) return
-    setStatusBusy(true)
+    if (!token || !statusConfirmSeller) return;
+    setStatusBusy(true);
     try {
-      const nextActive = !statusConfirmSeller.is_active
-      await updateSellerStatus(token, statusConfirmSeller.id, nextActive)
-      setStatusConfirmSeller(null)
+      const nextActive = !statusConfirmSeller.is_active;
+      await updateSellerStatus(token, statusConfirmSeller.id, nextActive);
+      setStatusConfirmSeller(null);
       setFeedbackMessage(
         nextActive
           ? `Seller ${statusConfirmSeller.full_name} activated successfully.`
-          : `Seller ${statusConfirmSeller.full_name} deactivated successfully.`
-      )
-      setTimeout(() => setFeedbackMessage(''), 4000)
-      reload()
+          : `Seller ${statusConfirmSeller.full_name} deactivated successfully.`,
+      );
+      setTimeout(() => setFeedbackMessage(''), 4000);
+      reload();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update seller status.')
+      alert(err instanceof Error ? err.message : 'Failed to update seller status.');
     } finally {
-      setStatusBusy(false)
+      setStatusBusy(false);
     }
   }
 
@@ -309,7 +309,11 @@ export function RoleControllerPage() {
       {feedbackMessage && (
         <div className="rounded-xl border border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/60 p-4 text-emerald-900 dark:text-emerald-100 text-sm flex items-center justify-between shadow-sm animate-in fade-in">
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-emerald-700 dark:text-emerald-400 shrink-0" aria-hidden="true" />
+            <CheckCircle2
+              size={16}
+              className="text-emerald-700 dark:text-emerald-400 shrink-0"
+              aria-hidden="true"
+            />
             <span className="font-medium">{feedbackMessage}</span>
           </div>
           <button
@@ -330,7 +334,9 @@ export function RoleControllerPage() {
             Role Controller
             <span className="heading-period">.</span>
           </h1>
-          <p className="page-subtitle">Manage role access, seller accounts, and store permissions.</p>
+          <p className="page-subtitle">
+            Manage role access, seller accounts, and store permissions.
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -371,7 +377,10 @@ export function RoleControllerPage() {
       {/* SECTION 1: ROLE OVERVIEW (3 CARDS) */}
       <section aria-labelledby="role-overview-heading" className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h2 id="role-overview-heading" className="text-sm font-extrabold tracking-wide uppercase text-slate-900 dark:text-zinc-200">
+          <h2
+            id="role-overview-heading"
+            className="text-sm font-extrabold tracking-wide uppercase text-slate-900 dark:text-zinc-200"
+          >
             System Roles Overview
           </h2>
           <span className="text-xs font-bold text-slate-700 dark:text-zinc-300">
@@ -388,14 +397,13 @@ export function RoleControllerPage() {
                 <ShieldCheck size={20} />
               </span>
             </div>
-            <strong className="seller-stat-value">
-              {adminCount !== null ? adminCount : '—'}
-            </strong>
+            <strong className="seller-stat-value">{adminCount !== null ? adminCount : '—'}</strong>
             <p className="role-card-subtitle admin text-xs font-bold text-blue-900 dark:text-blue-300 mt-1">
               Full Governance &amp; Security Authority
             </p>
             <small className="seller-stat-subtext mt-1 font-medium">
-              Catalog CRUD, seller account provisioning, store assignments, financial analytics, and last-admin lockout protection.
+              Catalog CRUD, seller account provisioning, store assignments, financial analytics, and
+              last-admin lockout protection.
             </small>
           </article>
 
@@ -407,14 +415,13 @@ export function RoleControllerPage() {
                 <UserCheck size={20} />
               </span>
             </div>
-            <strong className="seller-stat-value">
-              {staffCount !== null ? staffCount : '—'}
-            </strong>
+            <strong className="seller-stat-value">{staffCount !== null ? staffCount : '—'}</strong>
             <p className="role-card-subtitle staff text-xs font-bold text-amber-900 dark:text-amber-300 mt-1">
               In-Store Operations &amp; Cash Settlement
             </p>
             <small className="seller-stat-subtext mt-1 font-medium">
-              Order preparation queue management, drink status progression, and verified cash settlement recording. No administrative access.
+              Order preparation queue management, drink status progression, and verified cash
+              settlement recording. No administrative access.
             </small>
           </article>
 
@@ -433,19 +440,30 @@ export function RoleControllerPage() {
               Store-Scoped Read-Only Isolation
             </p>
             <small className="seller-stat-subtext mt-1 font-medium">
-              Multi-tenant store order monitoring for assigned active café branches. Fail-closed: cannot view global orders or cash records.
+              Multi-tenant store order monitoring for assigned active café branches. Fail-closed:
+              cannot view global orders or cash records.
             </small>
           </article>
         </div>
       </section>
 
       {/* SECTION 2: PERMISSION MATRIX */}
-      <section aria-labelledby="permission-matrix-heading" className="panel p-6 flex flex-col gap-4">
+      <section
+        aria-labelledby="permission-matrix-heading"
+        className="panel p-6 flex flex-col gap-4"
+      >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-zinc-800 pb-4">
           <div>
             <div className="eyebrow text-cobalt dark:text-blue-400 mb-1">POLICY SPECIFICATION</div>
-            <h2 id="permission-matrix-heading" className="matrix-title text-lg sm:text-xl font-bold text-slate-900 dark:text-zinc-50 flex items-center gap-2">
-              <ShieldAlert size={20} className="text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true" />
+            <h2
+              id="permission-matrix-heading"
+              className="matrix-title text-lg sm:text-xl font-bold text-slate-900 dark:text-zinc-50 flex items-center gap-2"
+            >
+              <ShieldAlert
+                size={20}
+                className="text-blue-600 dark:text-blue-400 shrink-0"
+                aria-hidden="true"
+              />
               <span>Role &amp; Permission Policy Matrix</span>
             </h2>
             <p className="matrix-subtitle text-xs sm:text-sm text-slate-800 dark:text-zinc-200 mt-1 font-medium">
@@ -462,21 +480,29 @@ export function RoleControllerPage() {
           <table className="sellers-table" aria-label="Role permission policy matrix">
             <thead>
               <tr>
-                <th scope="col" style={{ width: '38%' }}>Permission / Capability</th>
-                <th scope="col" style={{ width: '18%' }}>Administrator</th>
-                <th scope="col" style={{ width: '18%' }}>Staff</th>
-                <th scope="col" style={{ width: '26%' }}>Seller Partner</th>
+                <th scope="col" style={{ width: '38%' }}>
+                  Permission / Capability
+                </th>
+                <th scope="col" style={{ width: '18%' }}>
+                  Administrator
+                </th>
+                <th scope="col" style={{ width: '18%' }}>
+                  Staff
+                </th>
+                <th scope="col" style={{ width: '26%' }}>
+                  Seller Partner
+                </th>
               </tr>
             </thead>
             <tbody>
               {PERMISSION_MATRIX.map(row => {
-                const adminBadge = getPermissionBadge(row.admin)
-                const staffBadge = getPermissionBadge(row.staff)
-                const sellerBadge = getPermissionBadge(row.seller)
+                const adminBadge = getPermissionBadge(row.admin);
+                const staffBadge = getPermissionBadge(row.staff);
+                const sellerBadge = getPermissionBadge(row.seller);
 
-                const AdminIcon = adminBadge.icon
-                const StaffIcon = staffBadge.icon
-                const SellerIcon = sellerBadge.icon
+                const AdminIcon = adminBadge.icon;
+                const StaffIcon = staffBadge.icon;
+                const SellerIcon = sellerBadge.icon;
 
                 return (
                   <tr key={row.id}>
@@ -509,16 +535,33 @@ export function RoleControllerPage() {
                       </span>
                     </td>
                   </tr>
-                )
+                );
               })}
             </tbody>
           </table>
         </div>
 
         <div className="matrix-policy-note flex items-start gap-2.5">
-          <Lock size={15} className="shrink-0 mt-0.5 text-blue-800 dark:text-blue-400" aria-hidden="true" />
+          <Lock
+            size={15}
+            className="shrink-0 mt-0.5 text-blue-800 dark:text-blue-400"
+            aria-hidden="true"
+          />
           <span className="leading-relaxed">
-            <strong className="font-bold">Policy Lockdown Note:</strong> Permissions are strictly enforced by backend route middleware (<code className="bg-slate-200 dark:bg-zinc-800 px-1 py-0.5 rounded font-mono font-bold text-slate-900 dark:text-zinc-100 border border-slate-300 dark:border-zinc-700">requireAdmin</code>, <code className="bg-slate-200 dark:bg-zinc-800 px-1 py-0.5 rounded font-mono font-bold text-slate-900 dark:text-zinc-100 border border-slate-300 dark:border-zinc-700">authenticateStaff</code>, <code className="bg-slate-200 dark:bg-zinc-800 px-1 py-0.5 rounded font-mono font-bold text-slate-900 dark:text-zinc-100 border border-slate-300 dark:border-zinc-700">authenticateSeller</code>). Role capabilities cannot be modified by client-side state manipulation.
+            <strong className="font-bold">Policy Lockdown Note:</strong> Permissions are strictly
+            enforced by backend route middleware (
+            <code className="bg-slate-200 dark:bg-zinc-800 px-1 py-0.5 rounded font-mono font-bold text-slate-900 dark:text-zinc-100 border border-slate-300 dark:border-zinc-700">
+              requireAdmin
+            </code>
+            ,{' '}
+            <code className="bg-slate-200 dark:bg-zinc-800 px-1 py-0.5 rounded font-mono font-bold text-slate-900 dark:text-zinc-100 border border-slate-300 dark:border-zinc-700">
+              authenticateStaff
+            </code>
+            ,{' '}
+            <code className="bg-slate-200 dark:bg-zinc-800 px-1 py-0.5 rounded font-mono font-bold text-slate-900 dark:text-zinc-100 border border-slate-300 dark:border-zinc-700">
+              authenticateSeller
+            </code>
+            ). Role capabilities cannot be modified by client-side state manipulation.
           </span>
         </div>
       </section>
@@ -527,9 +570,18 @@ export function RoleControllerPage() {
       <section aria-labelledby="seller-access-heading" className="panel p-6 flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-zinc-800 pb-4">
           <div>
-            <div className="eyebrow text-cobalt dark:text-blue-400 mb-1">DIRECTORY &amp; STATUS</div>
-            <h2 id="seller-access-heading" className="text-base sm:text-lg font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
-              <Users size={18} className="text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true" />
+            <div className="eyebrow text-cobalt dark:text-blue-400 mb-1">
+              DIRECTORY &amp; STATUS
+            </div>
+            <h2
+              id="seller-access-heading"
+              className="text-base sm:text-lg font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2"
+            >
+              <Users
+                size={18}
+                className="text-blue-600 dark:text-blue-400 shrink-0"
+                aria-hidden="true"
+              />
               <span>Seller Account Access &amp; Status</span>
             </h2>
             <p className="text-xs sm:text-sm text-slate-800 dark:text-zinc-200 mt-1 font-medium">
@@ -567,9 +619,7 @@ export function RoleControllerPage() {
               onClick={() => setSellerStatusFilter('active')}
             >
               <span>Active</span>
-              <span className="status-tab-count">
-                {sellers.filter(s => s.is_active).length}
-              </span>
+              <span className="status-tab-count">{sellers.filter(s => s.is_active).length}</span>
             </button>
             <button
               type="button"
@@ -579,9 +629,7 @@ export function RoleControllerPage() {
               onClick={() => setSellerStatusFilter('inactive')}
             >
               <span>Inactive</span>
-              <span className="status-tab-count">
-                {sellers.filter(s => !s.is_active).length}
-              </span>
+              <span className="status-tab-count">{sellers.filter(s => !s.is_active).length}</span>
             </button>
           </div>
 
@@ -602,10 +650,17 @@ export function RoleControllerPage() {
         {/* Table */}
         {sellers.length === 0 ? (
           <div className="p-8 text-center flex flex-col items-center border border-dashed border-slate-300 dark:border-zinc-700 rounded-xl">
-            <Store size={28} className="text-slate-600 dark:text-zinc-400 mb-2" aria-hidden="true" />
-            <p className="text-sm font-extrabold text-slate-900 dark:text-zinc-100">No sellers provisioned</p>
+            <Store
+              size={28}
+              className="text-slate-600 dark:text-zinc-400 mb-2"
+              aria-hidden="true"
+            />
+            <p className="text-sm font-extrabold text-slate-900 dark:text-zinc-100">
+              No sellers provisioned
+            </p>
             <p className="text-xs text-slate-800 dark:text-zinc-200 mt-1 max-w-sm font-medium">
-              Use the Seller Management workspace to create and provision authorized seller accounts.
+              Use the Seller Management workspace to create and provision authorized seller
+              accounts.
             </p>
             <Link to="/admin/sellers" className="button-primary text-xs mt-3 font-semibold">
               Go to Sellers Page
@@ -624,7 +679,9 @@ export function RoleControllerPage() {
                   <th scope="col">Email Contact</th>
                   <th scope="col">Assigned Store</th>
                   <th scope="col">Status</th>
-                  <th scope="col" className="numeric">Quick Action</th>
+                  <th scope="col" className="numeric">
+                    Quick Action
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -647,18 +704,38 @@ export function RoleControllerPage() {
                     </td>
                     <td>
                       <span className="text-xs text-slate-900 dark:text-zinc-100 flex items-center gap-1.5 font-semibold">
-                        <Mail size={13} className="text-slate-700 dark:text-zinc-300 shrink-0" aria-hidden="true" />
+                        <Mail
+                          size={13}
+                          className="text-slate-700 dark:text-zinc-300 shrink-0"
+                          aria-hidden="true"
+                        />
                         <span>{seller.email}</span>
                       </span>
                     </td>
                     <td>
                       <div className="flex items-center gap-1.5 text-xs text-slate-900 dark:text-zinc-100 font-semibold">
-                        <Building2 size={13} className="text-slate-700 dark:text-zinc-300 shrink-0" aria-hidden="true" />
-                        <span>{seller.store_name || <span className="italic font-semibold text-slate-600 dark:text-zinc-400">Unassigned (Fails Closed)</span>}</span>
+                        <Building2
+                          size={13}
+                          className="text-slate-700 dark:text-zinc-300 shrink-0"
+                          aria-hidden="true"
+                        />
+                        <span>
+                          {seller.store_name || (
+                            <span className="italic font-semibold text-slate-600 dark:text-zinc-400">
+                              Unassigned (Fails Closed)
+                            </span>
+                          )}
+                        </span>
                       </div>
                     </td>
                     <td>
-                      <span className={seller.is_active ? 'status-badge status-completed' : 'status-badge status-cancelled'}>
+                      <span
+                        className={
+                          seller.is_active
+                            ? 'status-badge status-completed'
+                            : 'status-badge status-cancelled'
+                        }
+                      >
                         {seller.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
@@ -698,9 +775,18 @@ export function RoleControllerPage() {
       <section aria-labelledby="store-access-heading" className="panel p-6 flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-zinc-800 pb-4">
           <div>
-            <div className="eyebrow text-cobalt dark:text-blue-400 mb-1">PHYSICAL &amp; FRANCHISE LOCATIONS</div>
-            <h2 id="store-access-heading" className="text-base sm:text-lg font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
-              <Building2 size={18} className="text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true" />
+            <div className="eyebrow text-cobalt dark:text-blue-400 mb-1">
+              PHYSICAL &amp; FRANCHISE LOCATIONS
+            </div>
+            <h2
+              id="store-access-heading"
+              className="text-base sm:text-lg font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2"
+            >
+              <Building2
+                size={18}
+                className="text-blue-600 dark:text-blue-400 shrink-0"
+                aria-hidden="true"
+              />
               <span>Café Store Registry &amp; Assignment Status</span>
             </h2>
             <p className="text-xs sm:text-sm text-slate-800 dark:text-zinc-200 mt-1 font-medium">
@@ -721,7 +807,12 @@ export function RoleControllerPage() {
           <div className="p-6 text-center rounded-xl border border-amber-300 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 text-amber-950 dark:text-amber-100">
             <h3 className="text-sm font-extrabold">Store access setup required.</h3>
             <p className="text-xs mt-1 text-amber-950 dark:text-amber-100 font-medium max-w-lg mx-auto">
-              The stores database schema migration (<code className="bg-amber-100/90 dark:bg-amber-900/50 text-amber-950 dark:text-amber-100 px-1 py-0.5 rounded font-mono font-bold border border-amber-300/60 dark:border-amber-700/60">003_stores_and_assignments.sql</code>) must be approved and applied in the target database. Historical orders remain staff-visible only and fail closed against tenant queries.
+              The stores database schema migration (
+              <code className="bg-amber-100/90 dark:bg-amber-900/50 text-amber-950 dark:text-amber-100 px-1 py-0.5 rounded font-mono font-bold border border-amber-300/60 dark:border-amber-700/60">
+                003_stores_and_assignments.sql
+              </code>
+              ) must be approved and applied in the target database. Historical orders remain
+              staff-visible only and fail closed against tenant queries.
             </p>
           </div>
         ) : stores.length === 0 ? (
@@ -731,13 +822,22 @@ export function RoleControllerPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {stores.map(st => (
-              <article key={st.id} className="p-4 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col justify-between shadow-sm hover:border-slate-300 dark:hover:border-zinc-700 transition-colors">
+              <article
+                key={st.id}
+                className="p-4 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col justify-between shadow-sm hover:border-slate-300 dark:hover:border-zinc-700 transition-colors"
+              >
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-slate-200 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 border border-slate-300 dark:border-zinc-700 font-extrabold">
                       {st.code}
                     </span>
-                    <span className={st.is_active ? 'status-badge status-completed text-xs' : 'status-badge status-cancelled text-xs'}>
+                    <span
+                      className={
+                        st.is_active
+                          ? 'status-badge status-completed text-xs'
+                          : 'status-badge status-cancelled text-xs'
+                      }
+                    >
                       {st.is_active ? 'Active Store' : 'Inactive'}
                     </span>
                   </div>
@@ -753,7 +853,9 @@ export function RoleControllerPage() {
 
                 <div className="mt-4 pt-3 border-t border-slate-200 dark:border-zinc-800/80 flex items-center justify-between text-xs">
                   <span className="text-slate-800 dark:text-zinc-200 font-bold">
-                    {st.assigned_sellers ? `${st.assigned_sellers.length} assigned` : 'Store registered'}
+                    {st.assigned_sellers
+                      ? `${st.assigned_sellers.length} assigned`
+                      : 'Store registered'}
                   </span>
                   <Link
                     to="/admin/sellers"
@@ -770,7 +872,10 @@ export function RoleControllerPage() {
       </section>
 
       {/* SECTION 5: SECURITY AUDIT ARCHITECTURE NOTICE */}
-      <section className="seller-privacy-callout" aria-label="Security audit logging architecture notice">
+      <section
+        className="seller-privacy-callout"
+        aria-label="Security audit logging architecture notice"
+      >
         <div className="privacy-callout-icon" aria-hidden="true">
           <ShieldAlert size={20} />
         </div>
@@ -779,7 +884,13 @@ export function RoleControllerPage() {
             Security Audit Logging Architecture
           </h3>
           <p className="text-xs text-red-950 dark:text-red-200 font-medium leading-relaxed">
-            Security audit logging is active on the backend. All seller account provisioning, status toggles, store assignments, and staff modifications are permanently recorded in <code className="bg-red-100 dark:bg-red-950/80 text-red-950 dark:text-red-100 px-1.5 py-0.5 rounded font-mono font-bold border border-red-300/70 dark:border-red-800/80">security_audit_logs</code>. Audit log retrieval is currently restricted to direct database queries and not exposed via public API routes.
+            Security audit logging is active on the backend. All seller account provisioning, status
+            toggles, store assignments, and staff modifications are permanently recorded in{' '}
+            <code className="bg-red-100 dark:bg-red-950/80 text-red-950 dark:text-red-100 px-1.5 py-0.5 rounded font-mono font-bold border border-red-300/70 dark:border-red-800/80">
+              security_audit_logs
+            </code>
+            . Audit log retrieval is currently restricted to direct database queries and not exposed
+            via public API routes.
           </p>
         </div>
       </section>
@@ -787,7 +898,11 @@ export function RoleControllerPage() {
       {/* Confirm Status Change Modal */}
       {statusConfirmSeller && (
         <ConfirmAction
-          title={statusConfirmSeller.is_active ? 'Deactivate Seller Account?' : 'Activate Seller Account?'}
+          title={
+            statusConfirmSeller.is_active
+              ? 'Deactivate Seller Account?'
+              : 'Activate Seller Account?'
+          }
           detail={
             statusConfirmSeller.is_active
               ? `Are you sure you want to deactivate ${statusConfirmSeller.full_name}? They will immediately be denied login to the seller portal.`
@@ -799,5 +914,5 @@ export function RoleControllerPage() {
         />
       )}
     </div>
-  )
+  );
 }

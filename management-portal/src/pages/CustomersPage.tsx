@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  AlertCircle,
   Award,
   Calendar,
   ChevronLeft,
@@ -16,58 +17,53 @@ import {
   UserCheck,
   Users,
   UserX,
-} from 'lucide-react'
-import { Link } from 'react-router-dom'
-import { useAuth } from '../auth/authContext'
-import { Drawer } from '../components/Drawer'
-import { EmptyState, ErrorState } from '../components/States'
-import {
-  getCustomer,
-  getCustomers,
-  type Customer,
-  type CustomerMetrics,
-} from '../lib/api'
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../auth/authContext';
+import { Drawer } from '../components/Drawer';
+import { EmptyState } from '../components/States';
+import { getCustomer, getCustomers, type Customer, type CustomerMetrics } from '../lib/api';
 
-const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-const number = new Intl.NumberFormat('en-US')
+const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const number = new Intl.NumberFormat('en-US');
 
 export function getInitials(name: string): string {
-  if (!name) return '?'
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return '?'
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 export function formatDate(isoString: string | null | undefined): string {
-  if (!isoString) return 'Never'
-  const date = new Date(isoString)
-  if (Number.isNaN(date.getTime())) return 'Invalid date'
+  if (!isoString) return 'Never';
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return 'Invalid date';
   return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  })
+  });
 }
 
 export function formatDateTime(isoString: string | null | undefined): string {
-  if (!isoString) return 'Never'
-  const date = new Date(isoString)
-  if (Number.isNaN(date.getTime())) return 'Invalid date'
+  if (!isoString) return 'Never';
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return 'Invalid date';
   return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-  })
+  });
 }
 
 export function getCustomerStatusBadge(isActive: boolean) {
   if (isActive) {
-    return { className: 'status-badge status-completed', label: 'Active' }
+    return { className: 'status-badge status-completed', label: 'Active' };
   }
-  return { className: 'status-badge status-cancelled', label: 'Inactive' }
+  return { className: 'status-badge status-cancelled', label: 'Inactive' };
 }
 
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
@@ -83,7 +79,9 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
             <th scope="col">Orders &amp; Spend</th>
             <th scope="col">Status</th>
             <th scope="col">Joined</th>
-            <th scope="col" className="numeric">Actions</th>
+            <th scope="col" className="numeric">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -127,66 +125,123 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
         </tbody>
       </table>
     </div>
-  )
+  );
+}
+
+// Safe helper to categorize API error states without hiding the real message
+function getCustomerErrorTitle(error: string): string {
+  const lower = error.toLowerCase();
+  if (lower.includes('route not found') || lower.includes('404')) {
+    return 'Endpoint Unavailable';
+  }
+  if (
+    lower.includes('forbidden') ||
+    lower.includes('privilege') ||
+    lower.includes('credential') ||
+    lower.includes('401') ||
+    lower.includes('403')
+  ) {
+    return 'Access Restricted';
+  }
+  if (
+    lower.includes('unavailable') ||
+    lower.includes('failed to fetch') ||
+    lower.includes('networkerror') ||
+    lower.includes('timeout')
+  ) {
+    return 'Café API Unavailable';
+  }
+  return 'Unable to Load Customer Records';
+}
+
+function getCustomerErrorDescription(error: string): string {
+  const lower = error.toLowerCase();
+  if (lower.includes('route not found') || lower.includes('404')) {
+    return `The server returned: "${error}". The customer administration endpoint is not mounted on the deployed backend service. Verify that the backend has deployed the latest RBAC routes.`;
+  }
+  if (
+    lower.includes('forbidden') ||
+    lower.includes('privilege') ||
+    lower.includes('credential') ||
+    lower.includes('401') ||
+    lower.includes('403')
+  ) {
+    return 'Administrator authorization is required to access customer records. Your current session does not have sufficient permissions.';
+  }
+  if (
+    lower.includes('unavailable') ||
+    lower.includes('failed to fetch') ||
+    lower.includes('networkerror') ||
+    lower.includes('timeout')
+  ) {
+    return 'Could not reach the café backend API. Please check that the server is online and your network connection is active.';
+  }
+  return error;
 }
 
 export function CustomersPage() {
-  const { token } = useAuth()
+  const { token } = useAuth();
 
   // Data states
-  const [customers, setCustomers] = useState<Customer[]>([])
-  const [total, setTotal] = useState(0)
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [total, setTotal] = useState(0);
   const [metrics, setMetrics] = useState<CustomerMetrics>({
     total_customers: 0,
     active_customers: 0,
     inactive_customers: 0,
-  })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
-  const [revision, setRevision] = useState(0)
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [revision, setRevision] = useState(0);
 
   // Filter & pagination states
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
-  const [search, setSearch] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [sortOption, setSortOption] = useState<'created_at:desc' | 'created_at:asc' | 'full_name:asc' | 'full_name:desc' | 'loyalty_stamps:desc'>('created_at:desc')
-  const [page, setPage] = useState(0)
-  const limit = 20
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sortOption, setSortOption] = useState<
+    | 'created_at:desc'
+    | 'created_at:asc'
+    | 'full_name:asc'
+    | 'full_name:desc'
+    | 'loyalty_stamps:desc'
+  >('created_at:desc');
+  const [page, setPage] = useState(0);
+  const limit = 20;
 
   // Customer drawer state
-  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null)
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
-  const [drawerLoading, setDrawerLoading] = useState(false)
-  const [drawerError, setDrawerError] = useState('')
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [drawerLoading, setDrawerLoading] = useState(false);
+  const [drawerError, setDrawerError] = useState('');
 
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(search)
-      setPage(0)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [search])
+      setDebouncedSearch(search);
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const [sortBy, sortOrder] = useMemo(() => {
     const [by, order] = sortOption.split(':') as [
       'created_at' | 'full_name' | 'loyalty_stamps',
       'asc' | 'desc',
-    ]
-    return [by, order]
-  }, [sortOption])
+    ];
+    return [by, order];
+  }, [sortOption]);
 
   // Fetch customers
   const reload = useCallback(() => {
-    setError('')
-    setLoading(true)
-    setRevision(val => val + 1)
-  }, [])
+    setError('');
+    setLoading(true);
+    setRevision(val => val + 1);
+  }, []);
 
   useEffect(() => {
-    if (!token) return
-    let active = true
+    if (!token) return;
+    let active = true;
 
     getCustomers(token, {
       search: debouncedSearch,
@@ -197,54 +252,56 @@ export function CustomersPage() {
       offset: page * limit,
     })
       .then(res => {
-        if (!active) return
-        setCustomers(res.items)
-        setTotal(res.total)
-        setMetrics(res.metrics)
-        setLastRefreshed(new Date())
-        setLoading(false)
+        if (!active) return;
+        setCustomers(res.items);
+        setTotal(res.total);
+        setMetrics(res.metrics);
+        setLastRefreshed(new Date());
+        setLoading(false);
       })
       .catch(cause => {
-        if (!active) return
-        setError(cause instanceof Error ? cause.message : 'Customer records are unavailable.')
-        setLoading(false)
-      })
+        if (!active) return;
+        setError(cause instanceof Error ? cause.message : 'Customer records are unavailable.');
+        setLoading(false);
+      });
 
     return () => {
-      active = false
-    }
-  }, [token, debouncedSearch, statusFilter, sortBy, sortOrder, page, revision])
+      active = false;
+    };
+  }, [token, debouncedSearch, statusFilter, sortBy, sortOrder, page, revision]);
 
   // Open customer drawer
   async function handleOpenDetails(id: number) {
-    if (!token) return
-    setSelectedCustomerId(id)
-    setDrawerLoading(true)
-    setDrawerError('')
-    setSelectedCustomer(null)
+    if (!token) return;
+    setSelectedCustomerId(id);
+    setDrawerLoading(true);
+    setDrawerError('');
+    setSelectedCustomer(null);
 
     // Prepopulate from existing row for instantaneous feedback
-    const existing = customers.find(c => c.id === id)
-    if (existing) setSelectedCustomer(existing)
+    const existing = customers.find(c => c.id === id);
+    if (existing) setSelectedCustomer(existing);
 
     try {
-      const detailed = await getCustomer(token, id)
-      setSelectedCustomer(detailed)
+      const detailed = await getCustomer(token, id);
+      setSelectedCustomer(detailed);
     } catch (cause) {
-      setDrawerError(cause instanceof Error ? cause.message : 'Could not load customer profile.')
+      setDrawerError(cause instanceof Error ? cause.message : 'Could not load customer profile.');
     } finally {
-      setDrawerLoading(false)
+      setDrawerLoading(false);
     }
   }
 
   function handleCloseDrawer() {
-    setSelectedCustomerId(null)
-    setSelectedCustomer(null)
-    setDrawerError('')
+    setSelectedCustomerId(null);
+    setSelectedCustomer(null);
+    setDrawerError('');
   }
 
-  const totalPages = Math.ceil(total / limit)
-  const isFiltered = Boolean(debouncedSearch || statusFilter !== 'all' || sortOption !== 'created_at:desc')
+  const totalPages = Math.ceil(total / limit);
+  const isFiltered = Boolean(
+    debouncedSearch || statusFilter !== 'all' || sortOption !== 'created_at:desc',
+  );
 
   return (
     <div className="page-stack">
@@ -252,9 +309,13 @@ export function CustomersPage() {
       <div className="customers-page-header">
         <div>
           <nav aria-label="Breadcrumb" className="breadcrumb">
-            <Link to="/admin/dashboard" className="breadcrumb-link">Dashboard</Link>
+            <Link to="/admin/dashboard" className="breadcrumb-link">
+              Dashboard
+            </Link>
             <ChevronRight size={13} className="breadcrumb-separator" aria-hidden="true" />
-            <span className="breadcrumb-current" aria-current="page">Customers</span>
+            <span className="breadcrumb-current" aria-current="page">
+              Customers
+            </span>
           </nav>
           <div className="eyebrow mt-1">COMMUNITY &amp; LOYALTY</div>
           <h1>
@@ -296,8 +357,12 @@ export function CustomersPage() {
               <Users size={20} />
             </span>
           </div>
-          <strong className="customer-stat-value">{number.format(metrics.total_customers)}</strong>
-          <small className="customer-stat-subtext">Registered customer accounts</small>
+          <strong className="customer-stat-value">
+            {error ? '—' : number.format(metrics.total_customers)}
+          </strong>
+          <small className="customer-stat-subtext">
+            {error ? 'Metrics unavailable' : 'Registered customer accounts'}
+          </small>
         </article>
 
         <article className="customer-stat-card">
@@ -307,8 +372,12 @@ export function CustomersPage() {
               <UserCheck size={20} />
             </span>
           </div>
-          <strong className="customer-stat-value">{number.format(metrics.active_customers)}</strong>
-          <small className="customer-stat-subtext">Eligible for ordering &amp; loyalty</small>
+          <strong className="customer-stat-value">
+            {error ? '—' : number.format(metrics.active_customers)}
+          </strong>
+          <small className="customer-stat-subtext">
+            {error ? 'Metrics unavailable' : 'Eligible for ordering & loyalty'}
+          </small>
         </article>
 
         <article className="customer-stat-card">
@@ -318,8 +387,12 @@ export function CustomersPage() {
               <UserX size={20} />
             </span>
           </div>
-          <strong className="customer-stat-value">{number.format(metrics.inactive_customers)}</strong>
-          <small className="customer-stat-subtext">Deactivated or dormant</small>
+          <strong className="customer-stat-value">
+            {error ? '—' : number.format(metrics.inactive_customers)}
+          </strong>
+          <small className="customer-stat-subtext">
+            {error ? 'Metrics unavailable' : 'Deactivated or dormant'}
+          </small>
         </article>
       </div>
 
@@ -334,12 +407,12 @@ export function CustomersPage() {
               aria-selected={statusFilter === 'all'}
               className={`status-tab ${statusFilter === 'all' ? 'active' : ''}`}
               onClick={() => {
-                setStatusFilter('all')
-                setPage(0)
+                setStatusFilter('all');
+                setPage(0);
               }}
             >
               <span>All Customers</span>
-              <span className="status-tab-count">{metrics.total_customers}</span>
+              <span className="status-tab-count">{error ? '—' : metrics.total_customers}</span>
             </button>
             <button
               type="button"
@@ -347,12 +420,12 @@ export function CustomersPage() {
               aria-selected={statusFilter === 'active'}
               className={`status-tab ${statusFilter === 'active' ? 'active' : ''}`}
               onClick={() => {
-                setStatusFilter('active')
-                setPage(0)
+                setStatusFilter('active');
+                setPage(0);
               }}
             >
               <span>Active</span>
-              <span className="status-tab-count">{metrics.active_customers}</span>
+              <span className="status-tab-count">{error ? '—' : metrics.active_customers}</span>
             </button>
             <button
               type="button"
@@ -360,12 +433,12 @@ export function CustomersPage() {
               aria-selected={statusFilter === 'inactive'}
               className={`status-tab ${statusFilter === 'inactive' ? 'active' : ''}`}
               onClick={() => {
-                setStatusFilter('inactive')
-                setPage(0)
+                setStatusFilter('inactive');
+                setPage(0);
               }}
             >
               <span>Inactive</span>
-              <span className="status-tab-count">{metrics.inactive_customers}</span>
+              <span className="status-tab-count">{error ? '—' : metrics.inactive_customers}</span>
             </button>
           </div>
 
@@ -394,8 +467,8 @@ export function CustomersPage() {
               aria-label="Sort customer records"
               value={sortOption}
               onChange={event => {
-                setSortOption(event.target.value as any)
-                setPage(0)
+                setSortOption(event.target.value as any);
+                setPage(0);
               }}
             >
               <option value="created_at:desc">Newest first</option>
@@ -410,10 +483,10 @@ export function CustomersPage() {
                 type="button"
                 className="button-secondary text-xs h-10 px-3"
                 onClick={() => {
-                  setSearch('')
-                  setStatusFilter('all')
-                  setSortOption('created_at:desc')
-                  setPage(0)
+                  setSearch('');
+                  setStatusFilter('all');
+                  setSortOption('created_at:desc');
+                  setPage(0);
                 }}
               >
                 Reset filters
@@ -426,7 +499,26 @@ export function CustomersPage() {
         {loading ? (
           <TableSkeleton rows={6} />
         ) : error ? (
-          <ErrorState message={error} retry={reload} />
+          <div
+            className="state-panel error-panel p-8 flex flex-col items-center text-center"
+            role="alert"
+          >
+            <AlertCircle size={32} className="text-red-500 mb-2" aria-hidden="true" />
+            <strong className="text-base font-bold text-slate-900 mb-1">
+              {getCustomerErrorTitle(error)}
+            </strong>
+            <span className="text-xs text-slate-600 max-w-md leading-relaxed mb-4">
+              {getCustomerErrorDescription(error)}
+            </span>
+            <button
+              className="button-secondary flex items-center gap-1.5 text-xs font-semibold px-4 py-2"
+              type="button"
+              onClick={reload}
+            >
+              <RotateCcw size={14} aria-hidden="true" />
+              <span>Retry</span>
+            </button>
+          </div>
         ) : customers.length === 0 ? (
           <EmptyState
             title={isFiltered ? 'No matching customers found' : 'No customers registered yet'}
@@ -449,13 +541,15 @@ export function CustomersPage() {
                     <th scope="col">Orders &amp; Recognized Spend</th>
                     <th scope="col">Status</th>
                     <th scope="col">Joined</th>
-                    <th scope="col" className="numeric">Actions</th>
+                    <th scope="col" className="numeric">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {customers.map(customer => {
-                    const statusBadge = getCustomerStatusBadge(customer.is_active)
-                    const initials = getInitials(customer.full_name)
+                    const statusBadge = getCustomerStatusBadge(customer.is_active);
+                    const initials = getInitials(customer.full_name);
 
                     return (
                       <tr key={customer.id} className="customer-row">
@@ -478,29 +572,51 @@ export function CustomersPage() {
                           <div className="flex flex-col gap-1 text-xs">
                             {customer.email ? (
                               <span className="flex items-center gap-1.5 text-slate-800 dark:text-zinc-200">
-                                <Mail size={12} className="text-slate-500 dark:text-zinc-400 shrink-0" aria-hidden="true" />
+                                <Mail
+                                  size={12}
+                                  className="text-slate-500 dark:text-zinc-400 shrink-0"
+                                  aria-hidden="true"
+                                />
                                 <span className="truncate max-w-xs">{customer.email}</span>
                               </span>
                             ) : (
-                              <span className="text-slate-400 dark:text-zinc-500 italic">No email</span>
+                              <span className="text-slate-400 dark:text-zinc-500 italic">
+                                No email
+                              </span>
                             )}
                             <span className="flex items-center gap-1.5 text-slate-700 dark:text-zinc-300 font-mono">
-                              <Phone size={12} className="text-slate-500 dark:text-zinc-400 shrink-0" aria-hidden="true" />
+                              <Phone
+                                size={12}
+                                className="text-slate-500 dark:text-zinc-400 shrink-0"
+                                aria-hidden="true"
+                              />
                               <span>{customer.phone}</span>
                             </span>
                           </div>
                         </td>
                         <td>
-                          <div className="customer-loyalty-chip" title={`${customer.loyalty_stamps} loyalty stamps collected`}>
-                            <Award size={13} className="text-amber-600 shrink-0" aria-hidden="true" />
-                            <span className="font-bold text-amber-900 dark:text-amber-300">{customer.loyalty_stamps}</span>
-                            <span className="text-amber-800 dark:text-amber-400 text-xs">stamps</span>
+                          <div
+                            className="customer-loyalty-chip"
+                            title={`${customer.loyalty_stamps} loyalty stamps collected`}
+                          >
+                            <Award
+                              size={13}
+                              className="text-amber-600 shrink-0"
+                              aria-hidden="true"
+                            />
+                            <span className="font-bold text-amber-900 dark:text-amber-300">
+                              {customer.loyalty_stamps}
+                            </span>
+                            <span className="text-amber-800 dark:text-amber-400 text-xs">
+                              stamps
+                            </span>
                           </div>
                         </td>
                         <td>
                           <div className="flex flex-col text-xs">
                             <span className="font-bold text-slate-900 dark:text-zinc-100">
-                              {customer.total_orders} {customer.total_orders === 1 ? 'order' : 'orders'}
+                              {customer.total_orders}{' '}
+                              {customer.total_orders === 1 ? 'order' : 'orders'}
                             </span>
                             <span className="text-slate-600 dark:text-zinc-300 font-medium">
                               {money.format(customer.total_spent_usd)} recognized
@@ -508,9 +624,7 @@ export function CustomersPage() {
                           </div>
                         </td>
                         <td>
-                          <span className={statusBadge.className}>
-                            {statusBadge.label}
-                          </span>
+                          <span className={statusBadge.className}>{statusBadge.label}</span>
                         </td>
                         <td>
                           <div className="flex flex-col text-xs text-slate-600 dark:text-zinc-400">
@@ -532,7 +646,7 @@ export function CustomersPage() {
                           </button>
                         </td>
                       </tr>
-                    )
+                    );
                   })}
                 </tbody>
               </table>
@@ -542,8 +656,8 @@ export function CustomersPage() {
             <div className="customer-pagination">
               <span className="customer-pagination-info">
                 Showing <strong>{page * limit + 1}</strong> to{' '}
-                <strong>{Math.min((page + 1) * limit, total)}</strong> of{' '}
-                <strong>{total}</strong> customers
+                <strong>{Math.min((page + 1) * limit, total)}</strong> of <strong>{total}</strong>{' '}
+                customers
               </span>
 
               <div className="customer-pagination-actions">
@@ -588,19 +702,13 @@ export function CustomersPage() {
             : ''
         }
         footer={
-          <button
-            type="button"
-            className="button-secondary w-full"
-            onClick={handleCloseDrawer}
-          >
+          <button type="button" className="button-secondary w-full" onClick={handleCloseDrawer}>
             Close Profile
           </button>
         }
       >
         {drawerLoading && !selectedCustomer ? (
-          <div className="py-8 text-center text-sm text-slate-500">
-            Loading customer profile…
-          </div>
+          <div className="py-8 text-center text-sm text-slate-500">Loading customer profile…</div>
         ) : drawerError && !selectedCustomer ? (
           <div className="form-error" role="alert">
             {drawerError}
@@ -614,9 +722,7 @@ export function CustomersPage() {
               </div>
               <div className="customer-drawer-header-info">
                 <h3>{selectedCustomer.full_name}</h3>
-                <span className="customer-drawer-id">
-                  Customer ID: #CUST-{selectedCustomer.id}
-                </span>
+                <span className="customer-drawer-id">Customer ID: #CUST-{selectedCustomer.id}</span>
                 <div className="mt-1">
                   <span className={getCustomerStatusBadge(selectedCustomer.is_active).className}>
                     {getCustomerStatusBadge(selectedCustomer.is_active).label}
@@ -632,14 +738,22 @@ export function CustomersPage() {
                 <div className="drawer-kv-item">
                   <span className="drawer-kv-label">Phone Number</span>
                   <strong className="drawer-kv-value flex items-center gap-1.5 font-mono">
-                    <Phone size={13} className="text-slate-400 dark:text-zinc-500" aria-hidden="true" />
+                    <Phone
+                      size={13}
+                      className="text-slate-400 dark:text-zinc-500"
+                      aria-hidden="true"
+                    />
                     <span>{selectedCustomer.phone}</span>
                   </strong>
                 </div>
                 <div className="drawer-kv-item">
                   <span className="drawer-kv-label">Email Address</span>
                   <strong className="drawer-kv-value flex items-center gap-1.5">
-                    <Mail size={13} className="text-slate-400 dark:text-zinc-500" aria-hidden="true" />
+                    <Mail
+                      size={13}
+                      className="text-slate-400 dark:text-zinc-500"
+                      aria-hidden="true"
+                    />
                     <span>{selectedCustomer.email || 'None provided'}</span>
                   </strong>
                 </div>
@@ -658,17 +772,29 @@ export function CustomersPage() {
               <div className="loyalty-progress-card">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold text-amber-950 dark:text-amber-200 flex items-center gap-1.5">
-                    <Award size={14} className="text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                    <Award
+                      size={14}
+                      className="text-amber-600 dark:text-amber-400"
+                      aria-hidden="true"
+                    />
                     Current Balance
                   </span>
                   <span className="text-xs font-bold text-amber-900 dark:text-amber-300">
                     {selectedCustomer.loyalty_stamps} / 10 stamps
                   </span>
                 </div>
-                <div className="progress-bar-track" role="progressbar" aria-valuenow={selectedCustomer.loyalty_stamps % 10} aria-valuemin={0} aria-valuemax={10}>
+                <div
+                  className="progress-bar-track"
+                  role="progressbar"
+                  aria-valuenow={selectedCustomer.loyalty_stamps % 10}
+                  aria-valuemin={0}
+                  aria-valuemax={10}
+                >
                   <div
                     className="progress-bar-fill"
-                    style={{ width: `${Math.min(100, ((selectedCustomer.loyalty_stamps % 10) / 10) * 100)}%` }}
+                    style={{
+                      width: `${Math.min(100, ((selectedCustomer.loyalty_stamps % 10) / 10) * 100)}%`,
+                    }}
                   />
                 </div>
                 <p className="text-xxs text-amber-800 dark:text-amber-300 mt-2">
@@ -686,7 +812,11 @@ export function CustomersPage() {
                 <div className="drawer-kv-item">
                   <span className="drawer-kv-label">Total Café Orders</span>
                   <strong className="drawer-kv-value flex items-center gap-1.5">
-                    <ShoppingBag size={13} className="text-slate-400 dark:text-zinc-500" aria-hidden="true" />
+                    <ShoppingBag
+                      size={13}
+                      className="text-slate-400 dark:text-zinc-500"
+                      aria-hidden="true"
+                    />
                     <span>{number.format(selectedCustomer.total_orders)} orders</span>
                   </strong>
                 </div>
@@ -699,14 +829,22 @@ export function CustomersPage() {
                 <div className="drawer-kv-item">
                   <span className="drawer-kv-label">Account Created</span>
                   <strong className="drawer-kv-value flex items-center gap-1.5 text-xs text-slate-700 dark:text-zinc-300">
-                    <Calendar size={13} className="text-slate-400 dark:text-zinc-500" aria-hidden="true" />
+                    <Calendar
+                      size={13}
+                      className="text-slate-400 dark:text-zinc-500"
+                      aria-hidden="true"
+                    />
                     <span>{formatDateTime(selectedCustomer.created_at)}</span>
                   </strong>
                 </div>
                 <div className="drawer-kv-item">
                   <span className="drawer-kv-label">Last Active Login</span>
                   <strong className="drawer-kv-value flex items-center gap-1.5 text-xs text-slate-700 dark:text-zinc-300">
-                    <Clock size={13} className="text-slate-400 dark:text-zinc-500" aria-hidden="true" />
+                    <Clock
+                      size={13}
+                      className="text-slate-400 dark:text-zinc-500"
+                      aria-hidden="true"
+                    />
                     <span>{formatDateTime(selectedCustomer.last_login_at)}</span>
                   </strong>
                 </div>
@@ -722,7 +860,8 @@ export function CustomersPage() {
                 <h5>Privacy &amp; Credential Governance</h5>
                 <p>
                   Customer accounts are self-managed through the customer web and mobile apps.
-                  Passwords and payment instruments are never stored in plaintext or accessible in management tools.
+                  Passwords and payment instruments are never stored in plaintext or accessible in
+                  management tools.
                 </p>
               </div>
             </div>
@@ -737,5 +876,5 @@ export function CustomersPage() {
         ) : null}
       </Drawer>
     </div>
-  )
+  );
 }

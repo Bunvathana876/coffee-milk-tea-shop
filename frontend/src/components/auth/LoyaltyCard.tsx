@@ -26,7 +26,9 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ stamps }) => {
               <span>Café Punch Card</span>
               <Sparkles className="w-3.5 h-3.5 text-butter fill-butter" />
             </h4>
-            <p className="text-[11px] text-cream/90 font-medium">Buy 9 drinks, get the 10th FREE!</p>
+            <p className="text-[11px] text-cream/90 font-medium">
+              Buy 9 drinks, get the 10th FREE!
+            </p>
           </div>
         </div>
 
@@ -51,8 +53,8 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ stamps }) => {
                     ? 'bg-butter text-ink-dark border-butter-deep shadow-md scale-105'
                     : 'bg-butter/25 text-butter border-butter/50'
                   : isFreeDrinkSlot
-                  ? 'bg-white/5 border-butter/40 text-butter/60'
-                  : 'bg-white/5 border-white/10 text-white/40'
+                    ? 'bg-white/5 border-butter/40 text-butter/60'
+                    : 'bg-white/5 border-white/10 text-white/40'
               }`}
             >
               {isCompleted ? (
@@ -77,14 +79,16 @@ export const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ stamps }) => {
           <>
             <Gift className="w-4 h-4 text-butter shrink-0" />
             <span className="text-cream">
-              🎉 You have <strong className="text-white font-black">{freeDrinksEarned} FREE</strong> drink reward(s) ready to claim in-store at our café bar!
+              🎉 You have <strong className="text-white font-black">{freeDrinksEarned} FREE</strong>{' '}
+              drink reward(s) ready to claim in-store at our café bar!
             </span>
           </>
         ) : (
           <>
             <Sparkles className="w-4 h-4 text-butter shrink-0" />
             <span className="text-cream/90">
-              Only <strong className="text-butter font-bold">{drinksNeeded} more</strong> drink{drinksNeeded === 1 ? '' : 's'} until your free handcrafted beverage!
+              Only <strong className="text-butter font-bold">{drinksNeeded} more</strong> drink
+              {drinksNeeded === 1 ? '' : 's'} until your free handcrafted beverage!
             </span>
           </>
         )}

@@ -241,9 +241,7 @@ export function generateQrMatrix(text: string): boolean[][] {
   for (const ar of alignCoords) {
     for (const ac of alignCoords) {
       const onFinder =
-        (ar < 9 && ac < 9) ||
-        (ar < 9 && ac > size - 10) ||
-        (ar > size - 10 && ac < 9);
+        (ar < 9 && ac < 9) || (ar < 9 && ac > size - 10) || (ar > size - 10 && ac < 9);
       if (!onFinder) {
         for (let dr = -2; dr <= 2; dr++) {
           for (let dc = -2; dc <= 2; dc++) {

@@ -25,7 +25,11 @@ class ProductModel {
       id: json['id'] as int,
       name: json['name'] as String,
       categoryId: json['category_id'] as int,
-      categoryName: json['category_name'] as String? ?? (json['category'] != null ? json['category']['name'] as String? : null),
+      categoryName:
+          json['category_name'] as String? ??
+          (json['category'] != null
+              ? json['category']['name'] as String?
+              : null),
       description: json['description'] as String?,
       image: json['image'] as String?,
       basePriceUsd: (json['base_price_usd'] as num).toDouble(),

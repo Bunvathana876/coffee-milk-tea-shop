@@ -28,38 +28,50 @@ test.before(async () => {
   const port = server.address().port;
   baseUrl = `http://localhost:${port}`;
 
-  const adminRes = await dbQuery(`
+  const adminRes = await dbQuery(
+    `
     INSERT INTO staff_users (email, full_name, role, password_hash, is_active)
     VALUES ($1, $2, $3, $4, TRUE)
     RETURNING id
-  `, ['admin-store-test@brewboba.com', 'Admin Store User', 'admin', 'hash']);
+  `,
+    ['admin-store-test@brewboba.com', 'Admin Store User', 'admin', 'hash'],
+  );
   adminId = adminRes.rows[0].id;
   adminToken = createToken({ sub: adminId, role: 'admin' });
 
-  const staffRes = await dbQuery(`
+  const staffRes = await dbQuery(
+    `
     INSERT INTO staff_users (email, full_name, role, password_hash, is_active)
     VALUES ($1, $2, $3, $4, TRUE)
     RETURNING id
-  `, ['staff-store-test@brewboba.com', 'Staff Store User', 'staff', 'hash']);
+  `,
+    ['staff-store-test@brewboba.com', 'Staff Store User', 'staff', 'hash'],
+  );
   staffToken = createToken({ sub: staffRes.rows[0].id, role: 'staff' });
 
   customerToken = createToken({ sub: 888, role: 'customer' });
 
   // Seller A
-  const sellerARes = await dbQuery(`
+  const sellerARes = await dbQuery(
+    `
     INSERT INTO staff_users (email, full_name, role, password_hash, is_active)
     VALUES ($1, $2, $3, $4, TRUE)
     RETURNING id
-  `, ['seller-a@brewboba.com', 'Seller Alpha', 'seller', 'hash']);
+  `,
+    ['seller-a@brewboba.com', 'Seller Alpha', 'seller', 'hash'],
+  );
   sellerAId = sellerARes.rows[0].id;
   sellerAToken = createToken({ sub: sellerAId, role: 'seller', email: 'seller-a@brewboba.com' });
 
   // Seller B
-  const sellerBRes = await dbQuery(`
+  const sellerBRes = await dbQuery(
+    `
     INSERT INTO staff_users (email, full_name, role, password_hash, is_active)
     VALUES ($1, $2, $3, $4, TRUE)
     RETURNING id
-  `, ['seller-b@brewboba.com', 'Seller Beta', 'seller', 'hash']);
+  `,
+    ['seller-b@brewboba.com', 'Seller Beta', 'seller', 'hash'],
+  );
   sellerBId = sellerBRes.rows[0].id;
   sellerBToken = createToken({ sub: sellerBId, role: 'seller', email: 'seller-b@brewboba.com' });
 });
@@ -209,7 +221,11 @@ test('5. Unassigned seller cannot access store data (fails closed)', async () =>
     }),
   });
   const unassignedId = unassignedRes.data.id;
-  const unassignedToken = createToken({ sub: unassignedId, role: 'seller', email: 'unassigned-seller@brewboba.com' });
+  const unassignedToken = createToken({
+    sub: unassignedId,
+    role: 'seller',
+    email: 'unassigned-seller@brewboba.com',
+  });
 
   // Unassigned seller calls /api/seller/stores -> empty list
   const storesRes = await request('/api/seller/stores', {
@@ -237,31 +253,40 @@ test('6. Seller A can view their assigned store and store orders, but not Seller
   assert.equal(sellerAStoresRes.data.items[0].id, store1Id);
 
   // Seed order 1 for Store 1, and order 2 for Store 2, and order 3 with NULL store_id (historical)
-  const order1Res = await dbQuery(`
+  const order1Res = await dbQuery(
+    `
     INSERT INTO orders (
       order_number, customer_name, customer_phone, customer_email,
       subtotal_usd, total_usd, total_khr, payment_method, store_id, payment_status, order_status
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'cash', $8, 'paid', 'preparing')
     RETURNING id
-  `, ['ORD-STORE1-001', 'Dara Sok', '012345678', 'dara@example.test', 4.5, 4.5, 18450, store1Id]);
+  `,
+    ['ORD-STORE1-001', 'Dara Sok', '012345678', 'dara@example.test', 4.5, 4.5, 18450, store1Id],
+  );
   const order1Id = order1Res.rows[0].id;
 
-  const order2Res = await dbQuery(`
+  const order2Res = await dbQuery(
+    `
     INSERT INTO orders (
       order_number, customer_name, customer_phone, customer_email,
       subtotal_usd, total_usd, total_khr, payment_method, store_id, payment_status, order_status
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'cash', $8, 'paid', 'preparing')
     RETURNING id
-  `, ['ORD-STORE2-002', 'Vannak Lim', '098765432', 'vannak@example.test', 5.0, 5.0, 20500, store2Id]);
+  `,
+    ['ORD-STORE2-002', 'Vannak Lim', '098765432', 'vannak@example.test', 5.0, 5.0, 20500, store2Id],
+  );
   const order2Id = order2Res.rows[0].id;
 
-  const orderHistRes = await dbQuery(`
+  const orderHistRes = await dbQuery(
+    `
     INSERT INTO orders (
       order_number, customer_name, customer_phone, customer_email,
       subtotal_usd, total_usd, total_khr, payment_method, store_id, payment_status, order_status
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'cash', NULL, 'paid', 'completed')
     RETURNING id
-  `, ['ORD-HIST-003', 'Historical Cust', '011223344', null, 3.5, 3.5, 14350]);
+  `,
+    ['ORD-HIST-003', 'Historical Cust', '011223344', null, 3.5, 3.5, 14350],
+  );
   const orderHistId = orderHistRes.rows[0].id;
 
   // Seller A queries /api/seller/orders -> gets only Order 1
@@ -270,8 +295,14 @@ test('6. Seller A can view their assigned store and store orders, but not Seller
   });
   assert.equal(sellerAOrders.status, 200);
   assert.ok(sellerAOrders.data.items.some(o => o.id === order1Id));
-  assert.equal(sellerAOrders.data.items.some(o => o.id === order2Id), false);
-  assert.equal(sellerAOrders.data.items.some(o => o.id === orderHistId), false);
+  assert.equal(
+    sellerAOrders.data.items.some(o => o.id === order2Id),
+    false,
+  );
+  assert.equal(
+    sellerAOrders.data.items.some(o => o.id === orderHistId),
+    false,
+  );
 
   // Seller A tries to get Order 1 detail -> succeeds (200)
   const order1Detail = await request(`/api/seller/orders/${order1Id}`, {
@@ -346,7 +377,9 @@ test('9. Safety guard: Admin cannot delete a store with historical orders', asyn
 
 test('10. Security Protection: Cannot deactivate or demote the last active administrator', async () => {
   // Ensure adminId is the sole active administrator for this test
-  const adminsRes = await dbQuery("SELECT id FROM staff_users WHERE role = 'admin' AND is_active = TRUE");
+  const adminsRes = await dbQuery(
+    "SELECT id FROM staff_users WHERE role = 'admin' AND is_active = TRUE",
+  );
   for (const row of adminsRes.rows) {
     if (row.id !== adminId) {
       await dbQuery('UPDATE staff_users SET is_active = FALSE WHERE id = $1', [row.id]);

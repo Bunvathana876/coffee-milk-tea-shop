@@ -41,21 +41,22 @@ const THEMES: Record<'dark' | 'light', Record<string, string>> = {
     '--gn-frame-highlight': 'rgba(255, 255, 255, 0.08)',
     '--gn-frame-shadow': '0 22px 44px -20px rgba(0, 0, 0, 0.8), 0 6px 16px -8px rgba(0, 0, 0, 0.5)',
     '--gn-ink': '#FAF7F2',
-    '--gn-muted': 'rgba(250, 247, 242, 0.65)'
+    '--gn-muted': 'rgba(250, 247, 242, 0.65)',
   },
   light: {
     '--gn-frame': 'rgba(240, 240, 243, 0.8)',
     '--gn-frame-edge': 'rgba(24, 24, 27, 0.07)',
     '--gn-frame-highlight': 'rgba(255, 255, 255, 0.95)',
-    '--gn-frame-shadow': '0 22px 44px -22px rgba(24, 24, 27, 0.3), 0 6px 16px -10px rgba(24, 24, 27, 0.16)',
+    '--gn-frame-shadow':
+      '0 22px 44px -22px rgba(24, 24, 27, 0.3), 0 6px 16px -10px rgba(24, 24, 27, 0.16)',
     '--gn-ink': '#27272a',
-    '--gn-muted': 'rgba(39, 39, 42, 0.62)'
-  }
+    '--gn-muted': 'rgba(39, 39, 42, 0.62)',
+  },
 };
 
 const PILLS = {
   dark: { color: '#D97724', hover: 'rgba(255, 255, 255, 0.08)', shadow: 0.4 },
-  light: { color: '#27272a', hover: 'rgba(24, 24, 27, 0.06)', shadow: 0.2 }
+  light: { color: '#27272a', hover: 'rgba(24, 24, 27, 0.06)', shadow: 0.2 },
 };
 
 const SIZES = { sm: 'gooey-nav--sm', md: 'gooey-nav--md', lg: 'gooey-nav--lg' };
@@ -64,7 +65,7 @@ const DEFAULT_ITEMS: GooeyNavItem[] = [
   { label: 'Home', href: '#' },
   { label: 'Work', href: '#' },
   { label: 'About', href: '#' },
-  { label: 'Contact', href: '#' }
+  { label: 'Contact', href: '#' },
 ];
 
 const MAX_DROPS = 32;
@@ -213,7 +214,7 @@ const UNIFORMS = [
   'uSmooth',
   'uPill',
   'uHoverColor',
-  'uShadow'
+  'uShadow',
 ];
 
 interface Pipeline {
@@ -236,7 +237,9 @@ const build = (gl: WebGL2RenderingContext): Pipeline | null => {
     gl.deleteProgram(program);
     return null;
   }
-  const uniforms = Object.fromEntries(UNIFORMS.map(name => [name, gl.getUniformLocation(program, name)]));
+  const uniforms = Object.fromEntries(
+    UNIFORMS.map(name => [name, gl.getUniformLocation(program, name)]),
+  );
   const buffer = gl.createBuffer();
   if (!buffer) return null;
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -263,7 +266,7 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
   wobble = 0.5,
   hoverEffect = true,
   className = '',
-  style
+  style,
 }) => {
   const [innerIndex, setInnerIndex] = useState(initialActiveIndex);
   const current = Math.min(Math.max(0, activeIndex ?? innerIndex), Math.max(0, items.length - 1));
@@ -289,7 +292,7 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
     pillRgb,
     tints: colors.map(parse),
     hoverRgb: parse(PILLS[palette].hover),
-    shadow: PILLS[palette].shadow
+    shadow: PILLS[palette].shadow,
   };
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -308,8 +311,14 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
     const fallback = fallbackRef.current;
     if (!stage || !canvas || !list || !overlay || !fallback) return;
 
-    const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false });
+    const reduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const gl = canvas.getContext('webgl2', {
+      alpha: true,
+      premultipliedAlpha: true,
+      antialias: false,
+    });
     const pipeline = gl ? build(gl) : null;
     fallback.style.display = pipeline ? 'none' : 'block';
     canvas.style.display = pipeline ? 'block' : 'none';
@@ -317,7 +326,10 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
     const view = { width: 0, height: 0 };
     let rects: { x: number; y: number; w: number; h: number }[] = [];
     let target = -1;
-    const pills = new Map<number, { mass: number; scale: number; velocity: number; outgoing: number }>();
+    const pills = new Map<
+      number,
+      { mass: number; scale: number; velocity: number; outgoing: number }
+    >();
     const drops: Array<{
       x: number;
       y: number;
@@ -357,7 +369,7 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
         left: `${-MARGIN}px`,
         top: `${-MARGIN}px`,
         width: `${outerWidth}px`,
-        height: `${outerHeight}px`
+        height: `${outerHeight}px`,
       });
       const width = Math.max(1, Math.round(outerWidth * ratio));
       const height = Math.max(1, Math.round(outerHeight * ratio));
@@ -374,7 +386,7 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
     const trace = (
       boxes: { cx: number; cy: number; hw: number; hh: number }[],
       blobs: { x: number; y: number; r: number; tx: number; ty: number }[],
-      smooth: number
+      smooth: number,
     ) => {
       const field = (x: number, y: number) => {
         let d = 1e5;
@@ -409,16 +421,19 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
         let start: number | null = previous < 0 ? 0 : null;
         for (let x = step; x <= view.width + step; x += step) {
           const value = field(Math.min(x, view.width), cy);
-          if ((previous < 0) !== (value < 0)) {
+          if (previous < 0 !== value < 0) {
             const cross = x - step + (step * previous) / (previous - value);
             if (value < 0) start = cross;
             else if (start !== null) {
-              parts.push(`M${start.toFixed(1)},${y}H${cross.toFixed(1)}V${y + 1}H${start.toFixed(1)}Z`);
+              parts.push(
+                `M${start.toFixed(1)},${y}H${cross.toFixed(1)}V${y + 1}H${start.toFixed(1)}Z`,
+              );
               start = null;
             }
           }
         }
-        if (start !== null) parts.push(`M${start.toFixed(1)},${y}H${view.width}V${y + 1}H${start.toFixed(1)}Z`);
+        if (start !== null)
+          parts.push(`M${start.toFixed(1)},${y}H${view.width}V${y + 1}H${start.toFixed(1)}Z`);
       }
       return parts.join('');
     };
@@ -436,7 +451,7 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
       return { x: rect.x + rect.w / 2 - w / 2, y: rect.y + rect.h / 2 - h / 2, w, h };
     };
 
-    const plan = (drop: typeof drops[0], index: number, now: number, fresh: boolean) => {
+    const plan = (drop: (typeof drops)[0], index: number, now: number, fresh: boolean) => {
       const s = settingsRef.current;
       const rect = rects[index];
       if (!rect) return;
@@ -462,7 +477,7 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
         ex + Math.cos(into) * swing * 1.5,
         ey + Math.sin(into) * swing * 1.5,
         ex,
-        ey
+        ey,
       ];
     };
 
@@ -474,7 +489,10 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
       const available = source.mass - source.outgoing;
       if (available <= 0.002) return;
       const room = MAX_DROPS - drops.length;
-      const count = Math.min(room, Math.max(1, Math.round(Math.max(1, s.particleCount) * available)));
+      const count = Math.min(
+        room,
+        Math.max(1, Math.round(Math.max(1, s.particleCount) * available)),
+      );
       if (count <= 0) return;
       const windowTime = Math.max(0.15, s.animationTime / 1000) * 0.16;
       for (let i = 0; i < count; i++) {
@@ -494,7 +512,7 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
           emerged: 0,
           absorbed: 0,
           state: 'waiting',
-          tint: s.tints.length ? s.tints[Math.floor(Math.random() * s.tints.length)] : null
+          tint: s.tints.length ? s.tints[Math.floor(Math.random() * s.tints.length)] : null,
         });
       }
     };
@@ -504,10 +522,23 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
       const height = rects[target]?.h ?? rects[0]?.h ?? 36;
       const smooth = height * (0.18 + 0.5 * clamp01(s.gooeyness));
       const boxes: { cx: number; cy: number; hw: number; hh: number }[] = [];
-      const blobs: { x: number; y: number; r: number; tx: number; ty: number; tint: [number, number, number, number] | null }[] = [];
+      const blobs: {
+        x: number;
+        y: number;
+        r: number;
+        tx: number;
+        ty: number;
+        tint: [number, number, number, number] | null;
+      }[] = [];
       for (const [index, state] of pills) {
         const box = shape(index, state.scale);
-        if (box) boxes.push({ cx: box.x + box.w / 2, cy: box.y + box.h / 2, hw: box.w / 2, hh: box.h / 2 });
+        if (box)
+          boxes.push({
+            cx: box.x + box.w / 2,
+            cy: box.y + box.h / 2,
+            hw: box.w / 2,
+            hh: box.h / 2,
+          });
       }
       for (const drop of drops) {
         if (drop.state === 'waiting') continue;
@@ -521,7 +552,7 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
           r: radius,
           tx: speed > 0.01 ? (drop.vx / speed) * length : 0,
           ty: speed > 0.01 ? (drop.vy / speed) * length : 0,
-          tint: drop.tint
+          tint: drop.tint,
         });
       }
 
@@ -589,7 +620,13 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
       gl.uniform1i(uniforms.uCount, count);
       gl.uniform1f(uniforms.uSmooth, smooth);
       gl.uniform3f(uniforms.uPill, s.pillRgb[0], s.pillRgb[1], s.pillRgb[2]);
-      gl.uniform4f(uniforms.uHoverColor, s.hoverRgb[0], s.hoverRgb[1], s.hoverRgb[2], s.hoverRgb[3] * hover.alpha);
+      gl.uniform4f(
+        uniforms.uHoverColor,
+        s.hoverRgb[0],
+        s.hoverRgb[1],
+        s.hoverRgb[2],
+        s.hoverRgb[3] * hover.alpha,
+      );
       gl.uniform1f(uniforms.uShadow, s.shadow);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
@@ -648,10 +685,16 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
       const h = dt / steps;
       for (const [index, state] of pills) {
         for (let n = 0; n < steps; n++) {
-          state.velocity += (omega * omega * (state.mass - state.scale) - 2 * zeta * omega * state.velocity) * h;
+          state.velocity +=
+            (omega * omega * (state.mass - state.scale) - 2 * zeta * omega * state.velocity) * h;
           state.scale += state.velocity * h;
         }
-        if (index !== target && state.mass <= 0.002 && state.outgoing <= 0.002 && Math.abs(state.scale) < 0.004) {
+        if (
+          index !== target &&
+          state.mass <= 0.002 &&
+          state.outgoing <= 0.002 &&
+          Math.abs(state.scale) < 0.004
+        ) {
           pills.delete(index);
         }
       }
@@ -679,7 +722,9 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
       const hoverRect = rects[hover.index];
       const hovering =
         Math.abs(hoverGoal - hover.alpha) > 0.003 ||
-        (hoverRect && Math.abs(hoverRect.x + hoverRect.w / 2 - hover.x) + Math.abs(hoverRect.w - hover.w) > 0.1);
+        (hoverRect &&
+          Math.abs(hoverRect.x + hoverRect.w / 2 - hover.x) + Math.abs(hoverRect.w - hover.w) >
+            0.1);
       if (!resting || hovering) raf = requestAnimationFrame(frame);
       else {
         host.mass = 1;
@@ -778,7 +823,7 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
       refresh: () => {
         render();
         wake();
-      }
+      },
     };
 
     return () => {
@@ -822,12 +867,14 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
       }
       const shared = {
         className: 'gooey-nav__link',
-        'aria-current': (index === current ? 'page' : undefined) as React.AriaAttributes['aria-current'],
+        'aria-current': (index === current
+          ? 'page'
+          : undefined) as React.AriaAttributes['aria-current'],
         onClick: (event: React.MouseEvent) => {
           event.preventDefault();
           item.onClick?.();
           select(index);
-        }
+        },
       };
       return (
         <li
@@ -852,7 +899,14 @@ export const GooeyNav: React.FC<GooeyNavProps> = ({
   return (
     <nav
       className={`gooey-nav ${SIZES[size] ?? SIZES.md}${frame ? ' gooey-nav--framed' : ''} ${className}`.trim()}
-      style={{ ...THEMES[palette], '--gn-pill': pillColor, '--gn-active-ink': textColor, ...style } as React.CSSProperties}
+      style={
+        {
+          ...THEMES[palette],
+          '--gn-pill': pillColor,
+          '--gn-active-ink': textColor,
+          ...style,
+        } as React.CSSProperties
+      }
     >
       {frame && <span className="gooey-nav__rim" />}
       <div ref={stageRef} className="gooey-nav__stage">

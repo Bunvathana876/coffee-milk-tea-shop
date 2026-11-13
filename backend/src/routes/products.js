@@ -71,7 +71,8 @@ router.get('/:id', async (req, res, next) => {
       return res.status(400).json({ detail: 'Invalid product ID' });
     }
 
-    const result = await dbQuery(`
+    const result = await dbQuery(
+      `
       SELECT
         p.id, p.category_id, p.name, p.description, p.image,
         p.base_price_usd, p.is_available, p.created_at,
@@ -79,7 +80,9 @@ router.get('/:id', async (req, res, next) => {
       FROM products p
       JOIN categories c ON p.category_id = c.id
       WHERE p.id = $1
-    `, [productId]);
+    `,
+      [productId],
+    );
 
     const product = result.rows[0];
     if (!product) {

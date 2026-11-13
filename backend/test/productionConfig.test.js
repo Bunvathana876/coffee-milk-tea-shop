@@ -69,7 +69,8 @@ test('local development keeps its existing configuration defaults', () => {
 
 test('production mode cannot opt into the isolated test database', () => {
   assert.throws(
-    () => validateProductionConfig(validProductionEnv({ NODE_ENV: 'test', ENVIRONMENT: 'production' })),
+    () =>
+      validateProductionConfig(validProductionEnv({ NODE_ENV: 'test', ENVIRONMENT: 'production' })),
     /NODE_ENV=test cannot be combined with production/,
   );
 });

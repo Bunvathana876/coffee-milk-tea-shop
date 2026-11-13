@@ -31,7 +31,9 @@ class CartScreen extends StatelessWidget {
                   context: context,
                   builder: (ctx) => AlertDialog(
                     title: const Text('Clear Order Bag?'),
-                    content: const Text('Are you sure you want to remove all drinks from your bag?'),
+                    content: const Text(
+                      'Are you sure you want to remove all drinks from your bag?',
+                    ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx),
@@ -42,7 +44,10 @@ class CartScreen extends StatelessWidget {
                           cart.clear();
                           Navigator.pop(ctx);
                         },
-                        child: const Text('Clear All', style: TextStyle(color: AppColors.statusCancelled)),
+                        child: const Text(
+                          'Clear All',
+                          style: TextStyle(color: AppColors.statusCancelled),
+                        ),
                       ),
                     ],
                   ),
@@ -50,7 +55,10 @@ class CartScreen extends StatelessWidget {
               },
               child: const Text(
                 'Clear',
-                style: TextStyle(color: AppColors.statusCancelled, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: AppColors.statusCancelled,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
         ],
@@ -59,7 +67,8 @@ class CartScreen extends StatelessWidget {
           ? EmptyState(
               icon: Icons.shopping_bag_outlined,
               title: 'Your bag is empty',
-              description: 'Looks like you haven\'t added any delicious coffees or milk teas yet!',
+              description:
+                  'Looks like you haven\'t added any delicious coffees or milk teas yet!',
               actionLabel: 'Explore Menu',
               onAction: onExploreMenu,
             )
@@ -73,8 +82,10 @@ class CartScreen extends StatelessWidget {
                       final item = cart.items[index];
                       return CartItemTile(
                         item: item,
-                        onIncrement: () => cart.updateQuantity(item.id, item.quantity + 1),
-                        onDecrement: () => cart.updateQuantity(item.id, item.quantity - 1),
+                        onIncrement: () =>
+                            cart.updateQuantity(item.id, item.quantity + 1),
+                        onDecrement: () =>
+                            cart.updateQuantity(item.id, item.quantity - 1),
                         onRemove: () => cart.removeItem(item.id),
                       );
                     },
@@ -123,14 +134,20 @@ class CartScreen extends StatelessWidget {
                           ),
                           Text(
                             CurrencyFormatter.formatKhr(cart.subtotalUsd),
-                            style: AppTypography.priceSmall.copyWith(fontSize: 14),
+                            style: AppTypography.priceSmall.copyWith(
+                              fontSize: 14,
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 14),
                       CustomButton(
                         text: 'Proceed to Checkout',
-                        icon: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                        icon: const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                         onPressed: () => CheckoutSheet.show(context),
                       ),
                     ],

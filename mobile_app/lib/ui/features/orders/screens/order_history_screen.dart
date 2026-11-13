@@ -60,7 +60,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
 
     final reorderedItems = <CartItemModel>[];
     for (final item in order.items) {
-      final product = shop.products.where((p) => p.id == item.productId).firstOrNull;
+      final product = shop.products
+          .where((p) => p.id == item.productId)
+          .firstOrNull;
       if (product == null || !product.isAvailable) continue;
 
       final toppingsList = item.toppings
@@ -82,16 +84,22 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     }
 
     if (reorderedItems.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('These drinks are no longer available in the current menu.'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'These drinks are no longer available in the current menu.',
+          ),
+        ),
+      );
       return;
     }
     cart.addItems(reorderedItems);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Added ${reorderedItems.length} items from ${order.orderNumber} to bag!'),
+        content: Text(
+          'Added ${reorderedItems.length} items from ${order.orderNumber} to bag!',
+        ),
         backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
       ),
@@ -110,14 +118,16 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (!user.hasServerSession) {
-      return const Scaffold(body: Center(child: Text('Sign in to the café server to view confirmed orders.')));
+      return const Scaffold(
+        body: Center(
+          child: Text('Sign in to the café server to view confirmed orders.'),
+        ),
+      );
     }
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('My Orders'),
-      ),
+      appBar: AppBar(title: const Text('My Orders')),
       body: Column(
         children: [
           // Search / Lookup Bar
@@ -130,7 +140,10 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                     controller: _lookupController,
                     decoration: InputDecoration(
                       hintText: 'Phone or order ref (ORD- / CAF-)',
-                      prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: AppColors.textSecondary,
+                      ),
                       suffixIcon: _lookupController.text.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.clear, size: 18),
@@ -140,7 +153,10 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                               },
                             )
                           : null,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                     onSubmitted: (_) => _performLookup(),
                   ),
@@ -150,10 +166,16 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                   onPressed: _performLookup,
                   style: IconButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                     padding: const EdgeInsets.all(14),
                   ),
-                  icon: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                  icon: const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
               ],
             ),
@@ -161,56 +183,65 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
 
           const Padding(
             padding: EdgeInsets.fromLTRB(20, 0, 20, 10),
-            child: Text('Only orders verified by the café server appear here. Offline previews stay in your cart.',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            child: Text(
+              'Only orders verified by the café server appear here. Offline previews stay in your cart.',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
           ),
 
           // Orders List
           if (orderProvider.errorMessage != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(orderProvider.errorMessage!, style: const TextStyle(color: AppColors.statusCancelled)),
+              child: Text(
+                orderProvider.errorMessage!,
+                style: const TextStyle(color: AppColors.statusCancelled),
+              ),
             ),
           Expanded(
             child: orderProvider.isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
                 : orderProvider.recentOrders.isEmpty
-                    ? EmptyState(
-                        icon: Icons.receipt_long_outlined,
-                        title: 'No orders found',
-                        description: 'No confirmed server orders match this view or lookup.',
-                        actionLabel: 'Order Drinks Now',
-                        onAction: widget.onExploreMenu,
-                      )
-                    : RefreshIndicator(
-                        onRefresh: () async {
-                          if (_lookupController.text.isNotEmpty) {
-                            await _performLookup();
-                          } else {
-                            await orderProvider.loadMyOrders();
-                          }
-                        },
-                        color: AppColors.primary,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                          itemCount: orderProvider.recentOrders.length,
-                          itemBuilder: (context, index) {
-                            final order = orderProvider.recentOrders[index];
-                            return OrderCard(
-                              order: order,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => OrderTrackingScreen(order: order),
-                                  ),
-                                );
-                              },
-                              onReorder: () => _handleReorder(order),
+                ? EmptyState(
+                    icon: Icons.receipt_long_outlined,
+                    title: 'No orders found',
+                    description:
+                        'No confirmed server orders match this view or lookup.',
+                    actionLabel: 'Order Drinks Now',
+                    onAction: widget.onExploreMenu,
+                  )
+                : RefreshIndicator(
+                    onRefresh: () async {
+                      if (_lookupController.text.isNotEmpty) {
+                        await _performLookup();
+                      } else {
+                        await orderProvider.loadMyOrders();
+                      }
+                    },
+                    color: AppColors.primary,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      itemCount: orderProvider.recentOrders.length,
+                      itemBuilder: (context, index) {
+                        final order = orderProvider.recentOrders[index];
+                        return OrderCard(
+                          order: order,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    OrderTrackingScreen(order: order),
+                              ),
                             );
                           },
-                        ),
-                      ),
+                          onReorder: () => _handleReorder(order),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),

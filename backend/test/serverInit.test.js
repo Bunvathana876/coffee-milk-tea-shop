@@ -9,25 +9,49 @@ process.env.DATABASE_URL = 'postgresql://127.0.0.1:1/isolated';
 test('Application server module imports all route files successfully without ERR_MODULE_NOT_FOUND', async () => {
   // Test direct module imports for all newly added and existing routes
   const adminCustomers = await import('../src/routes/admin/customers.js');
-  assert.equal(typeof adminCustomers.default, 'function', 'admin/customers must export an Express router');
+  assert.equal(
+    typeof adminCustomers.default,
+    'function',
+    'admin/customers must export an Express router',
+  );
 
   const adminSellers = await import('../src/routes/admin/sellers.js');
-  assert.equal(typeof adminSellers.default, 'function', 'admin/sellers must export an Express router');
+  assert.equal(
+    typeof adminSellers.default,
+    'function',
+    'admin/sellers must export an Express router',
+  );
 
   const adminStores = await import('../src/routes/admin/stores.js');
-  assert.equal(typeof adminStores.default, 'function', 'admin/stores must export an Express router');
+  assert.equal(
+    typeof adminStores.default,
+    'function',
+    'admin/stores must export an Express router',
+  );
 
   const sellerAuth = await import('../src/routes/seller/auth.js');
   assert.equal(typeof sellerAuth.default, 'function', 'seller/auth must export an Express router');
 
   const sellerStores = await import('../src/routes/seller/stores.js');
-  assert.equal(typeof sellerStores.default, 'function', 'seller/stores must export an Express router');
+  assert.equal(
+    typeof sellerStores.default,
+    'function',
+    'seller/stores must export an Express router',
+  );
 
   const sellerOrders = await import('../src/routes/seller/orders.js');
-  assert.equal(typeof sellerOrders.default, 'function', 'seller/orders must export an Express router');
+  assert.equal(
+    typeof sellerOrders.default,
+    'function',
+    'seller/orders must export an Express router',
+  );
 
   const auditModule = await import('../src/middleware/audit.js');
-  assert.equal(typeof auditModule.logSecurityEvent, 'function', 'audit must export logSecurityEvent');
+  assert.equal(
+    typeof auditModule.logSecurityEvent,
+    'function',
+    'audit must export logSecurityEvent',
+  );
 });
 
 test('Application server starts up, initializes router stack, and responds to HTTP requests', async () => {
@@ -51,6 +75,6 @@ test('Application server starts up, initializes router stack, and responds to HT
     const healthData = await healthRes.json();
     assert.equal(healthData.status, 'healthy');
   } finally {
-    await new Promise((resolve) => server.close(resolve));
+    await new Promise(resolve => server.close(resolve));
   }
 });

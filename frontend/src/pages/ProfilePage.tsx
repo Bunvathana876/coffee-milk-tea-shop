@@ -116,7 +116,8 @@ export const ProfilePage: React.FC = () => {
               </h1>
               <p className="text-white/85 text-sm sm:text-base leading-relaxed">
                 Join <strong className="text-butter">The Brew Club™</strong> to track your digital
-                loyalty stamps, unlock complimentary drinks, save taste preferences, and check out with 1-tap ease.
+                loyalty stamps, unlock complimentary drinks, save taste preferences, and check out
+                with 1-tap ease.
               </p>
             </div>
 
@@ -156,7 +157,8 @@ export const ProfilePage: React.FC = () => {
               </div>
               <h3 className="font-serif font-black text-lg text-ink">Free Drink Stamp Pass</h3>
               <p className="text-xs sm:text-sm text-ink-soft leading-relaxed">
-                Earn 1 digital stamp for every signature drink. Get a free beverage of your choice after every 10 stamps.
+                Earn 1 digital stamp for every signature drink. Get a free beverage of your choice
+                after every 10 stamps.
               </p>
             </div>
 
@@ -166,7 +168,8 @@ export const ProfilePage: React.FC = () => {
               </div>
               <h3 className="font-serif font-black text-lg text-ink">Personalized Taste</h3>
               <p className="text-xs sm:text-sm text-ink-soft leading-relaxed">
-                Save your favorite sweetness, ice level, and oat milk preferences for automated 1-click orders.
+                Save your favorite sweetness, ice level, and oat milk preferences for automated
+                1-click orders.
               </p>
             </div>
 
@@ -176,7 +179,8 @@ export const ProfilePage: React.FC = () => {
               </div>
               <h3 className="font-serif font-black text-lg text-ink">Express Pick-Up</h3>
               <p className="text-xs sm:text-sm text-ink-soft leading-relaxed">
-                Order ahead from your device to skip the counter queue and pick up fresh handcrafted cups immediately.
+                Order ahead from your device to skip the counter queue and pick up fresh handcrafted
+                cups immediately.
               </p>
             </div>
           </div>
@@ -279,7 +283,10 @@ export const ProfilePage: React.FC = () => {
           </div>
 
           {editError && (
-            <div role="alert" className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+            <div
+              role="alert"
+              className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold"
+            >
               {editError}
             </div>
           )}
@@ -293,7 +300,7 @@ export const ProfilePage: React.FC = () => {
                 id="editName"
                 type="text"
                 value={editName}
-                onChange={(e) => setEditName(e.target.value)}
+                onChange={e => setEditName(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-line bg-cream font-sans text-xs font-medium focus:border-cobalt outline-none"
               />
             </div>
@@ -306,7 +313,7 @@ export const ProfilePage: React.FC = () => {
                 id="editEmail"
                 type="email"
                 value={editEmail}
-                onChange={(e) => setEditEmail(e.target.value)}
+                onChange={e => setEditEmail(e.target.value)}
                 placeholder="name@example.com"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-line bg-cream font-sans text-xs font-medium focus:border-cobalt outline-none"
               />
@@ -428,7 +435,9 @@ export const ProfilePage: React.FC = () => {
                   <div className="font-black text-sm text-ink group-hover:text-cobalt transition-colors">
                     Order History
                   </div>
-                  <div className="text-[11px] text-ink-soft">View past receipts &amp; live status</div>
+                  <div className="text-[11px] text-ink-soft">
+                    View past receipts &amp; live status
+                  </div>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-ink-soft group-hover:translate-x-0.5 transition-transform" />
@@ -463,7 +472,8 @@ export const ProfilePage: React.FC = () => {
 
           <div className="account-card space-y-4">
             <p className="text-xs text-ink-soft leading-relaxed">
-              Saved on this device for your quick reference. Individual drink recipes (size, sweetness, ice, and toppings) are tailored per item in the drink menu modal.
+              Saved on this device for your quick reference. Individual drink recipes (size,
+              sweetness, ice, and toppings) are tailored per item in the drink menu modal.
             </p>
 
             {/* Sweetness */}
@@ -474,7 +484,7 @@ export const ProfilePage: React.FC = () => {
               </label>
               <select
                 value={sweetness}
-                onChange={(e) => setSweetness(e.target.value)}
+                onChange={e => setSweetness(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-cream border border-line text-xs font-bold text-ink focus:border-cobalt outline-none cursor-pointer"
               >
                 <option value="100% Full Sweet">100% Full Sweet</option>
@@ -493,7 +503,7 @@ export const ProfilePage: React.FC = () => {
               </label>
               <select
                 value={iceLevel}
-                onChange={(e) => setIceLevel(e.target.value)}
+                onChange={e => setIceLevel(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-cream border border-line text-xs font-bold text-ink focus:border-cobalt outline-none cursor-pointer"
               >
                 <option value="Regular Ice">Regular Ice (Chilled)</option>
@@ -511,7 +521,7 @@ export const ProfilePage: React.FC = () => {
               </label>
               <select
                 value={milkPref}
-                onChange={(e) => setMilkPref(e.target.value)}
+                onChange={e => setMilkPref(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-cream border border-line text-xs font-bold text-ink focus:border-cobalt outline-none cursor-pointer"
               >
                 <option value="Barista Oat Milk">Barista Oat Milk (Creamy &amp; Nutty)</option>

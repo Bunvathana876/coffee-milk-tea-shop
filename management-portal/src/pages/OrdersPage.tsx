@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   Banknote,
   CheckCircle2,
@@ -7,12 +7,12 @@ import {
   RotateCcw,
   Search,
   ShoppingBag,
-} from 'lucide-react'
-import { useSearchParams } from 'react-router-dom'
-import { useAuth } from '../auth/authContext'
-import { ConfirmAction } from '../components/ConfirmAction'
-import { Drawer } from '../components/Drawer'
-import { EmptyState, ErrorState, LoadingState } from '../components/States'
+} from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '../auth/authContext';
+import { ConfirmAction } from '../components/ConfirmAction';
+import { Drawer } from '../components/Drawer';
+import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import {
   getOrder,
   getOrders,
@@ -21,7 +21,7 @@ import {
   type AdminOrder,
   type OrderList,
   type OrderStatus,
-} from '../lib/api'
+} from '../lib/api';
 
 const statuses: (OrderStatus | 'all')[] = [
   'all',
@@ -30,7 +30,7 @@ const statuses: (OrderStatus | 'all')[] = [
   'ready',
   'completed',
   'cancelled',
-]
+];
 
 const transitions: Record<OrderStatus, OrderStatus[]> = {
   pending: ['preparing', 'cancelled'],
@@ -38,184 +38,183 @@ const transitions: Record<OrderStatus, OrderStatus[]> = {
   ready: ['completed', 'cancelled'],
   completed: [],
   cancelled: [],
-}
+};
 
-const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-const khr = new Intl.NumberFormat('en-US', { style: 'decimal', maximumFractionDigits: 0 })
+const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+const khr = new Intl.NumberFormat('en-US', { style: 'decimal', maximumFractionDigits: 0 });
 
-import {
-  getOrderStatusBadge,
-  getPaymentStatusBadge,
-} from '../lib/orderStatus'
+import { getOrderStatusBadge, getPaymentStatusBadge } from '../lib/orderStatus';
 
-export { getOrderStatusBadge, getPaymentStatusBadge }
+export { getOrderStatusBadge, getPaymentStatusBadge };
 
 export function OrdersPage() {
-  const { token } = useAuth()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const statusParam = searchParams.get('status')?.toLowerCase()
+  const { token } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusParam = searchParams.get('status')?.toLowerCase();
   const initialStatus: OrderStatus | 'all' =
     statusParam && statuses.includes(statusParam as OrderStatus | 'all')
       ? (statusParam as OrderStatus | 'all')
-      : 'all'
+      : 'all';
 
-  const [status, setStatus] = useState<OrderStatus | 'all'>(initialStatus)
-  const [offset, setOffset] = useState(0)
-  const [revision, setRevision] = useState(0)
-  const [list, setList] = useState<OrderList | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [status, setStatus] = useState<OrderStatus | 'all'>(initialStatus);
+  const [offset, setOffset] = useState(0);
+  const [revision, setRevision] = useState(0);
+  const [list, setList] = useState<OrderList | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   // Sync state when URL search parameter changes
   useEffect(() => {
-    const param = searchParams.get('status')?.toLowerCase()
+    const param = searchParams.get('status')?.toLowerCase();
     if (param && statuses.includes(param as OrderStatus | 'all')) {
       if (param !== status) {
-        setStatus(param as OrderStatus | 'all')
-        setOffset(0)
-        setLoading(true)
-        setError('')
+        setStatus(param as OrderStatus | 'all');
+        setOffset(0);
+        setLoading(true);
+        setError('');
       }
     } else if (!param && status !== 'all') {
-      setStatus('all')
-      setOffset(0)
-      setLoading(true)
-      setError('')
+      setStatus('all');
+      setOffset(0);
+      setLoading(true);
+      setError('');
     }
-  }, [searchParams])
+  }, [searchParams]);
 
   function handleSelectStatus(value: OrderStatus | 'all') {
-    setStatus(value)
-    setOffset(0)
-    setLoading(true)
-    setError('')
+    setStatus(value);
+    setOffset(0);
+    setLoading(true);
+    setError('');
     if (value === 'all') {
-      setSearchParams({}, { replace: true })
+      setSearchParams({}, { replace: true });
     } else {
-      setSearchParams({ status: value }, { replace: true })
+      setSearchParams({ status: value }, { replace: true });
     }
   }
 
   // Search on currently loaded page
-  const [localSearch, setLocalSearch] = useState('')
+  const [localSearch, setLocalSearch] = useState('');
 
   // Selected order details drawer
-  const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [selected, setSelected] = useState<AdminOrder | null>(null)
-  const [detailLoading, setDetailLoading] = useState(false)
-  const [detailError, setDetailError] = useState('')
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selected, setSelected] = useState<AdminOrder | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState('');
 
   // Consequential action confirmation
-  const [confirmStatus, setConfirmStatus] = useState<OrderStatus | null>(null)
-  const [confirmCash, setConfirmCash] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [receiptReference, setReceiptReference] = useState('')
+  const [confirmStatus, setConfirmStatus] = useState<OrderStatus | null>(null);
+  const [confirmCash, setConfirmCash] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [receiptReference, setReceiptReference] = useState('');
 
   useEffect(() => {
-    if (!token) return
-    let active = true
+    if (!token) return;
+    let active = true;
     getOrders(token, status, offset)
       .then(data => {
         if (active) {
-          setList(data)
-          setLoading(false)
+          setList(data);
+          setLoading(false);
         }
       })
       .catch(cause => {
         if (active) {
-          setError(cause instanceof Error ? cause.message : 'Orders are unavailable.')
-          setLoading(false)
+          setError(cause instanceof Error ? cause.message : 'Orders are unavailable.');
+          setLoading(false);
         }
-      })
+      });
     return () => {
-      active = false
-    }
-  }, [token, status, offset, revision])
+      active = false;
+    };
+  }, [token, status, offset, revision]);
 
   function reload() {
-    setError('')
-    setLoading(true)
-    setRevision(value => value + 1)
+    setError('');
+    setLoading(true);
+    setRevision(value => value + 1);
   }
 
   async function openOrder(id: number) {
-    if (!token) return
-    setSelectedId(id)
-    setDetailLoading(true)
-    setDetailError('')
-    setSelected(null)
-    setReceiptReference('')
+    if (!token) return;
+    setSelectedId(id);
+    setDetailLoading(true);
+    setDetailError('');
+    setSelected(null);
+    setReceiptReference('');
     try {
-      const order = await getOrder(token, id)
-      setSelected(order)
+      const order = await getOrder(token, id);
+      setSelected(order);
     } catch (cause) {
-      setDetailError(cause instanceof Error ? cause.message : 'Order details are unavailable.')
+      setDetailError(cause instanceof Error ? cause.message : 'Order details are unavailable.');
     } finally {
-      setDetailLoading(false)
+      setDetailLoading(false);
     }
   }
 
   function closeDetails() {
-    setSelectedId(null)
-    setSelected(null)
-    setDetailError('')
-    setConfirmStatus(null)
-    setConfirmCash(false)
+    setSelectedId(null);
+    setSelected(null);
+    setDetailError('');
+    setConfirmStatus(null);
+    setConfirmCash(false);
   }
 
   async function handleStatusChange() {
-    if (!token || !selected || !confirmStatus) return
-    setBusy(true)
-    setDetailError('')
+    if (!token || !selected || !confirmStatus) return;
+    setBusy(true);
+    setDetailError('');
     try {
-      const updated = await updateOrderStatus(token, selected.id, confirmStatus)
-      setSelected(updated)
-      setConfirmStatus(null)
-      reload()
+      const updated = await updateOrderStatus(token, selected.id, confirmStatus);
+      setSelected(updated);
+      setConfirmStatus(null);
+      reload();
     } catch (cause) {
-      setDetailError(cause instanceof Error ? cause.message : 'Could not update order status.')
-      setConfirmStatus(null)
+      setDetailError(cause instanceof Error ? cause.message : 'Could not update order status.');
+      setConfirmStatus(null);
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
   }
 
   async function handleRecordCashSubmit(event: FormEvent) {
-    event.preventDefault()
-    if (!token || !selected || busy || !receiptReference.trim()) return
-    setConfirmCash(true)
+    event.preventDefault();
+    if (!token || !selected || busy || !receiptReference.trim()) return;
+    setConfirmCash(true);
   }
 
   async function executeCashSettlement() {
-    if (!token || !selected || busy || !receiptReference.trim()) return
-    setBusy(true)
+    if (!token || !selected || busy || !receiptReference.trim()) return;
+    setBusy(true);
     try {
-      await settleCash(token, selected.id, receiptReference.trim())
-      const refreshed = await getOrder(token, selected.id)
-      setSelected(refreshed)
-      setReceiptReference('')
-      setConfirmCash(false)
-      reload()
+      await settleCash(token, selected.id, receiptReference.trim());
+      const refreshed = await getOrder(token, selected.id);
+      setSelected(refreshed);
+      setReceiptReference('');
+      setConfirmCash(false);
+      reload();
     } catch (cause) {
-      setDetailError(cause instanceof Error ? cause.message : 'Cash settlement could not be recorded.')
-      setConfirmCash(false)
+      setDetailError(
+        cause instanceof Error ? cause.message : 'Cash settlement could not be recorded.',
+      );
+      setConfirmCash(false);
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
   }
 
   // Filter loaded items by search keyword
   const visibleItems = useMemo(() => {
-    if (!list?.items) return []
-    const q = localSearch.trim().toLowerCase()
-    if (!q) return list.items
+    if (!list?.items) return [];
+    const q = localSearch.trim().toLowerCase();
+    if (!q) return list.items;
     return list.items.filter(
       order =>
         order.order_number.toLowerCase().includes(q) ||
         order.customer_name.toLowerCase().includes(q) ||
-        (order.customer_phone ?? '').toLowerCase().includes(q)
-    )
-  }, [list?.items, localSearch])
+        (order.customer_phone ?? '').toLowerCase().includes(q),
+    );
+  }, [list?.items, localSearch]);
 
   return (
     <div className="page-stack">
@@ -293,8 +292,9 @@ export function OrdersPage() {
               const count =
                 value === 'all'
                   ? list?.total
-                  : list?.counts_by_status?.[value as OrderStatus] ?? 0
-              const label = value === 'all' ? 'All Orders' : value[0].toUpperCase() + value.slice(1)
+                  : (list?.counts_by_status?.[value as OrderStatus] ?? 0);
+              const label =
+                value === 'all' ? 'All Orders' : value[0].toUpperCase() + value.slice(1);
               return (
                 <button
                   key={value}
@@ -305,11 +305,9 @@ export function OrdersPage() {
                   onClick={() => handleSelectStatus(value)}
                 >
                   <span>{label}</span>
-                  {typeof count === 'number' && (
-                    <span className="status-tab-count">{count}</span>
-                  )}
+                  {typeof count === 'number' && <span className="status-tab-count">{count}</span>}
                 </button>
-              )
+              );
             })}
           </div>
 
@@ -327,11 +325,7 @@ export function OrdersPage() {
                 value={localSearch}
                 onChange={event => setLocalSearch(event.target.value)}
               />
-              <Search
-                size={15}
-                className="search-icon"
-                aria-hidden="true"
-              />
+              <Search size={15} className="search-icon" aria-hidden="true" />
             </div>
             <span className="search-helper-label" id="order-search-helper">
               Filters loaded page records
@@ -344,10 +338,7 @@ export function OrdersPage() {
         ) : error ? (
           <ErrorState message={error} retry={reload} />
         ) : !list || list.items.length === 0 ? (
-          <EmptyState
-            title="No orders found"
-            detail="No server orders match this status."
-          />
+          <EmptyState title="No orders found" detail="No server orders match this status." />
         ) : visibleItems.length === 0 ? (
           <EmptyState
             title="No matching orders on this page"
@@ -365,13 +356,15 @@ export function OrdersPage() {
                     <th scope="col">Order Status</th>
                     <th scope="col">Payment</th>
                     <th scope="col">Total</th>
-                    <th scope="col" className="numeric">Actions</th>
+                    <th scope="col" className="numeric">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {visibleItems.map(order => {
-                    const orderBadge = getOrderStatusBadge(order.order_status)
-                    const payBadge = getPaymentStatusBadge(order.payment_status)
+                    const orderBadge = getOrderStatusBadge(order.order_status);
+                    const payBadge = getPaymentStatusBadge(order.payment_status);
                     return (
                       <tr key={order.id}>
                         <td>
@@ -391,9 +384,7 @@ export function OrdersPage() {
                               {order.customer_name}
                             </span>
                             {order.customer_phone && (
-                              <span className="text-xs text-slate-500">
-                                {order.customer_phone}
-                              </span>
+                              <span className="text-xs text-slate-500">{order.customer_phone}</span>
                             )}
                           </div>
                         </td>
@@ -423,7 +414,7 @@ export function OrdersPage() {
                           </button>
                         </td>
                       </tr>
-                    )
+                    );
                   })}
                 </tbody>
               </table>
@@ -441,8 +432,8 @@ export function OrdersPage() {
                   className="button-secondary"
                   disabled={offset === 0}
                   onClick={() => {
-                    setOffset(Math.max(0, offset - 50))
-                    setLoading(true)
+                    setOffset(Math.max(0, offset - 50));
+                    setLoading(true);
                   }}
                 >
                   Previous
@@ -452,8 +443,8 @@ export function OrdersPage() {
                   className="button-secondary"
                   disabled={offset + list.limit >= list.total}
                   onClick={() => {
-                    setOffset(offset + 50)
-                    setLoading(true)
+                    setOffset(offset + 50);
+                    setLoading(true);
                   }}
                 >
                   Next
@@ -489,11 +480,7 @@ export function OrdersPage() {
                 </strong>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="button-secondary"
-                  onClick={closeDetails}
-                >
+                <button type="button" className="button-secondary" onClick={closeDetails}>
                   Close
                 </button>
                 {transitions[selected.order_status]
@@ -502,7 +489,9 @@ export function OrdersPage() {
                     <button
                       key={next}
                       type="button"
-                      className={next === 'cancelled' ? 'button-secondary danger-link' : 'button-primary'}
+                      className={
+                        next === 'cancelled' ? 'button-secondary danger-link' : 'button-primary'
+                      }
                       onClick={() => setConfirmStatus(next)}
                     >
                       {next === 'cancelled'
@@ -552,7 +541,8 @@ export function OrdersPage() {
 
             {/* Policy Note */}
             <div className="policy-note">
-              KHQR is a demo choice. Cash settlement records the administrator's observation, without verifying a bank transfer. Revenue requires paid and completed status.
+              KHQR is a demo choice. Cash settlement records the administrator's observation,
+              without verifying a bank transfer. Revenue requires paid and completed status.
             </div>
 
             {/* Cash Settlement Action Form */}
@@ -601,7 +591,9 @@ export function OrdersPage() {
                       <th scope="col">Drink</th>
                       <th scope="col">Customizations</th>
                       <th scope="col">Qty</th>
-                      <th scope="col" className="numeric">Subtotal</th>
+                      <th scope="col" className="numeric">
+                        Subtotal
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -617,9 +609,7 @@ export function OrdersPage() {
                           </span>
                         </td>
                         <td>{item.quantity}</td>
-                        <td className="numeric font-semibold">
-                          {money.format(item.subtotal_usd)}
-                        </td>
+                        <td className="numeric font-semibold">{money.format(item.subtotal_usd)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -652,5 +642,5 @@ export function OrdersPage() {
         />
       )}
     </div>
-  )
+  );
 }

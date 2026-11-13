@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { getCategories } from '../services/api';
 import type { Category } from '../types';
 
-
 export function useCategories(activeOnly: boolean = true) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -52,4 +51,3 @@ export function useCategories(activeOnly: boolean = true) {
 
   return { categories, loading, error, refetch: loadCategories };
 }
-

@@ -1,12 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import {
-  ShoppingBag,
-  User,
-  Search,
-  Menu,
-  ArrowUpRight,
-} from 'lucide-react';
+import { ShoppingBag, User, Search, Menu, ArrowUpRight } from 'lucide-react';
 import { useCart } from '../../features/cart/useCart';
 import { useAuth } from '../../features/auth/AuthContext';
 import { AuthModal } from '../auth/AuthModal';
@@ -29,15 +23,13 @@ export const Navbar: React.FC = () => {
   const [miniCartOpen, setMiniCartOpen] = useState(false);
 
   // Drink customization modal for quick search selection
-  const [customizingProduct, setCustomizingProduct] = useState<Product | null>(
-    null,
-  );
+  const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
 
   // Selected pickup store (defaults to BKK1 Flagship)
   const [selectedStore, setSelectedStore] = useState<StoreLocation>(() => {
     try {
       const savedId = localStorage.getItem('brew_boba_selected_store_id');
-      const found = STORES.find((s) => s.id === savedId);
+      const found = STORES.find(s => s.id === savedId);
       return found || STORES[0];
     } catch {
       return STORES[0];
@@ -45,14 +37,8 @@ export const Navbar: React.FC = () => {
   });
 
   const { totalQuantity, addItem } = useCart();
-  const {
-    user,
-    isAuthenticated,
-    authModalOpen,
-    authModalOptions,
-    openAuthModal,
-    closeAuthModal,
-  } = useAuth();
+  const { user, isAuthenticated, authModalOpen, authModalOptions, openAuthModal, closeAuthModal } =
+    useAuth();
 
   useEffect(() => {
     if (mobileMenu.current) mobileMenu.current.open = false;
@@ -79,7 +65,7 @@ export const Navbar: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setSearchModalOpen((prev) => !prev);
+        setSearchModalOpen(prev => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -95,10 +81,7 @@ export const Navbar: React.FC = () => {
     }
   };
 
-  const handleAddToCart = (
-    product: Product,
-    customization: DrinkCustomization,
-  ) => {
+  const handleAddToCart = (product: Product, customization: DrinkCustomization) => {
     addItem({
       productId: product.id,
       productName: product.name,
@@ -119,40 +102,20 @@ export const Navbar: React.FC = () => {
       <header className="cafe-header">
         <div className="cafe-nav-inner">
           <nav className="desktop-links" aria-label="Main navigation">
-            <Link
-              to="/"
-              aria-current={location.pathname === '/' ? 'page' : undefined}
-            >
+            <Link to="/" aria-current={location.pathname === '/' ? 'page' : undefined}>
               Home
             </Link>
-            <Link
-              to="/menu"
-              aria-current={location.pathname === '/menu' ? 'page' : undefined}
-            >
+            <Link to="/menu" aria-current={location.pathname === '/menu' ? 'page' : undefined}>
               Menu
             </Link>
-            <Link
-              to="/about"
-              aria-current={
-                location.pathname === '/about' ? 'page' : undefined
-              }
-            >
+            <Link to="/about" aria-current={location.pathname === '/about' ? 'page' : undefined}>
               About
             </Link>
-            <Link
-              to="/orders"
-              aria-current={
-                location.pathname === '/orders' ? 'page' : undefined
-              }
-            >
+            <Link to="/orders" aria-current={location.pathname === '/orders' ? 'page' : undefined}>
               Orders
             </Link>
           </nav>
-          <Link
-            to="/"
-            className="cafe-brand group"
-            aria-label="Brew & Boba Café home"
-          >
+          <Link to="/" className="cafe-brand group" aria-label="Brew & Boba Café home">
             <span className="cafe-brand-badge">
               <img
                 src="/brand/brew-boba-cup-icon.webp"
@@ -179,20 +142,12 @@ export const Navbar: React.FC = () => {
               <Search size={19} />
             </button>
             {isAuthenticated && user ? (
-              <Link
-                to="/profile"
-                className="nav-account"
-                aria-label="Open your profile"
-              >
+              <Link to="/profile" className="nav-account" aria-label="Open your profile">
                 <User size={18} />
                 <span>{user.full_name.split(' ')[0]}</span>
               </Link>
             ) : (
-              <button
-                type="button"
-                className="nav-account"
-                onClick={openAuthModal}
-              >
+              <button type="button" className="nav-account" onClick={openAuthModal}>
                 <User size={18} />
                 <span>Log in</span>
               </button>
@@ -212,7 +167,7 @@ export const Navbar: React.FC = () => {
             <details
               className="mobile-menu"
               ref={mobileMenu}
-              onKeyDown={(event) => {
+              onKeyDown={event => {
                 if (event.key === 'Escape' && mobileMenu.current) {
                   mobileMenu.current.open = false;
                   mobileMenu.current.querySelector('summary')?.focus();
@@ -224,11 +179,8 @@ export const Navbar: React.FC = () => {
               </summary>
               <nav
                 aria-label="Mobile navigation"
-                onClick={(event) => {
-                  if (
-                    (event.target as HTMLElement).closest('a') &&
-                    mobileMenu.current
-                  )
+                onClick={event => {
+                  if ((event.target as HTMLElement).closest('a') && mobileMenu.current)
                     mobileMenu.current.open = false;
                 }}
               >
@@ -295,13 +247,10 @@ export const Navbar: React.FC = () => {
       <SearchModal
         isOpen={searchModalOpen}
         onClose={() => setSearchModalOpen(false)}
-        onSelectProduct={(product) => setCustomizingProduct(product)}
+        onSelectProduct={product => setCustomizingProduct(product)}
       />
 
-      <MiniCartDrawer
-        isOpen={miniCartOpen}
-        onClose={() => setMiniCartOpen(false)}
-      />
+      <MiniCartDrawer isOpen={miniCartOpen} onClose={() => setMiniCartOpen(false)} />
 
       <CustomizationModal
         product={customizingProduct}

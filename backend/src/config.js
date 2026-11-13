@@ -29,8 +29,10 @@ export const config = {
     process.env.DATABASE_URL ||
     `postgresql://${process.env.PGUSER || 'postgres'}:${process.env.PGPASSWORD || 'postgres'}@${process.env.PGHOST || 'localhost'}:${process.env.PGPORT || 5432}/${process.env.PGDATABASE || 'coffee_shop'}`,
 
-  adminInitialEmail: process.env.ADMIN_INITIAL_EMAIL || developmentCredentialDefaults.adminInitialEmail,
-  adminInitialPassword: process.env.ADMIN_INITIAL_PASSWORD || developmentCredentialDefaults.adminInitialPassword,
+  adminInitialEmail:
+    process.env.ADMIN_INITIAL_EMAIL || developmentCredentialDefaults.adminInitialEmail,
+  adminInitialPassword:
+    process.env.ADMIN_INITIAL_PASSWORD || developmentCredentialDefaults.adminInitialPassword,
   adminInitialName: process.env.ADMIN_INITIAL_NAME || 'Store Administrator',
 
   // Customization rules
@@ -51,7 +53,12 @@ export const config = {
 export function isProductionOrStaging(env = process.env) {
   const nodeEnv = (env.NODE_ENV || '').toLowerCase();
   const environment = (env.ENVIRONMENT || '').toLowerCase();
-  return nodeEnv === 'production' || nodeEnv === 'staging' || environment === 'production' || environment === 'staging';
+  return (
+    nodeEnv === 'production' ||
+    nodeEnv === 'staging' ||
+    environment === 'production' ||
+    environment === 'staging'
+  );
 }
 
 /** Fail before connecting to the database or seeding accounts in production or staging. */
@@ -62,7 +69,13 @@ export function validateProductionConfig(env = process.env) {
   if (env.NODE_ENV === 'test') {
     errors.push('NODE_ENV=test cannot be combined with production or staging');
   }
-  const required = ['DATABASE_URL', 'JWT_SECRET', 'ADMIN_INITIAL_EMAIL', 'ADMIN_INITIAL_PASSWORD', 'CORS_ORIGINS'];
+  const required = [
+    'DATABASE_URL',
+    'JWT_SECRET',
+    'ADMIN_INITIAL_EMAIL',
+    'ADMIN_INITIAL_PASSWORD',
+    'CORS_ORIGINS',
+  ];
   for (const name of required) {
     if (typeof env[name] !== 'string' || !env[name].trim()) {
       errors.push(`${name} is required`);
@@ -70,29 +83,32 @@ export function validateProductionConfig(env = process.env) {
   }
 
   const jwtSecret = env.JWT_SECRET?.trim();
-  if (jwtSecret && (
-    jwtSecret.length < 32 ||
-    jwtSecret === developmentCredentialDefaults.jwtSecret ||
-    /^(?:change.?me|replace.?me|default|example|development|test)/i.test(jwtSecret) ||
-    /^(.)(\1)+$/.test(jwtSecret)
-  )) {
+  if (
+    jwtSecret &&
+    (jwtSecret.length < 32 ||
+      jwtSecret === developmentCredentialDefaults.jwtSecret ||
+      /^(?:change.?me|replace.?me|default|example|development|test)/i.test(jwtSecret) ||
+      /^(.)(\1)+$/.test(jwtSecret))
+  ) {
     errors.push('JWT_SECRET must be a unique secret of at least 32 characters');
   }
 
   const adminEmail = env.ADMIN_INITIAL_EMAIL?.trim().toLowerCase();
-  if (adminEmail && (
-    adminEmail === developmentCredentialDefaults.adminInitialEmail.toLowerCase() ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail)
-  )) {
+  if (
+    adminEmail &&
+    (adminEmail === developmentCredentialDefaults.adminInitialEmail.toLowerCase() ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail))
+  ) {
     errors.push('ADMIN_INITIAL_EMAIL must be a valid, non-default address');
   }
 
   const adminPassword = env.ADMIN_INITIAL_PASSWORD;
-  if (adminPassword && (
-    adminPassword.length < 12 ||
-    adminPassword === developmentCredentialDefaults.adminInitialPassword ||
-    /^(?:password|admin|change.?me|replace.?me|default|example|test)/i.test(adminPassword)
-  )) {
+  if (
+    adminPassword &&
+    (adminPassword.length < 12 ||
+      adminPassword === developmentCredentialDefaults.adminInitialPassword ||
+      /^(?:password|admin|change.?me|replace.?me|default|example|test)/i.test(adminPassword))
+  ) {
     errors.push('ADMIN_INITIAL_PASSWORD must be a unique password of at least 12 characters');
   }
 
@@ -101,19 +117,32 @@ export function validateProductionConfig(env = process.env) {
     errors.push('DATABASE_URL must be a PostgreSQL connection URL');
   }
 
-  const origins = env.CORS_ORIGINS?.split(',').map(origin => origin.trim()).filter(Boolean) || [];
+  const origins =
+    env.CORS_ORIGINS?.split(',')
+      .map(origin => origin.trim())
+      .filter(Boolean) || [];
   if (origins.includes('*')) {
     errors.push('CORS_ORIGINS must not contain a wildcard');
   }
   for (const origin of origins.filter(value => value !== '*')) {
     try {
       const parsed = new URL(origin);
-      if (parsed.protocol !== 'https:' || parsed.origin !== origin || parsed.username || parsed.password) throw new Error();
-    } catch { errors.push('CORS_ORIGINS must contain HTTPS origins without paths or credentials'); }
+      if (
+        parsed.protocol !== 'https:' ||
+        parsed.origin !== origin ||
+        parsed.username ||
+        parsed.password
+      )
+        throw new Error();
+    } catch {
+      errors.push('CORS_ORIGINS must contain HTTPS origins without paths or credentials');
+    }
   }
 
   if (errors.length > 0) {
     const isStaging = (env.ENVIRONMENT || env.NODE_ENV || '').toLowerCase() === 'staging';
-    throw new Error(`Invalid ${isStaging ? 'staging' : 'production'} configuration: ${errors.join('; ')}.`);
+    throw new Error(
+      `Invalid ${isStaging ? 'staging' : 'production'} configuration: ${errors.join('; ')}.`,
+    );
   }
 }

@@ -1,13 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
-  Search,
-  X,
-  CheckCircle2,
-  RotateCcw,
-  Heart,
-  ArrowUpDown,
-} from 'lucide-react';
+import { Search, X, CheckCircle2, RotateCcw, Heart, ArrowUpDown } from 'lucide-react';
 import { useCategories } from '../hooks/useCategories';
 import { useProducts } from '../hooks/useProducts';
 import { ProductCard } from '../components/product/ProductCard';
@@ -44,7 +37,12 @@ export const MenuPage: React.FC = () => {
 
   const isFavFilter = selectedCategory === 'Favorites';
 
-  const { products, loading: prodLoading, error, refetch } = useProducts({
+  const {
+    products,
+    loading: prodLoading,
+    error,
+    refetch,
+  } = useProducts({
     category: selectedCategory === 'All' || isFavFilter ? undefined : selectedCategory,
     search: searchQuery || undefined,
     isAvailable: true,
@@ -64,9 +62,11 @@ export const MenuPage: React.FC = () => {
   }, [searchInput, searchQuery, searchParams, setSearchParams]);
 
   const displayedProducts = useMemo(() => {
-    let list = isFavFilter ? products.filter((p) => isFavorite(p.id)) : products;
-    if (sortBy === 'price-asc') list = [...list].sort((a, b) => a.base_price_usd - b.base_price_usd);
-    else if (sortBy === 'price-desc') list = [...list].sort((a, b) => b.base_price_usd - a.base_price_usd);
+    let list = isFavFilter ? products.filter(p => isFavorite(p.id)) : products;
+    if (sortBy === 'price-asc')
+      list = [...list].sort((a, b) => a.base_price_usd - b.base_price_usd);
+    else if (sortBy === 'price-desc')
+      list = [...list].sort((a, b) => b.base_price_usd - a.base_price_usd);
     else if (sortBy === 'name') list = [...list].sort((a, b) => a.name.localeCompare(b.name));
     return list;
   }, [products, isFavFilter, isFavorite, sortBy]);
@@ -105,7 +105,10 @@ export const MenuPage: React.FC = () => {
     <div className="menu-page space-y-6 sm:space-y-8">
       {/* Toast Notification */}
       {toastMessage && (
-        <div role="status" className="fixed bottom-6 right-6 z-50 bg-cobalt-dark text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 ring-2 ring-butter border border-white/20 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div
+          role="status"
+          className="fixed bottom-6 right-6 z-50 bg-cobalt-dark text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 ring-2 ring-butter border border-white/20 animate-in fade-in slide-in-from-bottom-2 duration-200"
+        >
           <CheckCircle2 className="w-5 h-5 text-butter shrink-0" />
           <span className="text-sm font-medium">{toastMessage}</span>
           <button
@@ -139,8 +142,8 @@ export const MenuPage: React.FC = () => {
               <em>HAPPY SIP.</em>
             </h1>
             <p className="menu-hero-desc">
-              Specialty espresso, slow-cooked brown sugar boba, velvety matcha, and sparkling fruit teas.
-              Customized to your size, sweetness, and ice for every single cup.
+              Specialty espresso, slow-cooked brown sugar boba, velvety matcha, and sparkling fruit
+              teas. Customized to your size, sweetness, and ice for every single cup.
             </p>
             <div className="menu-hero-meta">
               <span className="menu-hero-count">
@@ -153,7 +156,8 @@ export const MenuPage: React.FC = () => {
                   className="w-5 h-5 object-contain shrink-0"
                 />
                 <span>
-                  Showing {displayedProducts.length} {displayedProducts.length === 1 ? 'handcrafted drink' : 'handcrafted drinks'}
+                  Showing {displayedProducts.length}{' '}
+                  {displayedProducts.length === 1 ? 'handcrafted drink' : 'handcrafted drinks'}
                 </span>
               </span>
             </div>
@@ -192,7 +196,7 @@ export const MenuPage: React.FC = () => {
             <input
               type="search"
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
+              onChange={e => setSearchInput(e.target.value)}
               placeholder="Search coffee, boba, matcha, fruit tea..."
               aria-label="Search drinks"
               className="w-full bg-cream-card border border-line rounded-full pl-11 pr-10 py-2.5 sm:py-3 text-sm text-ink placeholder:text-ink-soft/60 focus:outline-none focus:border-cobalt focus:ring-2 focus:ring-cobalt/20 shadow-2xs transition-all [&::-webkit-search-cancel-button]:hidden"
@@ -213,7 +217,7 @@ export const MenuPage: React.FC = () => {
           <div className="relative shrink-0">
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortKey)}
+              onChange={e => setSortBy(e.target.value as SortKey)}
               className="bg-cream-card border border-line rounded-full pl-4 pr-9 py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-ink hover:border-cobalt focus:outline-none focus:border-cobalt focus:ring-2 focus:ring-cobalt/20 cursor-pointer shadow-2xs transition-all appearance-none"
               aria-label="Sort drinks"
             >
@@ -243,13 +247,13 @@ export const MenuPage: React.FC = () => {
           </button>
 
           {catLoading
-            ? [1, 2, 3, 4, 5].map((i) => (
+            ? [1, 2, 3, 4, 5].map(i => (
                 <div
                   key={i}
                   className="h-10 w-24 sm:w-28 rounded-full bg-cream-deep animate-pulse shrink-0 border border-line/50"
                 />
               ))
-            : categories.map((cat) => {
+            : categories.map(cat => {
                 const isSelected = selectedCategory.toLowerCase() === cat.name.toLowerCase();
                 return (
                   <button
@@ -286,7 +290,9 @@ export const MenuPage: React.FC = () => {
                 : 'bg-cream-card text-ink-soft hover:text-ink hover:bg-cream-deep border border-line shadow-2xs'
             }`}
           >
-            <Heart className={`w-3.5 h-3.5 ${isFavFilter ? 'fill-white text-white' : 'text-rose-500 fill-rose-500'}`} />
+            <Heart
+              className={`w-3.5 h-3.5 ${isFavFilter ? 'fill-white text-white' : 'text-rose-500 fill-rose-500'}`}
+            />
             <span>Saved</span>
             {favoriteIds.length > 0 && (
               <span
@@ -352,8 +358,8 @@ export const MenuPage: React.FC = () => {
               {isFavFilter && !searchQuery
                 ? "You haven't saved any favorite drinks yet. Tap the heart on any drink to add it!"
                 : searchQuery
-                ? `No drinks match "${searchQuery}". Try searching for coffee, latte, or boba.`
-                : 'No drinks are currently available in this category.'}
+                  ? `No drinks match "${searchQuery}". Try searching for coffee, latte, or boba.`
+                  : 'No drinks are currently available in this category.'}
             </p>
           </div>
           {(searchQuery || selectedCategory !== 'All') && (
@@ -373,12 +379,8 @@ export const MenuPage: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {displayedProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onSelect={setCustomizingProduct}
-            />
+          {displayedProducts.map(product => (
+            <ProductCard key={product.id} product={product} onSelect={setCustomizingProduct} />
           ))}
         </div>
       )}

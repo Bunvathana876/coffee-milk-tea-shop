@@ -21,18 +21,24 @@ test.before(async () => {
   const port = server.address().port;
   baseUrl = `http://localhost:${port}`;
 
-  const adminRes = await dbQuery(`
+  const adminRes = await dbQuery(
+    `
     INSERT INTO staff_users (email, full_name, role, password_hash, is_active)
     VALUES ($1, $2, $3, $4, TRUE)
     RETURNING id
-  `, ['admin-seller-test@brewboba.com', 'Admin User', 'admin', 'hash']);
+  `,
+    ['admin-seller-test@brewboba.com', 'Admin User', 'admin', 'hash'],
+  );
   adminToken = createToken({ sub: adminRes.rows[0].id, role: 'admin' });
 
-  const staffRes = await dbQuery(`
+  const staffRes = await dbQuery(
+    `
     INSERT INTO staff_users (email, full_name, role, password_hash, is_active)
     VALUES ($1, $2, $3, $4, TRUE)
     RETURNING id
-  `, ['staff-seller-test@brewboba.com', 'Staff User', 'staff', 'hash']);
+  `,
+    ['staff-seller-test@brewboba.com', 'Staff User', 'staff', 'hash'],
+  );
   staffToken = createToken({ sub: staffRes.rows[0].id, role: 'staff' });
 
   customerToken = createToken({ sub: 999, role: 'customer' });
@@ -348,10 +354,13 @@ test('14. Admin can update seller profile and password', async () => {
   createdSellerPassword = newPassword;
 
   // 14i. Audit logs recorded for the update
-  const auditRes = await dbQuery(`
+  const auditRes = await dbQuery(
+    `
     SELECT * FROM security_audit_logs
     WHERE target_id = $1 AND action = 'seller_updated'
-  `, [createdSellerId]);
+  `,
+    [createdSellerId],
+  );
   assert.ok(auditRes.rows.length >= 1);
 });
 

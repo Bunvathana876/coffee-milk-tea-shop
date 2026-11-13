@@ -5,29 +5,34 @@ import 'package:mobile_app/core/widgets/empty_state.dart';
 import 'package:mobile_app/ui/features/menu/widgets/category_chip.dart';
 
 void main() {
-  testWidgets('StatusBadge renders pending, preparing, and ready states correctly', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: Column(
-            children: [
-              StatusBadge(status: 'pending'),
-              StatusBadge(status: 'preparing'),
-              StatusBadge(status: 'ready'),
-              StatusBadge(status: 'completed'),
-            ],
+  testWidgets(
+    'StatusBadge renders pending, preparing, and ready states correctly',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                StatusBadge(status: 'pending'),
+                StatusBadge(status: 'preparing'),
+                StatusBadge(status: 'ready'),
+                StatusBadge(status: 'completed'),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    expect(find.text('Received'), findsOneWidget);
-    expect(find.text('Preparing'), findsOneWidget);
-    expect(find.text('Ready for Pickup'), findsOneWidget);
-    expect(find.text('Completed'), findsOneWidget);
-  });
+      expect(find.text('Received'), findsOneWidget);
+      expect(find.text('Preparing'), findsOneWidget);
+      expect(find.text('Ready for Pickup'), findsOneWidget);
+      expect(find.text('Completed'), findsOneWidget);
+    },
+  );
 
-  testWidgets('CategoryChip displays count and triggers onTap', (WidgetTester tester) async {
+  testWidgets('CategoryChip displays count and triggers onTap', (
+    WidgetTester tester,
+  ) async {
     bool tapped = false;
 
     await tester.pumpWidget(
@@ -50,7 +55,9 @@ void main() {
     expect(tapped, isTrue);
   });
 
-  testWidgets('EmptyState displays title, description and button', (WidgetTester tester) async {
+  testWidgets('EmptyState displays title, description and button', (
+    WidgetTester tester,
+  ) async {
     bool actionClicked = false;
 
     await tester.pumpWidget(

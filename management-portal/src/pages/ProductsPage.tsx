@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   AlertCircle,
   Coffee,
@@ -9,11 +9,11 @@ import {
   RotateCcw,
   Search,
   Sparkles,
-} from 'lucide-react'
-import { useAuth } from '../auth/authContext'
-import { ConfirmAction } from '../components/ConfirmAction'
-import { Drawer } from '../components/Drawer'
-import { EmptyState, ErrorState, LoadingState } from '../components/States'
+} from 'lucide-react';
+import { useAuth } from '../auth/authContext';
+import { ConfirmAction } from '../components/ConfirmAction';
+import { Drawer } from '../components/Drawer';
+import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import {
   createProduct,
   deleteProduct,
@@ -22,15 +22,15 @@ import {
   updateProduct,
   type Category,
   type Product,
-} from '../lib/api'
+} from '../lib/api';
 
 interface ProductFormData {
-  category_id: number
-  name: string
-  description: string
-  image: string
-  base_price_usd: string
-  is_available: boolean
+  category_id: number;
+  name: string;
+  description: string;
+  image: string;
+  base_price_usd: string;
+  is_available: boolean;
 }
 
 const blankForm: ProductFormData = {
@@ -40,119 +40,125 @@ const blankForm: ProductFormData = {
   image: '',
   base_price_usd: '',
   is_available: true,
-}
+};
 
-export const DRINK_THUMBNAIL_FALLBACK = '/brand/brew-boba-cup-icon.webp'
+export const DRINK_THUMBNAIL_FALLBACK = '/brand/brew-boba-cup-icon.webp';
 
-const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
+const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
 export function ProductsPage() {
-  const { token } = useAuth()
-  const [products, setProducts] = useState<Product[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [formError, setFormError] = useState('')
-  const [revision, setRevision] = useState(0)
+  const { token } = useAuth();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [formError, setFormError] = useState('');
+  const [revision, setRevision] = useState(0);
 
   // Drawer / editor state
-  const [searchParams, setSearchParams] = useSearchParams()
-  const handledNewActionRef = useRef(false)
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [form, setForm] = useState<ProductFormData>(blankForm)
-  const [imagePreviewError, setImagePreviewError] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const handledNewActionRef = useRef(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState<ProductFormData>(blankForm);
+  const [imagePreviewError, setImagePreviewError] = useState(false);
 
   // Filters & Search
-  const [search, setSearch] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('all')
-  const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'available' | 'unavailable'>('all')
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'available' | 'unavailable'>(
+    'all',
+  );
 
   // Action confirmations
-  const [busy, setBusy] = useState(false)
-  const [confirm, setConfirm] = useState<{ id: number; name: string; action: 'deactivate' | 'delete' } | null>(null)
+  const [busy, setBusy] = useState(false);
+  const [confirm, setConfirm] = useState<{
+    id: number;
+    name: string;
+    action: 'deactivate' | 'delete';
+  } | null>(null);
 
   useEffect(() => {
-    if (!token) return
-    let active = true
+    if (!token) return;
+    let active = true;
     Promise.all([getProducts(token), getCategories(token)])
       .then(([items, groups]) => {
         if (active) {
-          setProducts(items)
-          setCategories(groups)
-          setLoading(false)
+          setProducts(items);
+          setCategories(groups);
+          setLoading(false);
         }
       })
       .catch(cause => {
         if (active) {
-          setError(cause instanceof Error ? cause.message : 'Products are unavailable.')
-          setLoading(false)
+          setError(cause instanceof Error ? cause.message : 'Products are unavailable.');
+          setLoading(false);
         }
-      })
+      });
     return () => {
-      active = false
-    }
-  }, [token, revision])
+      active = false;
+    };
+  }, [token, revision]);
 
   // Computed statistics from real fetched records
   const stats = useMemo(() => {
-    const total = products.length
-    const available = products.filter(p => p.is_available).length
-    const unavailable = total - available
-    const catCount = categories.length
-    return { total, available, unavailable, catCount }
-  }, [products, categories])
+    const total = products.length;
+    const available = products.filter(p => p.is_available).length;
+    const unavailable = total - available;
+    const catCount = categories.length;
+    return { total, available, unavailable, catCount };
+  }, [products, categories]);
 
   // Filtered products list
   const visible = useMemo(() => {
     return products.filter(product => {
       const matchesCategory =
-        categoryFilter === 'all' || product.category_id === Number(categoryFilter)
+        categoryFilter === 'all' || product.category_id === Number(categoryFilter);
       const matchesAvailability =
         availabilityFilter === 'all' ||
         (availabilityFilter === 'available' && product.is_available) ||
-        (availabilityFilter === 'unavailable' && !product.is_available)
-      const query = search.trim().toLowerCase()
+        (availabilityFilter === 'unavailable' && !product.is_available);
+      const query = search.trim().toLowerCase();
       const matchesSearch =
         !query ||
         product.name.toLowerCase().includes(query) ||
         (product.description ?? '').toLowerCase().includes(query) ||
-        (product.category?.name ?? '').toLowerCase().includes(query)
+        (product.category?.name ?? '').toLowerCase().includes(query);
 
-      return matchesCategory && matchesAvailability && matchesSearch
-    })
-  }, [products, categoryFilter, availabilityFilter, search])
+      return matchesCategory && matchesAvailability && matchesSearch;
+    });
+  }, [products, categoryFilter, availabilityFilter, search]);
 
   function reload() {
-    setError('')
-    setLoading(true)
-    setRevision(value => value + 1)
+    setError('');
+    setLoading(true);
+    setRevision(value => value + 1);
   }
 
   function handleOpenCreate() {
-    setEditingId(null)
+    setEditingId(null);
     setForm({
       ...blankForm,
       category_id: categories.length > 0 ? categories[0].id : 0,
-    })
-    setFormError('')
-    setImagePreviewError(false)
-    setIsDrawerOpen(true)
+    });
+    setFormError('');
+    setImagePreviewError(false);
+    setIsDrawerOpen(true);
   }
 
   // Handle ?action=new from Command Palette or Quick Actions
   useEffect(() => {
     if (!loading && searchParams.get('action') === 'new' && !handledNewActionRef.current) {
-      handledNewActionRef.current = true
-      handleOpenCreate()
-      const nextParams = new URLSearchParams(searchParams)
-      nextParams.delete('action')
-      setSearchParams(nextParams, { replace: true })
+      handledNewActionRef.current = true;
+      handleOpenCreate();
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('action');
+      setSearchParams(nextParams, { replace: true });
     }
-  }, [loading, searchParams, categories])
+  }, [loading, searchParams, categories]);
 
   function handleOpenEdit(product: Product) {
-    setEditingId(product.id)
+    setEditingId(product.id);
     setForm({
       category_id: product.category_id,
       name: product.name,
@@ -160,25 +166,25 @@ export function ProductsPage() {
       image: product.image ?? '',
       base_price_usd: String(product.base_price_usd),
       is_available: product.is_available,
-    })
-    setFormError('')
-    setImagePreviewError(false)
-    setIsDrawerOpen(true)
+    });
+    setFormError('');
+    setImagePreviewError(false);
+    setIsDrawerOpen(true);
   }
 
   function handleCloseDrawer() {
-    if (busy) return
-    setIsDrawerOpen(false)
-    setEditingId(null)
-    setForm(blankForm)
-    setFormError('')
+    if (busy) return;
+    setIsDrawerOpen(false);
+    setEditingId(null);
+    setForm(blankForm);
+    setFormError('');
   }
 
   async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    if (!token) return
+    event.preventDefault();
+    if (!token) return;
 
-    const price = Number(form.base_price_usd)
+    const price = Number(form.base_price_usd);
     if (
       !categories.some(category => category.id === form.category_id) ||
       !form.name.trim() ||
@@ -190,12 +196,14 @@ export function ProductsPage() {
       form.description.length > 1000 ||
       form.image.length > 2048
     ) {
-      setFormError('Choose a category, enter a name and a positive USD price with at most two decimals.')
-      return
+      setFormError(
+        'Choose a category, enter a name and a positive USD price with at most two decimals.',
+      );
+      return;
     }
 
-    setBusy(true)
-    setFormError('')
+    setBusy(true);
+    setFormError('');
 
     try {
       const body = {
@@ -205,58 +213,58 @@ export function ProductsPage() {
         image: form.image.trim() || null,
         base_price_usd: price,
         is_available: form.is_available,
-      }
+      };
 
       if (editingId) {
-        await updateProduct(token, editingId, body)
+        await updateProduct(token, editingId, body);
       } else {
-        await createProduct(token, body)
+        await createProduct(token, body);
       }
 
-      handleCloseDrawer()
-      reload()
+      handleCloseDrawer();
+      reload();
     } catch (cause) {
-      setFormError(cause instanceof Error ? cause.message : 'Could not save product.')
+      setFormError(cause instanceof Error ? cause.message : 'Could not save product.');
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
   }
 
   async function handleConfirmAction() {
-    if (!token || !confirm) return
-    setBusy(true)
-    setError('')
+    if (!token || !confirm) return;
+    setBusy(true);
+    setError('');
     try {
       if (confirm.action === 'delete') {
-        await deleteProduct(token, confirm.id)
+        await deleteProduct(token, confirm.id);
       } else {
-        await updateProduct(token, confirm.id, { is_available: false })
+        await updateProduct(token, confirm.id, { is_available: false });
       }
       if (editingId === confirm.id) {
-        handleCloseDrawer()
+        handleCloseDrawer();
       }
-      setConfirm(null)
-      reload()
+      setConfirm(null);
+      reload();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not change product.')
+      setError(cause instanceof Error ? cause.message : 'Could not change product.');
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
   }
 
   async function handleToggleActivate(product: Product) {
-    if (!token || busy) return
+    if (!token || busy) return;
     if (product.is_available) {
-      setConfirm({ id: product.id, name: product.name, action: 'deactivate' })
+      setConfirm({ id: product.id, name: product.name, action: 'deactivate' });
     } else {
-      setBusy(true)
+      setBusy(true);
       try {
-        await updateProduct(token, product.id, { is_available: true })
-        reload()
+        await updateProduct(token, product.id, { is_available: true });
+        reload();
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Could not activate product.')
+        setError(cause instanceof Error ? cause.message : 'Could not activate product.');
       } finally {
-        setBusy(false)
+        setBusy(false);
       }
     }
   }
@@ -387,9 +395,9 @@ export function ProductsPage() {
                 type="button"
                 className="button-secondary"
                 onClick={() => {
-                  setSearch('')
-                  setCategoryFilter('all')
-                  setAvailabilityFilter('all')
+                  setSearch('');
+                  setCategoryFilter('all');
+                  setAvailabilityFilter('all');
                 }}
               >
                 Reset filters
@@ -430,7 +438,9 @@ export function ProductsPage() {
                   <th scope="col">Category</th>
                   <th scope="col">Base Price</th>
                   <th scope="col">Availability</th>
-                  <th scope="col" className="numeric">Actions</th>
+                  <th scope="col" className="numeric">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -443,10 +453,10 @@ export function ProductsPage() {
                             src={product.image?.trim() || DRINK_THUMBNAIL_FALLBACK}
                             alt=""
                             onError={e => {
-                              const target = e.currentTarget as HTMLImageElement
+                              const target = e.currentTarget as HTMLImageElement;
                               if (!target.dataset.fallback) {
-                                target.dataset.fallback = 'true'
-                                target.src = DRINK_THUMBNAIL_FALLBACK
+                                target.dataset.fallback = 'true';
+                                target.src = DRINK_THUMBNAIL_FALLBACK;
                               }
                             }}
                           />
@@ -462,9 +472,7 @@ export function ProductsPage() {
                       </div>
                     </td>
                     <td>
-                      <span className="category-badge">
-                        {product.category?.name ?? 'Unknown'}
-                      </span>
+                      <span className="category-badge">{product.category?.name ?? 'Unknown'}</span>
                     </td>
                     <td>
                       <span className="font-semibold text-slate-900">
@@ -617,8 +625,8 @@ export function ProductsPage() {
               placeholder="https://example.com/drinks/milk-tea.webp"
               value={form.image}
               onChange={event => {
-                setForm({ ...form, image: event.target.value })
-                setImagePreviewError(false)
+                setForm({ ...form, image: event.target.value });
+                setImagePreviewError(false);
               }}
             />
           </label>
@@ -670,5 +678,5 @@ export function ProductsPage() {
         />
       )}
     </div>
-  )
+  );
 }

@@ -26,7 +26,8 @@ router.get('/', async (req, res, next) => {
 
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
-    const listRes = await dbQuery(`
+    const listRes = await dbQuery(
+      `
       SELECT
         s.id, s.name, s.code, s.address, s.is_active, s.created_at,
         COUNT(DISTINCT sa.seller_id)::int AS assigned_sellers_count,
@@ -37,7 +38,9 @@ router.get('/', async (req, res, next) => {
       ${whereSql}
       GROUP BY s.id
       ORDER BY s.id ASC
-    `, params);
+    `,
+      params,
+    );
 
     const metricsRes = await dbQuery(`
       SELECT
@@ -85,11 +88,14 @@ router.get('/:id', async (req, res, next) => {
       return res.status(400).json({ detail: 'Invalid store ID.' });
     }
 
-    const storeRes = await dbQuery(`
+    const storeRes = await dbQuery(
+      `
       SELECT s.id, s.name, s.code, s.address, s.is_active, s.created_at
       FROM stores s
       WHERE s.id = $1
-    `, [id]);
+    `,
+      [id],
+    );
 
     if (storeRes.rows.length === 0) {
       return res.status(404).json({ detail: 'Store not found.' });
@@ -98,22 +104,28 @@ router.get('/:id', async (req, res, next) => {
     const store = storeRes.rows[0];
 
     // Query assigned sellers
-    const assignmentsRes = await dbQuery(`
+    const assignmentsRes = await dbQuery(
+      `
       SELECT su.id, su.full_name, su.email, su.is_active, sa.created_at AS assigned_at
       FROM seller_store_assignments sa
       JOIN staff_users su ON sa.seller_id = su.id
       WHERE sa.store_id = $1
       ORDER BY su.full_name ASC
-    `, [id]);
+    `,
+      [id],
+    );
 
     // Query order metrics
-    const orderStatsRes = await dbQuery(`
+    const orderStatsRes = await dbQuery(
+      `
       SELECT
         COUNT(*)::int AS total_orders,
         COALESCE(SUM(CASE WHEN payment_status = 'paid' AND order_status = 'completed' THEN total_usd ELSE 0 END), 0) AS revenue_usd
       FROM orders
       WHERE store_id = $1
-    `, [id]);
+    `,
+      [id],
+    );
     const orderStats = orderStatsRes.rows[0] || {};
 
     res.json({
@@ -159,23 +171,30 @@ router.post('/', async (req, res, next) => {
     }
 
     if (!STORE_CODE_REGEX.test(cleanCode)) {
-      return res.status(400).json({ detail: 'Store code must be 2-50 alphanumeric characters or hyphens.' });
+      return res
+        .status(400)
+        .json({ detail: 'Store code must be 2-50 alphanumeric characters or hyphens.' });
     }
 
     // Check code uniqueness
-    const existing = await dbQuery('SELECT id FROM stores WHERE LOWER(code) = LOWER($1)', [cleanCode]);
+    const existing = await dbQuery('SELECT id FROM stores WHERE LOWER(code) = LOWER($1)', [
+      cleanCode,
+    ]);
     if (existing.rows && existing.rows.length > 0) {
       return res.status(409).json({ detail: 'A store with this code already exists.' });
     }
 
     const activeBool = Boolean(is_active);
 
-    const newStore = await withTransaction(async (query) => {
-      const insertRes = await query(`
+    const newStore = await withTransaction(async query => {
+      const insertRes = await query(
+        `
         INSERT INTO stores (name, code, address, is_active)
         VALUES ($1, $2, $3, $4)
         RETURNING id, name, code, address, is_active, created_at
-      `, [cleanName, cleanCode, cleanAddress, activeBool]);
+      `,
+        [cleanName, cleanCode, cleanAddress, activeBool],
+      );
 
       const created = insertRes.rows[0];
 
@@ -239,10 +258,15 @@ router.patch('/:id', async (req, res, next) => {
     if (code !== undefined) {
       const cleanCode = String(code).trim().toUpperCase();
       if (!STORE_CODE_REGEX.test(cleanCode)) {
-        return res.status(400).json({ detail: 'Store code must be 2-50 alphanumeric characters or hyphens.' });
+        return res
+          .status(400)
+          .json({ detail: 'Store code must be 2-50 alphanumeric characters or hyphens.' });
       }
       // Check code uniqueness across other stores
-      const codeCheck = await dbQuery('SELECT id FROM stores WHERE LOWER(code) = LOWER($1) AND id != $2', [cleanCode, id]);
+      const codeCheck = await dbQuery(
+        'SELECT id FROM stores WHERE LOWER(code) = LOWER($1) AND id != $2',
+        [cleanCode, id],
+      );
       if (codeCheck.rows && codeCheck.rows.length > 0) {
         return res.status(409).json({ detail: 'Another store with this code already exists.' });
       }
@@ -257,9 +281,12 @@ router.patch('/:id', async (req, res, next) => {
 
     params.push(id);
 
-    const updated = await withTransaction(async (query) => {
+    const updated = await withTransaction(async query => {
       await query(`UPDATE stores SET ${updates.join(', ')} WHERE id = $${params.length}`, params);
-      const updatedRes = await query('SELECT id, name, code, address, is_active, created_at FROM stores WHERE id = $1', [id]);
+      const updatedRes = await query(
+        'SELECT id, name, code, address, is_active, created_at FROM stores WHERE id = $1',
+        [id],
+      );
       const storeUpdated = updatedRes.rows[0];
 
       await logSecurityEvent({
@@ -302,14 +329,16 @@ router.patch('/:id/status', async (req, res, next) => {
       return res.status(400).json({ detail: 'is_active must be a boolean.' });
     }
 
-    const checkRes = await dbQuery('SELECT id, name, code, is_active FROM stores WHERE id = $1', [id]);
+    const checkRes = await dbQuery('SELECT id, name, code, is_active FROM stores WHERE id = $1', [
+      id,
+    ]);
     if (checkRes.rows.length === 0) {
       return res.status(404).json({ detail: 'Store not found.' });
     }
 
     const store = checkRes.rows[0];
 
-    await withTransaction(async (query) => {
+    await withTransaction(async query => {
       await query('UPDATE stores SET is_active = $1 WHERE id = $2', [is_active, id]);
 
       await logSecurityEvent({
@@ -353,7 +382,10 @@ router.delete('/:id', async (req, res, next) => {
     }
 
     // Safety guard: reject deletion if orders exist for this store
-    const orderCountRes = await dbQuery('SELECT COUNT(*)::int AS count FROM orders WHERE store_id = $1', [id]);
+    const orderCountRes = await dbQuery(
+      'SELECT COUNT(*)::int AS count FROM orders WHERE store_id = $1',
+      [id],
+    );
     const orderCount = orderCountRes.rows[0]?.count || 0;
     if (orderCount > 0) {
       return res.status(400).json({
@@ -361,7 +393,7 @@ router.delete('/:id', async (req, res, next) => {
       });
     }
 
-    await withTransaction(async (query) => {
+    await withTransaction(async query => {
       // Remove any seller assignments
       await query('DELETE FROM seller_store_assignments WHERE store_id = $1', [id]);
 

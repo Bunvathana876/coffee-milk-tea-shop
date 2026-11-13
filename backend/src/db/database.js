@@ -11,7 +11,17 @@ let isTestMemoryDatabase = false;
 // In-memory SQL store used only by explicitly isolated tests.
 class MemoryPgDb {
   constructor() {
-    this.sequences = { categories: 1, products: 1, customer_users: 1, staff_users: 1, orders: 1, order_items: 1, security_audit_logs: 1, stores: 1, seller_store_assignments: 1 };
+    this.sequences = {
+      categories: 1,
+      products: 1,
+      customer_users: 1,
+      staff_users: 1,
+      orders: 1,
+      order_items: 1,
+      security_audit_logs: 1,
+      stores: 1,
+      seller_store_assignments: 1,
+    };
     this.tables = {
       categories: [],
       products: [],
@@ -30,7 +40,9 @@ class MemoryPgDb {
   async transaction(work) {
     let release;
     const previous = this.transactionQueue;
-    this.transactionQueue = new Promise(resolve => { release = resolve; });
+    this.transactionQueue = new Promise(resolve => {
+      release = resolve;
+    });
     await previous;
 
     const savedTables = structuredClone(this.tables);
@@ -50,7 +62,11 @@ class MemoryPgDb {
     const cleanSql = sql.trim();
 
     // DDL Statements
-    if (/^CREATE TABLE/i.test(cleanSql) || /^CREATE INDEX/i.test(cleanSql) || /^PRAGMA/i.test(cleanSql)) {
+    if (
+      /^CREATE TABLE/i.test(cleanSql) ||
+      /^CREATE INDEX/i.test(cleanSql) ||
+      /^PRAGMA/i.test(cleanSql)
+    ) {
       return Promise.resolve({ rows: [], rowCount: 0 });
     }
 
@@ -63,13 +79,17 @@ class MemoryPgDb {
     if (/SELECT\s+COUNT\(\*\)\s+as\s+total_orders/i.test(cleanSql)) {
       const orders = this.tables.orders;
       const total_orders = orders.length;
-      const recognized = orders.filter(o => o.payment_status === 'paid' && o.order_status === 'completed');
+      const recognized = orders.filter(
+        o => o.payment_status === 'paid' && o.order_status === 'completed',
+      );
       const total_sales_usd = recognized.reduce((sum, o) => sum + (o.total_usd || 0), 0);
       const total_sales_khr = recognized.reduce((sum, o) => sum + (o.total_khr || 0), 0);
       const pending_orders = orders.filter(o => o.order_status === 'pending').length;
       const completed_orders = orders.filter(o => o.order_status === 'completed').length;
       return Promise.resolve({
-        rows: [{ total_orders, total_sales_usd, total_sales_khr, pending_orders, completed_orders }],
+        rows: [
+          { total_orders, total_sales_usd, total_sales_khr, pending_orders, completed_orders },
+        ],
         rowCount: 1,
       });
     }
@@ -85,7 +105,9 @@ class MemoryPgDb {
 
     // 1. SELECT COUNT
     if (/SELECT\s+COUNT\(\*\)\s+as\s+count\s+FROM\s+(\w+)/i.test(cleanSql)) {
-      const match = cleanSql.match(/SELECT\s+COUNT\(\*\)\s+as\s+count\s+FROM\s+(\w+)(?:\s+WHERE\s+(.+))?/i);
+      const match = cleanSql.match(
+        /SELECT\s+COUNT\(\*\)\s+as\s+count\s+FROM\s+(\w+)(?:\s+WHERE\s+(.+))?/i,
+      );
       const tableName = match[1];
       let rows = this.tables[tableName] || [];
       if (match[2]) {
@@ -103,9 +125,16 @@ class MemoryPgDb {
       const tableName = cleanSql.match(/^INSERT INTO (\w+)/i)[1];
       const table = this.tables[tableName];
       if (tableName === 'order_idempotency') {
-        const existing = table.find(row => row.customer_id === Number(params[0]) && row.idempotency_key === params[1]);
+        const existing = table.find(
+          row => row.customer_id === Number(params[0]) && row.idempotency_key === params[1],
+        );
         if (existing) return Promise.resolve({ rows: [], rowCount: 0 });
-        const row = { customer_id: Number(params[0]), idempotency_key: params[1], request_hash: params[2], order_id: null };
+        const row = {
+          customer_id: Number(params[0]),
+          idempotency_key: params[1],
+          request_hash: params[2],
+          order_id: null,
+        };
         table.push(row);
         return Promise.resolve({ rows: [row], rowCount: 1 });
       }
@@ -114,13 +143,43 @@ class MemoryPgDb {
       let row = { id, created_at: new Date().toISOString() };
 
       if (tableName === 'categories') {
-        row = { ...row, name: params[0], description: params[1], image: params[2], is_active: Boolean(params[3]) };
+        row = {
+          ...row,
+          name: params[0],
+          description: params[1],
+          image: params[2],
+          is_active: Boolean(params[3]),
+        };
       } else if (tableName === 'products') {
-        row = { ...row, category_id: Number(params[0]), name: params[1], description: params[2], image: params[3], base_price_usd: Number(params[4]), is_available: Boolean(params[5]) };
+        row = {
+          ...row,
+          category_id: Number(params[0]),
+          name: params[1],
+          description: params[2],
+          image: params[3],
+          base_price_usd: Number(params[4]),
+          is_available: Boolean(params[5]),
+        };
       } else if (tableName === 'staff_users') {
-        row = { ...row, email: params[0], full_name: params[1], role: params[2], password_hash: params[3], is_active: params[4] !== undefined ? Boolean(params[4]) : true };
+        row = {
+          ...row,
+          email: params[0],
+          full_name: params[1],
+          role: params[2],
+          password_hash: params[3],
+          is_active: params[4] !== undefined ? Boolean(params[4]) : true,
+        };
       } else if (tableName === 'customer_users') {
-        row = { ...row, full_name: params[0], phone: params[1], email: params[2] || null, password_hash: params[3], loyalty_stamps: 0, is_active: true, last_login_at: new Date().toISOString() };
+        row = {
+          ...row,
+          full_name: params[0],
+          phone: params[1],
+          email: params[2] || null,
+          password_hash: params[3],
+          loyalty_stamps: 0,
+          is_active: true,
+          last_login_at: new Date().toISOString(),
+        };
       } else if (tableName === 'orders') {
         const colMatch = cleanSql.match(/^INSERT INTO orders\s*\(([^)]+)\)/i);
         const valMatch = cleanSql.match(/VALUES\s*\(([^)]+)\)/i);
@@ -145,7 +204,11 @@ class MemoryPgDb {
               if (expr.startsWith('$')) {
                 const pIdx = parseInt(expr.slice(1), 10) - 1;
                 const pVal = params[pIdx];
-                if (['subtotal_usd', 'total_usd', 'total_khr', 'customer_id', 'store_id'].includes(col)) {
+                if (
+                  ['subtotal_usd', 'total_usd', 'total_khr', 'customer_id', 'store_id'].includes(
+                    col,
+                  )
+                ) {
                   row[col] = pVal == null ? null : Number(pVal);
                 } else {
                   row[col] = pVal;
@@ -156,7 +219,10 @@ class MemoryPgDb {
                 row[col] = true;
               } else if (expr.toUpperCase() === 'FALSE') {
                 row[col] = false;
-              } else if ((expr.startsWith("'") && expr.endsWith("'")) || (expr.startsWith('"') && expr.endsWith('"'))) {
+              } else if (
+                (expr.startsWith("'") && expr.endsWith("'")) ||
+                (expr.startsWith('"') && expr.endsWith('"'))
+              ) {
                 row[col] = expr.slice(1, -1);
               } else if (!isNaN(Number(expr))) {
                 row[col] = Number(expr);
@@ -167,7 +233,11 @@ class MemoryPgDb {
           } else {
             cols.forEach((col, idx) => {
               if (params[idx] !== undefined) {
-                if (['subtotal_usd', 'total_usd', 'total_khr', 'customer_id', 'store_id'].includes(col)) {
+                if (
+                  ['subtotal_usd', 'total_usd', 'total_khr', 'customer_id', 'store_id'].includes(
+                    col,
+                  )
+                ) {
                   row[col] = params[idx] == null ? null : Number(params[idx]);
                 } else {
                   row[col] = params[idx];
@@ -230,12 +300,22 @@ class MemoryPgDb {
     // 3. SELECT FROM categories
     if (/^SELECT/i.test(cleanSql) && /FROM categories/i.test(cleanSql)) {
       let rows = [...this.tables.categories];
-      if (/WHERE name = \$1/i.test(cleanSql) || /WHERE LOWER\(name\) = LOWER\(\$1\)/i.test(cleanSql)) {
-        rows = rows.filter(r => r.name.toLowerCase() === String(params[0]).toLowerCase() &&
-          (!/id != \$2/i.test(cleanSql) || r.id !== Number(params[1])));
+      if (
+        /WHERE name = \$1/i.test(cleanSql) ||
+        /WHERE LOWER\(name\) = LOWER\(\$1\)/i.test(cleanSql)
+      ) {
+        rows = rows.filter(
+          r =>
+            r.name.toLowerCase() === String(params[0]).toLowerCase() &&
+            (!/id != \$2/i.test(cleanSql) || r.id !== Number(params[1])),
+        );
       } else if (/WHERE c\.id = \$1/i.test(cleanSql) || /WHERE id = \$1/i.test(cleanSql)) {
         rows = rows.filter(r => r.id === Number(params[0]));
-      } else if (/active_only/i.test(cleanSql) || /is_active = TRUE/i.test(cleanSql) || /is_active = 1/i.test(cleanSql)) {
+      } else if (
+        /active_only/i.test(cleanSql) ||
+        /is_active = TRUE/i.test(cleanSql) ||
+        /is_active = 1/i.test(cleanSql)
+      ) {
         rows = rows.filter(r => r.is_active);
       }
 
@@ -277,8 +357,14 @@ class MemoryPgDb {
         rows = rows.filter(r => r.category_id === Number(params[0]));
       }
       if (params.some(p => typeof p === 'string' && p.startsWith('%'))) {
-        const term = String(params.find(p => p.startsWith('%'))).replace(/%/g, '').toLowerCase();
-        rows = rows.filter(r => r.name.toLowerCase().includes(term) || (r.description && r.description.toLowerCase().includes(term)));
+        const term = String(params.find(p => p.startsWith('%')))
+          .replace(/%/g, '')
+          .toLowerCase();
+        rows = rows.filter(
+          r =>
+            r.name.toLowerCase().includes(term) ||
+            (r.description && r.description.toLowerCase().includes(term)),
+        );
       }
       if (params.length > 0 && /LOWER\(c\.name\) = LOWER\(\$/i.test(cleanSql)) {
         const catName = String(params[0]).toLowerCase();
@@ -308,13 +394,16 @@ class MemoryPgDb {
         rows = rows.filter(r => !r.is_active);
       }
       if (/ILIKE/i.test(cleanSql)) {
-        const searchParam = params.find(p => typeof p === 'string' && p.startsWith('%') && p.endsWith('%'));
+        const searchParam = params.find(
+          p => typeof p === 'string' && p.startsWith('%') && p.endsWith('%'),
+        );
         if (searchParam) {
           const term = searchParam.replace(/%/g, '').toLowerCase();
-          rows = rows.filter(r =>
-            (r.full_name && r.full_name.toLowerCase().includes(term)) ||
-            (r.email && r.email.toLowerCase().includes(term)) ||
-            (r.phone && r.phone.includes(term))
+          rows = rows.filter(
+            r =>
+              (r.full_name && r.full_name.toLowerCase().includes(term)) ||
+              (r.email && r.email.toLowerCase().includes(term)) ||
+              (r.phone && r.phone.includes(term)),
           );
         }
       }
@@ -326,13 +415,17 @@ class MemoryPgDb {
       let rows = [...this.tables.customer_users];
       if (/WHERE phone = \$1 OR LOWER\(email\) = LOWER\(\$2\)/i.test(cleanSql)) {
         const iden = String(params[0]).toLowerCase();
-        rows = rows.filter(r => r.phone === params[0] || (r.email && r.email.toLowerCase() === iden));
+        rows = rows.filter(
+          r => r.phone === params[0] || (r.email && r.email.toLowerCase() === iden),
+        );
       } else if (/WHERE (?:c\.)?id = \$1/i.test(cleanSql)) {
         rows = rows.filter(r => r.id === Number(params[0]));
       } else if (/WHERE phone = \$1/i.test(cleanSql)) {
         rows = rows.filter(r => r.phone === String(params[0]));
       } else if (/WHERE email = \$1/i.test(cleanSql)) {
-        rows = rows.filter(r => r.email && r.email.toLowerCase() === String(params[0]).toLowerCase());
+        rows = rows.filter(
+          r => r.email && r.email.toLowerCase() === String(params[0]).toLowerCase(),
+        );
       } else {
         if (/is_active = TRUE/i.test(cleanSql)) {
           rows = rows.filter(r => r.is_active);
@@ -340,13 +433,16 @@ class MemoryPgDb {
           rows = rows.filter(r => !r.is_active);
         }
         if (/ILIKE/i.test(cleanSql)) {
-          const searchParam = params.find(p => typeof p === 'string' && p.startsWith('%') && p.endsWith('%'));
+          const searchParam = params.find(
+            p => typeof p === 'string' && p.startsWith('%') && p.endsWith('%'),
+          );
           if (searchParam) {
             const term = searchParam.replace(/%/g, '').toLowerCase();
-            rows = rows.filter(r =>
-              (r.full_name && r.full_name.toLowerCase().includes(term)) ||
-              (r.email && r.email.toLowerCase().includes(term)) ||
-              (r.phone && r.phone.includes(term))
+            rows = rows.filter(
+              r =>
+                (r.full_name && r.full_name.toLowerCase().includes(term)) ||
+                (r.email && r.email.toLowerCase().includes(term)) ||
+                (r.phone && r.phone.includes(term)),
             );
           }
         }
@@ -401,7 +497,9 @@ class MemoryPgDb {
         const active = sellers.filter(s => s.is_active).length;
         const inactive = sellers.filter(s => !s.is_active).length;
         return Promise.resolve({
-          rows: [{ total_sellers: sellers.length, active_sellers: active, inactive_sellers: inactive }],
+          rows: [
+            { total_sellers: sellers.length, active_sellers: active, inactive_sellers: inactive },
+          ],
           rowCount: 1,
         });
       }
@@ -413,7 +511,11 @@ class MemoryPgDb {
           if (/is_active = FALSE/i.test(cleanSql)) filtered = filtered.filter(r => !r.is_active);
           if (/LIKE/i.test(cleanSql) && params.length > 0) {
             const term = String(params[0]).replace(/%/g, '').toLowerCase();
-            filtered = filtered.filter(r => (r.full_name && r.full_name.toLowerCase().includes(term)) || (r.email && r.email.toLowerCase().includes(term)));
+            filtered = filtered.filter(
+              r =>
+                (r.full_name && r.full_name.toLowerCase().includes(term)) ||
+                (r.email && r.email.toLowerCase().includes(term)),
+            );
           }
           return Promise.resolve({ rows: [{ count: filtered.length }], rowCount: 1 });
         }
@@ -427,9 +529,15 @@ class MemoryPgDb {
         return Promise.resolve({ rows: [{ count: rows.length }], rowCount: 1 });
       }
 
-      if (/WHERE email = \$1/i.test(cleanSql) || /WHERE LOWER\(email\) = \$1/i.test(cleanSql) || /WHERE LOWER\(email\) = LOWER\(\$1\)/i.test(cleanSql)) {
+      if (
+        /WHERE email = \$1/i.test(cleanSql) ||
+        /WHERE LOWER\(email\) = \$1/i.test(cleanSql) ||
+        /WHERE LOWER\(email\) = LOWER\(\$1\)/i.test(cleanSql)
+      ) {
         if (/AND role = 'seller'/i.test(cleanSql)) {
-          rows = rows.filter(r => r.email.toLowerCase() === String(params[0]).toLowerCase() && r.role === 'seller');
+          rows = rows.filter(
+            r => r.email.toLowerCase() === String(params[0]).toLowerCase() && r.role === 'seller',
+          );
         } else {
           rows = rows.filter(r => r.email.toLowerCase() === String(params[0]).toLowerCase());
         }
@@ -445,7 +553,11 @@ class MemoryPgDb {
         if (/is_active = FALSE/i.test(cleanSql)) rows = rows.filter(r => !r.is_active);
         if (/LIKE/i.test(cleanSql) && params.length > 0) {
           const term = String(params[0]).replace(/%/g, '').toLowerCase();
-          rows = rows.filter(r => (r.full_name && r.full_name.toLowerCase().includes(term)) || (r.email && r.email.toLowerCase().includes(term)));
+          rows = rows.filter(
+            r =>
+              (r.full_name && r.full_name.toLowerCase().includes(term)) ||
+              (r.email && r.email.toLowerCase().includes(term)),
+          );
         }
       }
 
@@ -460,12 +572,17 @@ class MemoryPgDb {
     }
 
     if (/^SELECT/i.test(cleanSql) && /FROM security_audit_logs/i.test(cleanSql)) {
-      return Promise.resolve({ rows: [...this.tables.security_audit_logs], rowCount: this.tables.security_audit_logs.length });
+      return Promise.resolve({
+        rows: [...this.tables.security_audit_logs],
+        rowCount: this.tables.security_audit_logs.length,
+      });
     }
 
     // 7. SELECT FROM orders
     if (/^SELECT/i.test(cleanSql) && /FROM order_idempotency/i.test(cleanSql)) {
-      const rows = this.tables.order_idempotency.filter(row => row.customer_id === Number(params[0]) && row.idempotency_key === params[1]);
+      const rows = this.tables.order_idempotency.filter(
+        row => row.customer_id === Number(params[0]) && row.idempotency_key === params[1],
+      );
       return Promise.resolve({ rows, rowCount: rows.length });
     }
 
@@ -489,13 +606,16 @@ class MemoryPgDb {
         rows = rows.filter(r => !r.is_active);
       }
       if (/ILIKE|LIKE/i.test(cleanSql)) {
-        const searchParam = params.find(p => typeof p === 'string' && p.startsWith('%') && p.endsWith('%'));
+        const searchParam = params.find(
+          p => typeof p === 'string' && p.startsWith('%') && p.endsWith('%'),
+        );
         if (searchParam) {
           const term = searchParam.replace(/%/g, '').toLowerCase();
-          rows = rows.filter(r =>
-            (r.name && r.name.toLowerCase().includes(term)) ||
-            (r.code && r.code.toLowerCase().includes(term)) ||
-            (r.address && r.address.toLowerCase().includes(term))
+          rows = rows.filter(
+            r =>
+              (r.name && r.name.toLowerCase().includes(term)) ||
+              (r.code && r.code.toLowerCase().includes(term)) ||
+              (r.address && r.address.toLowerCase().includes(term)),
           );
         }
       }
@@ -513,13 +633,16 @@ class MemoryPgDb {
           rows = rows.filter(s => !s.is_active);
         }
         if (/ILIKE|LIKE/i.test(cleanSql)) {
-          const searchParam = params.find(p => typeof p === 'string' && p.startsWith('%') && p.endsWith('%'));
+          const searchParam = params.find(
+            p => typeof p === 'string' && p.startsWith('%') && p.endsWith('%'),
+          );
           if (searchParam) {
             const term = searchParam.replace(/%/g, '').toLowerCase();
-            rows = rows.filter(r =>
-              (r.name && r.name.toLowerCase().includes(term)) ||
-              (r.code && r.code.toLowerCase().includes(term)) ||
-              (r.address && r.address.toLowerCase().includes(term))
+            rows = rows.filter(
+              r =>
+                (r.name && r.name.toLowerCase().includes(term)) ||
+                (r.code && r.code.toLowerCase().includes(term)) ||
+                (r.address && r.address.toLowerCase().includes(term)),
             );
           }
         }
@@ -548,14 +671,20 @@ class MemoryPgDb {
           const limitIndex = Number(cleanSql.match(/LIMIT \$(\d+)/i)[1]) - 1;
           const offsetMatch = cleanSql.match(/OFFSET \$(\d+)/i);
           const offset = offsetMatch ? Number(params[Number(offsetMatch[1]) - 1]) : 0;
-          return Promise.resolve({ rows: enriched.slice(offset, offset + Number(params[limitIndex])), rowCount: enriched.length });
+          return Promise.resolve({
+            rows: enriched.slice(offset, offset + Number(params[limitIndex])),
+            rowCount: enriched.length,
+          });
         }
         return Promise.resolve({ rows: enriched, rowCount: enriched.length });
       }
       let rows = [...(this.tables.stores || [])];
       if (/WHERE id = \$1/i.test(cleanSql)) {
         rows = rows.filter(s => s.id === Number(params[0]));
-      } else if (/WHERE code = \$1/i.test(cleanSql) || /WHERE LOWER\(code\) = LOWER\(\$1\)/i.test(cleanSql)) {
+      } else if (
+        /WHERE code = \$1/i.test(cleanSql) ||
+        /WHERE LOWER\(code\) = LOWER\(\$1\)/i.test(cleanSql)
+      ) {
         rows = rows.filter(s => s.code.toLowerCase() === String(params[0]).toLowerCase());
         if (/AND id != \$2/i.test(cleanSql) || /AND id <> \$2/i.test(cleanSql)) {
           rows = rows.filter(s => s.id !== Number(params[1]));
@@ -564,13 +693,16 @@ class MemoryPgDb {
         if (/is_active = TRUE/i.test(cleanSql)) rows = rows.filter(s => s.is_active);
         if (/is_active = FALSE/i.test(cleanSql)) rows = rows.filter(s => !s.is_active);
         if (/ILIKE|LIKE/i.test(cleanSql)) {
-          const searchParam = params.find(p => typeof p === 'string' && p.startsWith('%') && p.endsWith('%'));
+          const searchParam = params.find(
+            p => typeof p === 'string' && p.startsWith('%') && p.endsWith('%'),
+          );
           if (searchParam) {
             const term = searchParam.replace(/%/g, '').toLowerCase();
-            rows = rows.filter(s =>
-              (s.name && s.name.toLowerCase().includes(term)) ||
-              (s.code && s.code.toLowerCase().includes(term)) ||
-              (s.address && s.address.toLowerCase().includes(term))
+            rows = rows.filter(
+              s =>
+                (s.name && s.name.toLowerCase().includes(term)) ||
+                (s.code && s.code.toLowerCase().includes(term)) ||
+                (s.address && s.address.toLowerCase().includes(term)),
             );
           }
         }
@@ -631,7 +763,9 @@ class MemoryPgDb {
 
       let rows = assignments;
       if (/WHERE seller_id = \$1 AND store_id = \$2/i.test(cleanSql)) {
-        rows = rows.filter(a => a.seller_id === Number(params[0]) && a.store_id === Number(params[1]));
+        rows = rows.filter(
+          a => a.seller_id === Number(params[0]) && a.store_id === Number(params[1]),
+        );
       } else if (/WHERE seller_id = \$1/i.test(cleanSql)) {
         rows = rows.filter(a => a.seller_id === Number(params[0]));
       } else if (/WHERE store_id = \$1/i.test(cleanSql)) {
@@ -644,7 +778,9 @@ class MemoryPgDb {
     if (/SELECT\s+COUNT\(\*\)(?:::int)?\s+AS\s+total_orders,\s*COALESCE\(SUM/i.test(cleanSql)) {
       const storeId = Number(params[0]);
       const storeOrders = (this.tables.orders || []).filter(o => o.store_id === storeId);
-      const recognized = storeOrders.filter(o => o.payment_status === 'paid' && o.order_status === 'completed');
+      const recognized = storeOrders.filter(
+        o => o.payment_status === 'paid' && o.order_status === 'completed',
+      );
       const revenue = recognized.reduce((sum, o) => sum + (o.total_usd || 0), 0);
       return Promise.resolve({
         rows: [{ total_orders: storeOrders.length, revenue_usd: revenue }],
@@ -666,10 +802,15 @@ class MemoryPgDb {
 
     if (/^SELECT/i.test(cleanSql) && /FROM orders/i.test(cleanSql)) {
       let rows = [...this.tables.orders];
-      if (/WHERE id = \$1 AND (?:o\.)?store_id = ANY\(\$2\)/i.test(cleanSql) || /WHERE id = \$1 AND (?:o\.)?store_id IN/i.test(cleanSql)) {
+      if (
+        /WHERE id = \$1 AND (?:o\.)?store_id = ANY\(\$2\)/i.test(cleanSql) ||
+        /WHERE id = \$1 AND (?:o\.)?store_id IN/i.test(cleanSql)
+      ) {
         const orderId = Number(params[0]);
         const storeIds = Array.isArray(params[1]) ? params[1].map(Number) : [Number(params[1])];
-        rows = rows.filter(r => r.id === orderId && r.store_id != null && storeIds.includes(r.store_id));
+        rows = rows.filter(
+          r => r.id === orderId && r.store_id != null && storeIds.includes(r.store_id),
+        );
       } else if (/store_id = ANY\(\$1\)/i.test(cleanSql) || /store_id IN \(/i.test(cleanSql)) {
         const storeIds = Array.isArray(params[0]) ? params[0].map(Number) : [Number(params[0])];
         rows = rows.filter(r => r.store_id != null && storeIds.includes(r.store_id));
@@ -711,7 +852,9 @@ class MemoryPgDb {
 
     // 9. UPDATE
     if (/^UPDATE order_idempotency/i.test(cleanSql)) {
-      const row = this.tables.order_idempotency.find(entry => entry.customer_id === Number(params[0]) && entry.idempotency_key === params[1]);
+      const row = this.tables.order_idempotency.find(
+        entry => entry.customer_id === Number(params[0]) && entry.idempotency_key === params[1],
+      );
       if (row) row.order_id = Number(params[2]);
       return Promise.resolve({ rows: row ? [row] : [], rowCount: row ? 1 : 0 });
     }
@@ -736,7 +879,9 @@ class MemoryPgDb {
         if (/last_login_at/i.test(cleanSql)) staff.last_login_at = new Date().toISOString();
         if (/is_active\s*=\s*FALSE/i.test(cleanSql)) staff.is_active = false;
         if (/is_active\s*=\s*TRUE/i.test(cleanSql)) staff.is_active = true;
-        for (const [, field, position] of cleanSql.matchAll(/(full_name|email|password_hash|is_active|role) = \$(\d+)/gi)) {
+        for (const [, field, position] of cleanSql.matchAll(
+          /(full_name|email|password_hash|is_active|role) = \$(\d+)/gi,
+        )) {
           const val = params[Number(position) - 1];
           staff[field] = field === 'is_active' ? Boolean(val) : val;
         }
@@ -747,8 +892,13 @@ class MemoryPgDb {
       const id = Number(params[params.length - 1]);
       const cat = this.tables.categories.find(c => c.id === id);
       if (cat) {
-        for (const [, field, position] of cleanSql.matchAll(/(name|description|image|is_active) = \$(\d+)/gi)) {
-          cat[field] = field === 'is_active' ? Boolean(params[Number(position) - 1]) : params[Number(position) - 1];
+        for (const [, field, position] of cleanSql.matchAll(
+          /(name|description|image|is_active) = \$(\d+)/gi,
+        )) {
+          cat[field] =
+            field === 'is_active'
+              ? Boolean(params[Number(position) - 1])
+              : params[Number(position) - 1];
         }
       }
       return Promise.resolve({ rows: cat ? [cat] : [], rowCount: cat ? 1 : 0 });
@@ -757,10 +907,16 @@ class MemoryPgDb {
       const id = Number(params[params.length - 1]);
       const prod = this.tables.products.find(p => p.id === id);
       if (prod) {
-        for (const [, field, position] of cleanSql.matchAll(/(category_id|name|description|image|base_price_usd|is_available) = \$(\d+)/gi)) {
+        for (const [, field, position] of cleanSql.matchAll(
+          /(category_id|name|description|image|base_price_usd|is_available) = \$(\d+)/gi,
+        )) {
           const value = params[Number(position) - 1];
-          prod[field] = field === 'category_id' || field === 'base_price_usd' ? Number(value)
-            : field === 'is_available' ? Boolean(value) : value;
+          prod[field] =
+            field === 'category_id' || field === 'base_price_usd'
+              ? Number(value)
+              : field === 'is_available'
+                ? Boolean(value)
+                : value;
         }
       }
       return Promise.resolve({ rows: prod ? [prod] : [], rowCount: prod ? 1 : 0 });
@@ -769,7 +925,9 @@ class MemoryPgDb {
       const id = Number(params[params.length - 1]);
       const store = this.tables.stores.find(s => s.id === id);
       if (store) {
-        for (const [, field, position] of cleanSql.matchAll(/(name|code|address|is_active) = \$(\d+)/gi)) {
+        for (const [, field, position] of cleanSql.matchAll(
+          /(name|code|address|is_active) = \$(\d+)/gi,
+        )) {
           const val = params[Number(position) - 1];
           store[field] = field === 'is_active' ? Boolean(val) : val;
         }
@@ -796,18 +954,21 @@ class MemoryPgDb {
       const before = this.tables.seller_store_assignments.length;
       if (/WHERE seller_id = \$1 AND store_id = \$2/i.test(cleanSql)) {
         this.tables.seller_store_assignments = this.tables.seller_store_assignments.filter(
-          a => !(a.seller_id === Number(params[0]) && a.store_id === Number(params[1]))
+          a => !(a.seller_id === Number(params[0]) && a.store_id === Number(params[1])),
         );
       } else if (/WHERE seller_id = \$1/i.test(cleanSql)) {
         this.tables.seller_store_assignments = this.tables.seller_store_assignments.filter(
-          a => a.seller_id !== Number(params[0])
+          a => a.seller_id !== Number(params[0]),
         );
       } else if (/WHERE store_id = \$1/i.test(cleanSql)) {
         this.tables.seller_store_assignments = this.tables.seller_store_assignments.filter(
-          a => a.store_id !== Number(params[0])
+          a => a.store_id !== Number(params[0]),
         );
       }
-      return Promise.resolve({ rowCount: before - this.tables.seller_store_assignments.length, rows: [] });
+      return Promise.resolve({
+        rowCount: before - this.tables.seller_store_assignments.length,
+        rows: [],
+      });
     }
     if (/^DELETE FROM categories WHERE id = \$1/i.test(cleanSql)) {
       const before = this.tables.categories.length;
@@ -849,7 +1010,11 @@ export function buildPoolConfig(databaseUrl = config.databaseUrl) {
   }
 
   // Security rule: Never disable certificate verification
-  if (poolConfig.ssl && typeof poolConfig.ssl === 'object' && poolConfig.ssl.rejectUnauthorized === false) {
+  if (
+    poolConfig.ssl &&
+    typeof poolConfig.ssl === 'object' &&
+    poolConfig.ssl.rejectUnauthorized === false
+  ) {
     poolConfig.ssl.rejectUnauthorized = true;
   }
 
@@ -872,8 +1037,11 @@ export async function getDatabase() {
   const poolConfig = buildPoolConfig(config.databaseUrl);
   const nextPool = new Pool(poolConfig);
 
-  nextPool.on('error', (err) => {
-    console.error('Unexpected idle PostgreSQL client error:', err.code || err.name || 'UnknownError');
+  nextPool.on('error', err => {
+    console.error(
+      'Unexpected idle PostgreSQL client error:',
+      err.code || err.name || 'UnknownError',
+    );
   });
 
   try {
@@ -898,7 +1066,9 @@ export async function getDatabase() {
     }
     const reason = err.code || err.name || 'UnknownError';
     console.error(`PostgreSQL connection failed [${reason}].`);
-    throw new Error('PostgreSQL initialization failed; server was not started. Check database configuration and availability.');
+    throw new Error(
+      'PostgreSQL initialization failed; server was not started. Check database configuration and availability.',
+    );
   }
 }
 
@@ -950,7 +1120,9 @@ export async function withTransaction(work) {
 
 export async function initSchema(db) {
   if (isProductionOrStaging()) {
-    throw new Error('Automatic schema modification is prohibited in staging and production environments.');
+    throw new Error(
+      'Automatic schema modification is prohibited in staging and production environments.',
+    );
   }
   const schemaSql = `
     CREATE TABLE IF NOT EXISTS categories (

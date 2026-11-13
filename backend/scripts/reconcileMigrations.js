@@ -16,7 +16,11 @@ export const AUTHORIZED_TARGETS = Object.freeze({
  * Verifies connection against authoritative Neon session and endpoint data.
  * Rejects production branch and any unauthorized endpoints.
  */
-export async function assertAuthorizedStagingTarget(client, connectionString = null, { allowDisposableTest = false } = {}) {
+export async function assertAuthorizedStagingTarget(
+  client,
+  connectionString = null,
+  { allowDisposableTest = false } = {},
+) {
   // 1. Connection string pre-check (if URL is provided)
   if (connectionString) {
     let parsedUrl;
@@ -27,8 +31,13 @@ export async function assertAuthorizedStagingTarget(client, connectionString = n
     }
 
     const host = parsedUrl.hostname.toLowerCase();
-    if (host.includes(AUTHORIZED_TARGETS.productionEndpointId) || host.includes(AUTHORIZED_TARGETS.productionBranchId)) {
-      throw new Error('CRITICAL TARGET GUARD: Writes to production branch or endpoint are strictly prohibited.');
+    if (
+      host.includes(AUTHORIZED_TARGETS.productionEndpointId) ||
+      host.includes(AUTHORIZED_TARGETS.productionBranchId)
+    ) {
+      throw new Error(
+        'CRITICAL TARGET GUARD: Writes to production branch or endpoint are strictly prohibited.',
+      );
     }
   }
 
@@ -44,8 +53,13 @@ export async function assertAuthorizedStagingTarget(client, connectionString = n
   const { current_db, branch_id, endpoint_id } = sessionRes.rows[0];
 
   // 3. Absolute ban on production branch in active session
-  if (branch_id === AUTHORIZED_TARGETS.productionBranchId || endpoint_id === AUTHORIZED_TARGETS.productionEndpointId) {
-    throw new Error('CRITICAL TARGET GUARD: Connected database session is identified as PRODUCTION. Aborting write operation.');
+  if (
+    branch_id === AUTHORIZED_TARGETS.productionBranchId ||
+    endpoint_id === AUTHORIZED_TARGETS.productionEndpointId
+  ) {
+    throw new Error(
+      'CRITICAL TARGET GUARD: Connected database session is identified as PRODUCTION. Aborting write operation.',
+    );
   }
 
   // 4. Test mode handling for isolated disposable test databases
@@ -62,21 +76,29 @@ export async function assertAuthorizedStagingTarget(client, connectionString = n
 
   // 5. Strict staging verification
   if (branch_id !== AUTHORIZED_TARGETS.stagingBranchId) {
-    throw new Error(`Target guard failed: Connected branch [${branch_id || 'unknown'}] does not match authorized staging branch [${AUTHORIZED_TARGETS.stagingBranchId}].`);
+    throw new Error(
+      `Target guard failed: Connected branch [${branch_id || 'unknown'}] does not match authorized staging branch [${AUTHORIZED_TARGETS.stagingBranchId}].`,
+    );
   }
 
   if (endpoint_id !== AUTHORIZED_TARGETS.stagingEndpointId) {
-    throw new Error(`Target guard failed: Connected endpoint [${endpoint_id || 'unknown'}] does not match authorized staging endpoint [${AUTHORIZED_TARGETS.stagingEndpointId}].`);
+    throw new Error(
+      `Target guard failed: Connected endpoint [${endpoint_id || 'unknown'}] does not match authorized staging endpoint [${AUTHORIZED_TARGETS.stagingEndpointId}].`,
+    );
   }
 
   if (current_db !== AUTHORIZED_TARGETS.stagingDatabase) {
-    throw new Error(`Target guard failed: Connected database [${current_db}] does not match authorized database [${AUTHORIZED_TARGETS.stagingDatabase}].`);
+    throw new Error(
+      `Target guard failed: Connected database [${current_db}] does not match authorized database [${AUTHORIZED_TARGETS.stagingDatabase}].`,
+    );
   }
 
   if (connectionString) {
     const parsedUrl = new URL(connectionString);
     if (!parsedUrl.hostname.includes(AUTHORIZED_TARGETS.stagingEndpointId)) {
-      throw new Error(`Target guard failed: Connection host [${parsedUrl.hostname}] does not match staging endpoint.`);
+      throw new Error(
+        `Target guard failed: Connection host [${parsedUrl.hostname}] does not match staging endpoint.`,
+      );
     }
   }
 
@@ -120,7 +142,10 @@ export async function verifySchemaMigrationEffects(client) {
   }
 
   // 2. Column orders.payment_status default 'unpaid'
-  if (!orderCols.payment_status || !String(orderCols.payment_status.column_default).includes('unpaid')) {
+  if (
+    !orderCols.payment_status ||
+    !String(orderCols.payment_status.column_default).includes('unpaid')
+  ) {
     throw new Error('Migration 001 effect missing: orders.payment_status default is not unpaid.');
   }
 
@@ -144,11 +169,16 @@ export async function verifySchemaMigrationEffects(client) {
   const fks = fkRes.rows;
 
   const orderCustomerFk = fks.find(
-    f => f.table_name === 'orders' && f.column_name === 'customer_id' &&
-         f.foreign_table_name === 'customer_users' && f.foreign_column_name === 'id'
+    f =>
+      f.table_name === 'orders' &&
+      f.column_name === 'customer_id' &&
+      f.foreign_table_name === 'customer_users' &&
+      f.foreign_column_name === 'id',
   );
   if (!orderCustomerFk || orderCustomerFk.delete_rule !== 'SET NULL') {
-    throw new Error('Migration 001 effect missing: orders.customer_id foreign key with ON DELETE SET NULL not found.');
+    throw new Error(
+      'Migration 001 effect missing: orders.customer_id foreign key with ON DELETE SET NULL not found.',
+    );
   }
 
   // 4. Table order_idempotency columns
@@ -162,20 +192,40 @@ export async function verifySchemaMigrationEffects(client) {
   }
   const idempCols = Object.fromEntries(idempColsRes.rows.map(r => [r.column_name, r]));
 
-  if (!idempCols.customer_id || idempCols.customer_id.data_type !== 'integer' || idempCols.customer_id.is_nullable !== 'NO') {
-    throw new Error('Migration 001 effect missing: order_idempotency.customer_id (integer NOT NULL) missing.');
+  if (
+    !idempCols.customer_id ||
+    idempCols.customer_id.data_type !== 'integer' ||
+    idempCols.customer_id.is_nullable !== 'NO'
+  ) {
+    throw new Error(
+      'Migration 001 effect missing: order_idempotency.customer_id (integer NOT NULL) missing.',
+    );
   }
-  if (!idempCols.idempotency_key || idempCols.idempotency_key.data_type !== 'character varying' || idempCols.idempotency_key.character_maximum_length !== 128) {
-    throw new Error('Migration 001 effect missing: order_idempotency.idempotency_key (varchar(128) NOT NULL) missing.');
+  if (
+    !idempCols.idempotency_key ||
+    idempCols.idempotency_key.data_type !== 'character varying' ||
+    idempCols.idempotency_key.character_maximum_length !== 128
+  ) {
+    throw new Error(
+      'Migration 001 effect missing: order_idempotency.idempotency_key (varchar(128) NOT NULL) missing.',
+    );
   }
-  if (!idempCols.request_hash || idempCols.request_hash.data_type !== 'character' || idempCols.request_hash.character_maximum_length !== 64) {
-    throw new Error('Migration 001 effect missing: order_idempotency.request_hash (char(64) NOT NULL) missing.');
+  if (
+    !idempCols.request_hash ||
+    idempCols.request_hash.data_type !== 'character' ||
+    idempCols.request_hash.character_maximum_length !== 64
+  ) {
+    throw new Error(
+      'Migration 001 effect missing: order_idempotency.request_hash (char(64) NOT NULL) missing.',
+    );
   }
   if (!idempCols.order_id || idempCols.order_id.data_type !== 'integer') {
     throw new Error('Migration 001 effect missing: order_idempotency.order_id (integer) missing.');
   }
   if (!idempCols.created_at || idempCols.created_at.data_type !== 'timestamp with time zone') {
-    throw new Error('Migration 001 effect missing: order_idempotency.created_at (timestamptz) missing.');
+    throw new Error(
+      'Migration 001 effect missing: order_idempotency.created_at (timestamptz) missing.',
+    );
   }
 
   // 5. Composite Primary Key on order_idempotency (customer_id, idempotency_key)
@@ -191,8 +241,14 @@ export async function verifySchemaMigrationEffects(client) {
     .filter(r => r.table_name === 'order_idempotency')
     .map(r => r.column_name);
 
-  if (idempPkCols.length !== 2 || idempPkCols[0] !== 'customer_id' || idempPkCols[1] !== 'idempotency_key') {
-    throw new Error('Migration 001 effect missing: order_idempotency PRIMARY KEY (customer_id, idempotency_key) missing.');
+  if (
+    idempPkCols.length !== 2 ||
+    idempPkCols[0] !== 'customer_id' ||
+    idempPkCols[1] !== 'idempotency_key'
+  ) {
+    throw new Error(
+      'Migration 001 effect missing: order_idempotency PRIMARY KEY (customer_id, idempotency_key) missing.',
+    );
   }
 
   // 6. Unique constraint on order_idempotency.order_id
@@ -204,27 +260,39 @@ export async function verifySchemaMigrationEffects(client) {
     WHERE tc.table_schema = 'public' AND tc.constraint_type = 'UNIQUE'
   `);
   const hasIdempUniqueOrder = uniqueRes.rows.some(
-    r => r.table_name === 'order_idempotency' && r.column_name === 'order_id'
+    r => r.table_name === 'order_idempotency' && r.column_name === 'order_id',
   );
   if (!hasIdempUniqueOrder) {
-    throw new Error('Migration 001 effect missing: order_idempotency UNIQUE constraint on order_id missing.');
+    throw new Error(
+      'Migration 001 effect missing: order_idempotency UNIQUE constraint on order_id missing.',
+    );
   }
 
   // 7. Foreign keys on order_idempotency with ON DELETE CASCADE
   const idempCustomerFk = fks.find(
-    f => f.table_name === 'order_idempotency' && f.column_name === 'customer_id' &&
-         f.foreign_table_name === 'customer_users' && f.foreign_column_name === 'id'
+    f =>
+      f.table_name === 'order_idempotency' &&
+      f.column_name === 'customer_id' &&
+      f.foreign_table_name === 'customer_users' &&
+      f.foreign_column_name === 'id',
   );
   if (!idempCustomerFk || idempCustomerFk.delete_rule !== 'CASCADE') {
-    throw new Error('Migration 001 effect missing: order_idempotency.customer_id FK with ON DELETE CASCADE missing.');
+    throw new Error(
+      'Migration 001 effect missing: order_idempotency.customer_id FK with ON DELETE CASCADE missing.',
+    );
   }
 
   const idempOrderFk = fks.find(
-    f => f.table_name === 'order_idempotency' && f.column_name === 'order_id' &&
-         f.foreign_table_name === 'orders' && f.foreign_column_name === 'id'
+    f =>
+      f.table_name === 'order_idempotency' &&
+      f.column_name === 'order_id' &&
+      f.foreign_table_name === 'orders' &&
+      f.foreign_column_name === 'id',
   );
   if (!idempOrderFk || idempOrderFk.delete_rule !== 'CASCADE') {
-    throw new Error('Migration 001 effect missing: order_idempotency.order_id FK with ON DELETE CASCADE missing.');
+    throw new Error(
+      'Migration 001 effect missing: order_idempotency.order_id FK with ON DELETE CASCADE missing.',
+    );
   }
 
   // 8. Indexes on orders: idx_orders_customer and idx_orders_ref
@@ -255,26 +323,65 @@ export async function verifySchemaMigrationEffects(client) {
   }
   const settleCols = Object.fromEntries(settleColsRes.rows.map(r => [r.column_name, r]));
 
-  if (!settleCols.id || settleCols.id.data_type !== 'bigint' || settleCols.id.is_nullable !== 'NO') {
-    throw new Error('Migration 002 effect missing: payment_settlements.id (bigint NOT NULL) missing.');
+  if (
+    !settleCols.id ||
+    settleCols.id.data_type !== 'bigint' ||
+    settleCols.id.is_nullable !== 'NO'
+  ) {
+    throw new Error(
+      'Migration 002 effect missing: payment_settlements.id (bigint NOT NULL) missing.',
+    );
   }
-  if (!settleCols.order_id || settleCols.order_id.data_type !== 'integer' || settleCols.order_id.is_nullable !== 'NO') {
-    throw new Error('Migration 002 effect missing: payment_settlements.order_id (integer NOT NULL) missing.');
+  if (
+    !settleCols.order_id ||
+    settleCols.order_id.data_type !== 'integer' ||
+    settleCols.order_id.is_nullable !== 'NO'
+  ) {
+    throw new Error(
+      'Migration 002 effect missing: payment_settlements.order_id (integer NOT NULL) missing.',
+    );
   }
-  if (!settleCols.staff_id || settleCols.staff_id.data_type !== 'integer' || settleCols.staff_id.is_nullable !== 'NO') {
-    throw new Error('Migration 002 effect missing: payment_settlements.staff_id (integer NOT NULL) missing.');
+  if (
+    !settleCols.staff_id ||
+    settleCols.staff_id.data_type !== 'integer' ||
+    settleCols.staff_id.is_nullable !== 'NO'
+  ) {
+    throw new Error(
+      'Migration 002 effect missing: payment_settlements.staff_id (integer NOT NULL) missing.',
+    );
   }
-  if (!settleCols.method || settleCols.method.data_type !== 'text' || settleCols.method.is_nullable !== 'NO') {
-    throw new Error('Migration 002 effect missing: payment_settlements.method (text NOT NULL) missing.');
+  if (
+    !settleCols.method ||
+    settleCols.method.data_type !== 'text' ||
+    settleCols.method.is_nullable !== 'NO'
+  ) {
+    throw new Error(
+      'Migration 002 effect missing: payment_settlements.method (text NOT NULL) missing.',
+    );
   }
-  if (!settleCols.reference || settleCols.reference.data_type !== 'character varying' || settleCols.reference.character_maximum_length !== 160) {
-    throw new Error('Migration 002 effect missing: payment_settlements.reference (varchar(160) NOT NULL) missing.');
+  if (
+    !settleCols.reference ||
+    settleCols.reference.data_type !== 'character varying' ||
+    settleCols.reference.character_maximum_length !== 160
+  ) {
+    throw new Error(
+      'Migration 002 effect missing: payment_settlements.reference (varchar(160) NOT NULL) missing.',
+    );
   }
-  if (!settleCols.amount_usd || settleCols.amount_usd.data_type !== 'numeric' || settleCols.amount_usd.numeric_precision !== 10 || settleCols.amount_usd.numeric_scale !== 2) {
-    throw new Error('Migration 002 effect missing: payment_settlements.amount_usd (numeric(10,2) NOT NULL) missing.');
+  if (
+    !settleCols.amount_usd ||
+    settleCols.amount_usd.data_type !== 'numeric' ||
+    settleCols.amount_usd.numeric_precision !== 10 ||
+    settleCols.amount_usd.numeric_scale !== 2
+  ) {
+    throw new Error(
+      'Migration 002 effect missing: payment_settlements.amount_usd (numeric(10,2) NOT NULL) missing.',
+    );
   }
   if (!settleCols.recorded_at || settleCols.recorded_at.data_type !== 'timestamp with time zone') {
-    throw new Error('Migration 002 effect missing: payment_settlements.recorded_at (timestamptz) missing.');
+    throw new Error(
+      'Migration 002 effect missing: payment_settlements.recorded_at (timestamptz) missing.',
+    );
   }
 
   // 2. Primary key on payment_settlements (id)
@@ -287,27 +394,39 @@ export async function verifySchemaMigrationEffects(client) {
 
   // 3. Unique constraint on payment_settlements.order_id
   const hasSettleUniqueOrder = uniqueRes.rows.some(
-    r => r.table_name === 'payment_settlements' && r.column_name === 'order_id'
+    r => r.table_name === 'payment_settlements' && r.column_name === 'order_id',
   );
   if (!hasSettleUniqueOrder) {
-    throw new Error('Migration 002 effect missing: payment_settlements UNIQUE constraint on order_id missing.');
+    throw new Error(
+      'Migration 002 effect missing: payment_settlements UNIQUE constraint on order_id missing.',
+    );
   }
 
   // 4. Foreign keys on payment_settlements with ON DELETE RESTRICT
   const settleOrderFk = fks.find(
-    f => f.table_name === 'payment_settlements' && f.column_name === 'order_id' &&
-         f.foreign_table_name === 'orders' && f.foreign_column_name === 'id'
+    f =>
+      f.table_name === 'payment_settlements' &&
+      f.column_name === 'order_id' &&
+      f.foreign_table_name === 'orders' &&
+      f.foreign_column_name === 'id',
   );
   if (!settleOrderFk || settleOrderFk.delete_rule !== 'RESTRICT') {
-    throw new Error('Migration 002 effect missing: payment_settlements.order_id FK with ON DELETE RESTRICT missing.');
+    throw new Error(
+      'Migration 002 effect missing: payment_settlements.order_id FK with ON DELETE RESTRICT missing.',
+    );
   }
 
   const settleStaffFk = fks.find(
-    f => f.table_name === 'payment_settlements' && f.column_name === 'staff_id' &&
-         f.foreign_table_name === 'staff_users' && f.foreign_column_name === 'id'
+    f =>
+      f.table_name === 'payment_settlements' &&
+      f.column_name === 'staff_id' &&
+      f.foreign_table_name === 'staff_users' &&
+      f.foreign_column_name === 'id',
   );
   if (!settleStaffFk || settleStaffFk.delete_rule !== 'RESTRICT') {
-    throw new Error('Migration 002 effect missing: payment_settlements.staff_id FK with ON DELETE RESTRICT missing.');
+    throw new Error(
+      'Migration 002 effect missing: payment_settlements.staff_id FK with ON DELETE RESTRICT missing.',
+    );
   }
 
   // 5. CHECK constraints on payment_settlements
@@ -323,17 +442,27 @@ export async function verifySchemaMigrationEffects(client) {
 
   const hasMethodCheck = checkDefs.some(def => def.includes("method = 'cash'"));
   if (!hasMethodCheck) {
-    throw new Error('Migration 002 effect missing: payment_settlements CHECK constraint (method = \'cash\') missing.');
+    throw new Error(
+      "Migration 002 effect missing: payment_settlements CHECK constraint (method = 'cash') missing.",
+    );
   }
 
-  const hasRefCheck = checkDefs.some(def => def.includes('length(') && def.includes('reference') && def.includes('>= 3'));
+  const hasRefCheck = checkDefs.some(
+    def => def.includes('length(') && def.includes('reference') && def.includes('>= 3'),
+  );
   if (!hasRefCheck) {
-    throw new Error('Migration 002 effect missing: payment_settlements CHECK constraint on reference length missing.');
+    throw new Error(
+      'Migration 002 effect missing: payment_settlements CHECK constraint on reference length missing.',
+    );
   }
 
-  const hasAmountCheck = checkDefs.some(def => def.includes('amount_usd > 0') || def.includes('amount_usd > (0)'));
+  const hasAmountCheck = checkDefs.some(
+    def => def.includes('amount_usd > 0') || def.includes('amount_usd > (0)'),
+  );
   if (!hasAmountCheck) {
-    throw new Error('Migration 002 effect missing: payment_settlements CHECK constraint (amount_usd > 0) missing.');
+    throw new Error(
+      'Migration 002 effect missing: payment_settlements CHECK constraint (amount_usd > 0) missing.',
+    );
   }
 
   // 6. Trigger function reject_payment_audit_mutation()
@@ -345,7 +474,9 @@ export async function verifySchemaMigrationEffects(client) {
     WHERE n.nspname = 'public' AND p.proname = 'reject_payment_audit_mutation'
   `);
   if (procRes.rowCount === 0 || procRes.rows[0].lanname !== 'plpgsql') {
-    throw new Error('Migration 002 effect missing: function reject_payment_audit_mutation() in plpgsql missing.');
+    throw new Error(
+      'Migration 002 effect missing: function reject_payment_audit_mutation() in plpgsql missing.',
+    );
   }
 
   // 7. Triggers: payment_audit_immutable and payment_audit_no_truncate
@@ -363,19 +494,31 @@ export async function verifySchemaMigrationEffects(client) {
   const triggers = Object.fromEntries(triggerRes.rows.map(r => [r.tgname, r]));
 
   if (!triggers.payment_audit_immutable || triggers.payment_audit_immutable.tgenabled !== 'O') {
-    throw new Error('Migration 002 effect missing: trigger payment_audit_immutable missing or not enabled.');
+    throw new Error(
+      'Migration 002 effect missing: trigger payment_audit_immutable missing or not enabled.',
+    );
   }
   const immutDef = (triggers.payment_audit_immutable.trigger_def || '').toUpperCase();
-  if (!immutDef.includes('BEFORE') || (!immutDef.includes('DELETE OR UPDATE') && !immutDef.includes('UPDATE OR DELETE')) || !immutDef.includes('FOR EACH ROW')) {
-    throw new Error('Migration 002 effect missing: trigger payment_audit_immutable timing/event/level mismatch.');
+  if (
+    !immutDef.includes('BEFORE') ||
+    (!immutDef.includes('DELETE OR UPDATE') && !immutDef.includes('UPDATE OR DELETE')) ||
+    !immutDef.includes('FOR EACH ROW')
+  ) {
+    throw new Error(
+      'Migration 002 effect missing: trigger payment_audit_immutable timing/event/level mismatch.',
+    );
   }
 
   if (!triggers.payment_audit_no_truncate || triggers.payment_audit_no_truncate.tgenabled !== 'O') {
-    throw new Error('Migration 002 effect missing: trigger payment_audit_no_truncate missing or not enabled.');
+    throw new Error(
+      'Migration 002 effect missing: trigger payment_audit_no_truncate missing or not enabled.',
+    );
   }
   const noTruncDef = (triggers.payment_audit_no_truncate.trigger_def || '').toUpperCase();
   if (!noTruncDef.includes('BEFORE TRUNCATE') || !noTruncDef.includes('FOR EACH STATEMENT')) {
-    throw new Error('Migration 002 effect missing: trigger payment_audit_no_truncate timing/event/level mismatch.');
+    throw new Error(
+      'Migration 002 effect missing: trigger payment_audit_no_truncate timing/event/level mismatch.',
+    );
   }
 
   reports.push({ version: '002', name: '002_cash_settlement.sql', verified: true });
@@ -408,13 +551,25 @@ export async function verifySchemaMigrationEffects(client) {
   if (!storeCols.id || storeCols.id.data_type !== 'integer' || storeCols.id.is_nullable !== 'NO') {
     throw new Error('Migration 003 effect missing: stores.id (integer NOT NULL) missing.');
   }
-  if (!storeCols.name || storeCols.name.data_type !== 'character varying' || storeCols.name.character_maximum_length !== 120) {
+  if (
+    !storeCols.name ||
+    storeCols.name.data_type !== 'character varying' ||
+    storeCols.name.character_maximum_length !== 120
+  ) {
     throw new Error('Migration 003 effect missing: stores.name (varchar(120) NOT NULL) missing.');
   }
-  if (!storeCols.code || storeCols.code.data_type !== 'character varying' || storeCols.code.character_maximum_length !== 64) {
+  if (
+    !storeCols.code ||
+    storeCols.code.data_type !== 'character varying' ||
+    storeCols.code.character_maximum_length !== 64
+  ) {
     throw new Error('Migration 003 effect missing: stores.code (varchar(64) NOT NULL) missing.');
   }
-  if (!storeCols.is_active || storeCols.is_active.data_type !== 'boolean' || storeCols.is_active.is_nullable !== 'NO') {
+  if (
+    !storeCols.is_active ||
+    storeCols.is_active.data_type !== 'boolean' ||
+    storeCols.is_active.is_nullable !== 'NO'
+  ) {
     throw new Error('Migration 003 effect missing: stores.is_active (boolean NOT NULL) missing.');
   }
 
@@ -429,14 +584,32 @@ export async function verifySchemaMigrationEffects(client) {
   }
   const assignCols = Object.fromEntries(assignColsRes.rows.map(r => [r.column_name, r]));
 
-  if (!assignCols.id || assignCols.id.data_type !== 'integer' || assignCols.id.is_nullable !== 'NO') {
-    throw new Error('Migration 003 effect missing: seller_store_assignments.id (integer NOT NULL) missing.');
+  if (
+    !assignCols.id ||
+    assignCols.id.data_type !== 'integer' ||
+    assignCols.id.is_nullable !== 'NO'
+  ) {
+    throw new Error(
+      'Migration 003 effect missing: seller_store_assignments.id (integer NOT NULL) missing.',
+    );
   }
-  if (!assignCols.seller_id || assignCols.seller_id.data_type !== 'integer' || assignCols.seller_id.is_nullable !== 'NO') {
-    throw new Error('Migration 003 effect missing: seller_store_assignments.seller_id (integer NOT NULL) missing.');
+  if (
+    !assignCols.seller_id ||
+    assignCols.seller_id.data_type !== 'integer' ||
+    assignCols.seller_id.is_nullable !== 'NO'
+  ) {
+    throw new Error(
+      'Migration 003 effect missing: seller_store_assignments.seller_id (integer NOT NULL) missing.',
+    );
   }
-  if (!assignCols.store_id || assignCols.store_id.data_type !== 'integer' || assignCols.store_id.is_nullable !== 'NO') {
-    throw new Error('Migration 003 effect missing: seller_store_assignments.store_id (integer NOT NULL) missing.');
+  if (
+    !assignCols.store_id ||
+    assignCols.store_id.data_type !== 'integer' ||
+    assignCols.store_id.is_nullable !== 'NO'
+  ) {
+    throw new Error(
+      'Migration 003 effect missing: seller_store_assignments.store_id (integer NOT NULL) missing.',
+    );
   }
 
   // 4. Primary keys
@@ -444,39 +617,58 @@ export async function verifySchemaMigrationEffects(client) {
   if (!storePk) {
     throw new Error('Migration 003 effect missing: stores PRIMARY KEY (id) missing.');
   }
-  const assignPk = pkRes.rows.find(r => r.table_name === 'seller_store_assignments' && r.column_name === 'id');
+  const assignPk = pkRes.rows.find(
+    r => r.table_name === 'seller_store_assignments' && r.column_name === 'id',
+  );
   if (!assignPk) {
-    throw new Error('Migration 003 effect missing: seller_store_assignments PRIMARY KEY (id) missing.');
+    throw new Error(
+      'Migration 003 effect missing: seller_store_assignments PRIMARY KEY (id) missing.',
+    );
   }
 
   // 5. Foreign keys
   const orderStoreFk = fks.find(
-    f => f.table_name === 'orders' && f.column_name === 'store_id' &&
-         f.foreign_table_name === 'stores' && f.foreign_column_name === 'id'
+    f =>
+      f.table_name === 'orders' &&
+      f.column_name === 'store_id' &&
+      f.foreign_table_name === 'stores' &&
+      f.foreign_column_name === 'id',
   );
   if (!orderStoreFk || orderStoreFk.delete_rule !== 'RESTRICT') {
-    throw new Error('Migration 003 effect missing: orders.store_id FK with ON DELETE RESTRICT missing.');
+    throw new Error(
+      'Migration 003 effect missing: orders.store_id FK with ON DELETE RESTRICT missing.',
+    );
   }
 
   const assignSellerFk = fks.find(
-    f => f.table_name === 'seller_store_assignments' && f.column_name === 'seller_id' &&
-         f.foreign_table_name === 'staff_users' && f.foreign_column_name === 'id'
+    f =>
+      f.table_name === 'seller_store_assignments' &&
+      f.column_name === 'seller_id' &&
+      f.foreign_table_name === 'staff_users' &&
+      f.foreign_column_name === 'id',
   );
   if (!assignSellerFk || assignSellerFk.delete_rule !== 'CASCADE') {
-    throw new Error('Migration 003 effect missing: seller_store_assignments.seller_id FK with ON DELETE CASCADE missing.');
+    throw new Error(
+      'Migration 003 effect missing: seller_store_assignments.seller_id FK with ON DELETE CASCADE missing.',
+    );
   }
 
   const assignStoreFk = fks.find(
-    f => f.table_name === 'seller_store_assignments' && f.column_name === 'store_id' &&
-         f.foreign_table_name === 'stores' && f.foreign_column_name === 'id'
+    f =>
+      f.table_name === 'seller_store_assignments' &&
+      f.column_name === 'store_id' &&
+      f.foreign_table_name === 'stores' &&
+      f.foreign_column_name === 'id',
   );
   if (!assignStoreFk || assignStoreFk.delete_rule !== 'CASCADE') {
-    throw new Error('Migration 003 effect missing: seller_store_assignments.store_id FK with ON DELETE CASCADE missing.');
+    throw new Error(
+      'Migration 003 effect missing: seller_store_assignments.store_id FK with ON DELETE CASCADE missing.',
+    );
   }
 
   // 6. Unique constraints
   const hasStoreCodeUnique = uniqueRes.rows.some(
-    r => r.table_name === 'stores' && r.column_name === 'code'
+    r => r.table_name === 'stores' && r.column_name === 'code',
   );
   if (!hasStoreCodeUnique) {
     throw new Error('Migration 003 effect missing: stores UNIQUE constraint on code missing.');
@@ -491,10 +683,14 @@ export async function verifySchemaMigrationEffects(client) {
     throw new Error('Migration 003 effect missing: index idx_orders_store on orders missing.');
   }
   if (!allIndexNames.has('idx_seller_assignments_seller')) {
-    throw new Error('Migration 003 effect missing: index idx_seller_assignments_seller on seller_store_assignments missing.');
+    throw new Error(
+      'Migration 003 effect missing: index idx_seller_assignments_seller on seller_store_assignments missing.',
+    );
   }
   if (!allIndexNames.has('idx_seller_assignments_store')) {
-    throw new Error('Migration 003 effect missing: index idx_seller_assignments_store on seller_store_assignments missing.');
+    throw new Error(
+      'Migration 003 effect missing: index idx_seller_assignments_store on seller_store_assignments missing.',
+    );
   }
 
   reports.push({ version: '003', name: '003_stores_and_assignments.sql', verified: true });
@@ -516,7 +712,10 @@ export async function verifySchemaMigrationEffects(client) {
  *   insertion all inside a single transaction protected by an advisory lock.
  * - Safely rolls back on any error.
  */
-export async function reconcileMigrations(client, { execute = false, allowDisposableTest = false, connectionString = null } = {}) {
+export async function reconcileMigrations(
+  client,
+  { execute = false, allowDisposableTest = false, connectionString = null } = {},
+) {
   const files = await migrationFiles();
 
   // In dry-run mode (default), perform read-only inspection
@@ -526,23 +725,34 @@ export async function reconcileMigrations(client, { execute = false, allowDispos
     for (const file of files) {
       const verified = verifiedEffects.find(v => v.version === file.version);
       if (!verified) {
-        throw new Error(`Migration ${file.version} (${file.name}) does not have verified schema effects.`);
+        throw new Error(
+          `Migration ${file.version} (${file.name}) does not have verified schema effects.`,
+        );
       }
     }
 
-    const regclassRes = await client.query("SELECT to_regclass('public.schema_migrations') as regclass");
+    const regclassRes = await client.query(
+      "SELECT to_regclass('public.schema_migrations') as regclass",
+    );
     const trackingTableExists = Boolean(regclassRes.rows[0].regclass);
 
     let existingRows = [];
     if (trackingTableExists) {
-      const existingRes = await client.query('SELECT version, name, checksum FROM schema_migrations');
+      const existingRes = await client.query(
+        'SELECT version, name, checksum FROM schema_migrations',
+      );
       existingRows = existingRes.rows;
     }
 
     const actions = files.map(file => {
       const existing = existingRows.find(r => r.version === file.version);
       if (!existing) {
-        return { version: file.version, name: file.name, checksum: file.checksum, action: 'insert' };
+        return {
+          version: file.version,
+          name: file.name,
+          checksum: file.checksum,
+          action: 'insert',
+        };
       }
       if (existing.checksum !== file.checksum || existing.name !== file.name) {
         throw new Error(`Migration ${file.version} checksum mismatch in existing tracking table.`);
@@ -563,7 +773,9 @@ export async function reconcileMigrations(client, { execute = false, allowDispos
   // =========================================================================
 
   // Step 1: Pre-flight fail-closed target guard BEFORE opening transaction
-  const targetInfo = await assertAuthorizedStagingTarget(client, connectionString, { allowDisposableTest });
+  const targetInfo = await assertAuthorizedStagingTarget(client, connectionString, {
+    allowDisposableTest,
+  });
 
   // Step 2: Open transaction and acquire advisory lock
   await client.query('BEGIN');
@@ -575,7 +787,9 @@ export async function reconcileMigrations(client, { execute = false, allowDispos
     for (const file of files) {
       const verified = verifiedEffects.find(v => v.version === file.version);
       if (!verified) {
-        throw new Error(`Migration ${file.version} (${file.name}) does not have verified schema effects.`);
+        throw new Error(
+          `Migration ${file.version} (${file.name}) does not have verified schema effects.`,
+        );
       }
     }
 
@@ -596,7 +810,12 @@ export async function reconcileMigrations(client, { execute = false, allowDispos
     const actions = files.map(file => {
       const existing = existingRows.find(r => r.version === file.version);
       if (!existing) {
-        return { version: file.version, name: file.name, checksum: file.checksum, action: 'insert' };
+        return {
+          version: file.version,
+          name: file.name,
+          checksum: file.checksum,
+          action: 'insert',
+        };
       }
       if (existing.checksum !== file.checksum || existing.name !== file.name) {
         throw new Error(`Migration ${file.version} checksum mismatch in existing tracking table.`);
@@ -609,7 +828,7 @@ export async function reconcileMigrations(client, { execute = false, allowDispos
       if (item.action === 'insert') {
         await client.query(
           'INSERT INTO schema_migrations (version, name, checksum) VALUES ($1, $2, $3)',
-          [item.version, item.name, item.checksum]
+          [item.version, item.name, item.checksum],
         );
       }
     }
@@ -644,9 +863,12 @@ if (process.argv[1] && process.argv[1].endsWith('reconcileMigrations.js')) {
   }
 
   const client = new pg.Client({ connectionString });
-  client.connect()
+  client
+    .connect()
     .then(async () => {
-      console.log(`Connected to database. Mode: ${executeFlag ? 'EXECUTE (WRITE)' : 'DRY-RUN (READ-ONLY)'}`);
+      console.log(
+        `Connected to database. Mode: ${executeFlag ? 'EXECUTE (WRITE)' : 'DRY-RUN (READ-ONLY)'}`,
+      );
       const result = await reconcileMigrations(client, {
         execute: executeFlag,
         allowDisposableTest: allowDisposableFlag,

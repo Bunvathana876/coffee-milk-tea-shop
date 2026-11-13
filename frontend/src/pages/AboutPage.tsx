@@ -1,9 +1,5 @@
 import { Link } from 'react-router-dom';
-import {
-  ArrowDown,
-  ArrowRight,
-  ArrowUpRight,
-} from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUpRight } from 'lucide-react';
 import { Reveal } from '../components/common/Reveal';
 
 export function AboutPage() {
@@ -28,8 +24,7 @@ export function AboutPage() {
               </div>
               <h1 id="about-hero-title" className="about-hero-title">
                 A Little Coffee.
-                <br />
-                A Lot of <em>Heart.</em>
+                <br />A Lot of <em>Heart.</em>
               </h1>
               <p className="hero-description">
                 More than a drink, it's the small moments worth sharing.
@@ -87,9 +82,9 @@ export function AboutPage() {
                   </h2>
 
                   <p className="about-story-card-body">
-                    Coffee brings comfort. Boba adds a little fun. At Brew &amp; Boba, we bring
-                    both together so you can find your favorite drink, customize it your way,
-                    and enjoy the little moments in between.
+                    Coffee brings comfort. Boba adds a little fun. At Brew &amp; Boba, we bring both
+                    together so you can find your favorite drink, customize it your way, and enjoy
+                    the little moments in between.
                   </p>
                 </div>
 
@@ -154,9 +149,33 @@ export function AboutPage() {
               fill="none"
               aria-hidden="true"
             >
-              <line x1="8" y1="26" x2="3" y2="31" stroke="#1345A3" strokeWidth="3" strokeLinecap="round" />
-              <line x1="20" y1="12" x2="20" y2="4" stroke="#1345A3" strokeWidth="3" strokeLinecap="round" />
-              <line x1="30" y1="22" x2="35" y2="25" stroke="#1345A3" strokeWidth="3" strokeLinecap="round" />
+              <line
+                x1="8"
+                y1="26"
+                x2="3"
+                y2="31"
+                stroke="#1345A3"
+                strokeWidth="3"
+                strokeLinecap="round"
+              />
+              <line
+                x1="20"
+                y1="12"
+                x2="20"
+                y2="4"
+                stroke="#1345A3"
+                strokeWidth="3"
+                strokeLinecap="round"
+              />
+              <line
+                x1="30"
+                y1="22"
+                x2="35"
+                y2="25"
+                stroke="#1345A3"
+                strokeWidth="3"
+                strokeLinecap="round"
+              />
             </svg>
           </Reveal>
 
@@ -207,9 +226,33 @@ export function AboutPage() {
                     fill="none"
                     aria-hidden="true"
                   >
-                    <line x1="4" y1="16" x2="1" y2="20" stroke="#1345A3" strokeWidth="2.5" strokeLinecap="round" />
-                    <line x1="13" y1="8" x2="13" y2="3" stroke="#1345A3" strokeWidth="2.5" strokeLinecap="round" />
-                    <line x1="20" y1="14" x2="25" y2="17" stroke="#1345A3" strokeWidth="2.5" strokeLinecap="round" />
+                    <line
+                      x1="4"
+                      y1="16"
+                      x2="1"
+                      y2="20"
+                      stroke="#1345A3"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                    <line
+                      x1="13"
+                      y1="8"
+                      x2="13"
+                      y2="3"
+                      stroke="#1345A3"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                    <line
+                      x1="20"
+                      y1="14"
+                      x2="25"
+                      y2="17"
+                      stroke="#1345A3"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
                   </svg>
                 </span>
               </h2>
@@ -217,10 +260,14 @@ export function AboutPage() {
 
             {/* Short readable storytelling paragraphs */}
             <p className="story-lead">
-              Brew &amp; Boba brings coffee and boba together in one happy place. Whether you're starting your morning or taking an afternoon break, there's always a reason to enjoy a little something special.
+              Brew &amp; Boba brings coffee and boba together in one happy place. Whether you're
+              starting your morning or taking an afternoon break, there's always a reason to enjoy a
+              little something special.
             </p>
             <p className="story-sub">
-              We pull fresh espresso, blend fragrant matcha, and prepare brown sugar boba in small batches daily. Every drink is handcrafted to your taste—fresh, balanced, and made with heart.
+              We pull fresh espresso, blend fragrant matcha, and prepare brown sugar boba in small
+              batches daily. Every drink is handcrafted to your taste—fresh, balanced, and made with
+              heart.
             </p>
 
             {/* Horizontal row of three illustrated features */}
@@ -298,9 +345,12 @@ export function AboutPage() {
             {/* Warm butter-colored quote card with cobalt border accent and coffee-cup illustration */}
             <div className="about-quote-box">
               <div className="about-quote-content">
-                <span className="about-quote-mark" aria-hidden="true">“</span>
+                <span className="about-quote-mark" aria-hidden="true">
+                  “
+                </span>
                 <p>
-                  A great café doesn't just brew drinks—it creates space for people to slow down, reconnect, and feel at home.
+                  A great café doesn't just brew drinks—it creates space for people to slow down,
+                  reconnect, and feel at home.
                 </p>
               </div>
               <div className="about-quote-illustration" aria-hidden="true">
@@ -319,10 +369,7 @@ export function AboutPage() {
       </section>
 
       {/* Section C — Our Values */}
-      <section
-        className="cafe-section about-values-section"
-        aria-labelledby="values-title"
-      >
+      <section className="cafe-section about-values-section" aria-labelledby="values-title">
         <div className="cafe-container">
           <Reveal>
             <div className="section-heading about-values-heading">
@@ -336,7 +383,8 @@ export function AboutPage() {
               </div>
               <div className="section-aside">
                 <p>
-                  Three thoughtful commitments behind every drink we craft across our counter every single day.
+                  Three thoughtful commitments behind every drink we craft across our counter every
+                  single day.
                 </p>
               </div>
             </div>
@@ -357,7 +405,8 @@ export function AboutPage() {
               <span className="about-value-num">01 / Quality</span>
               <h3>Made With Care</h3>
               <p>
-                A thoughtful drink experience, one cup at a time. Quality coffee, fragrant tea leaves, and freshly prepared boba.
+                A thoughtful drink experience, one cup at a time. Quality coffee, fragrant tea
+                leaves, and freshly prepared boba.
               </p>
             </Reveal>
 
@@ -375,7 +424,8 @@ export function AboutPage() {
               <span className="about-value-num">02 / Choice</span>
               <h3>Your Drink, Your Way</h3>
               <p>
-                Choose the sweetness, ice, and size that suit you. Handcrafted to order so every single sip feels uniquely yours.
+                Choose the sweetness, ice, and size that suit you. Handcrafted to order so every
+                single sip feels uniquely yours.
               </p>
             </Reveal>
 
@@ -393,7 +443,8 @@ export function AboutPage() {
               <span className="about-value-num">03 / Community</span>
               <h3>Moments Worth Sharing</h3>
               <p>
-                Good drinks make everyday moments a little brighter. A cozy place to pause, catch up with friends, and feel right at home.
+                Good drinks make everyday moments a little brighter. A cozy place to pause, catch up
+                with friends, and feel right at home.
               </p>
             </Reveal>
           </div>
@@ -418,7 +469,8 @@ export function AboutPage() {
               </div>
               <div className="section-aside">
                 <p>
-                  From artisan coffee preparation to rich milk tea and cozy café corners, here is a glimpse into our daily craft.
+                  From artisan coffee preparation to rich milk tea and cozy café corners, here is a
+                  glimpse into our daily craft.
                 </p>
               </div>
             </div>
@@ -457,7 +509,9 @@ export function AboutPage() {
               <div className="about-gallery-caption">
                 <span className="eyebrow">Coffee Preparation</span>
                 <h3>Artisanal Extraction</h3>
-                <p>Carefully controlled water temperature and grind precision for vibrant flavor.</p>
+                <p>
+                  Carefully controlled water temperature and grind precision for vibrant flavor.
+                </p>
               </div>
             </Reveal>
 
@@ -493,7 +547,10 @@ export function AboutPage() {
               <div className="about-gallery-caption">
                 <span className="eyebrow">Neighborhood Warmth</span>
                 <h3>A Place for Everyone</h3>
-                <p>A welcoming atmosphere where coffee faithfuls and boba lovers feel equally at home.</p>
+                <p>
+                  A welcoming atmosphere where coffee faithfuls and boba lovers feel equally at
+                  home.
+                </p>
               </div>
             </Reveal>
           </div>
@@ -521,7 +578,8 @@ export function AboutPage() {
                 <em>IS WAITING.</em>
               </h2>
               <p className="about-cta-text">
-                Coffee, boba, and a little happiness—all in one place. Discover your next favorite drink crafted just the way you like it.
+                Coffee, boba, and a little happiness—all in one place. Discover your next favorite
+                drink crafted just the way you like it.
               </p>
               <div className="about-cta-buttons">
                 <Link to="/menu" className="cafe-button cafe-button-gold">

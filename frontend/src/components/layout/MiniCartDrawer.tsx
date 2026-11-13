@@ -1,14 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  X,
-  ShoppingBag,
-  ArrowRight,
-  Plus,
-  Minus,
-  Trash2,
-  Sparkles,
-} from 'lucide-react';
+import { X, ShoppingBag, ArrowRight, Plus, Minus, Trash2, Sparkles } from 'lucide-react';
 import { useCart } from '../../features/cart/useCart';
 import { formatUsd, formatKhr } from '../../config/currency';
 import { Button } from '../common/Button';
@@ -18,10 +10,7 @@ export interface MiniCartDrawerProps {
   onClose: () => void;
 }
 
-export const MiniCartDrawer: React.FC<MiniCartDrawerProps> = ({
-  isOpen,
-  onClose,
-}) => {
+export const MiniCartDrawer: React.FC<MiniCartDrawerProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const {
     items,
@@ -66,7 +55,7 @@ export const MiniCartDrawer: React.FC<MiniCartDrawerProps> = ({
     >
       <div
         className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col border-l border-line animate-in slide-in-from-right duration-250"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {/* Drawer Header */}
         <div className="p-5 border-b border-line bg-cream flex items-center justify-between">
@@ -143,7 +132,7 @@ export const MiniCartDrawer: React.FC<MiniCartDrawerProps> = ({
               </div>
             </div>
           ) : (
-            items.map((item) => (
+            items.map(item => (
               <div
                 key={item.id}
                 className="p-3.5 rounded-2xl bg-cream/50 border border-line flex items-start justify-between gap-3 shadow-2xs transition-all hover:border-cobalt/40"
@@ -180,7 +169,7 @@ export const MiniCartDrawer: React.FC<MiniCartDrawerProps> = ({
                       <span className="px-1.5 py-0.5 rounded-md bg-white border border-line font-medium">
                         {item.iceLevel}
                       </span>
-                      {item.toppings?.map((top) => (
+                      {item.toppings?.map(top => (
                         <span
                           key={top}
                           className="px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-bold border border-emerald-200"
@@ -245,9 +234,7 @@ export const MiniCartDrawer: React.FC<MiniCartDrawerProps> = ({
               </div>
               <div className="flex justify-between items-baseline text-[11px] text-ink-soft">
                 <span>Estimated in KHR</span>
-                <span className="font-bold text-cobalt">
-                  {formatKhr(totalPriceKhr)}
-                </span>
+                <span className="font-bold text-cobalt">{formatKhr(totalPriceKhr)}</span>
               </div>
             </div>
 
