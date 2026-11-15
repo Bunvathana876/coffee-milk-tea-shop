@@ -10,6 +10,7 @@ class CustomButton extends StatelessWidget {
     this.isLoading = false,
     this.isOutlined = false,
     this.icon,
+    this.trailingIcon,
     this.backgroundColor,
     this.foregroundColor,
     this.height = 52,
@@ -21,6 +22,7 @@ class CustomButton extends StatelessWidget {
   final bool isLoading;
   final bool isOutlined;
   final Widget? icon;
+  final Widget? trailingIcon;
   final Color? backgroundColor;
   final Color? foregroundColor;
   final double height;
@@ -80,17 +82,20 @@ class CustomButton extends StatelessWidget {
       );
     }
 
-    if (icon != null) {
+    if (icon != null || trailingIcon != null) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          icon!,
-          const SizedBox(width: 8),
+          if (icon != null) ...[icon!, const SizedBox(width: 8)],
           Text(
             text,
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
           ),
+          if (trailingIcon != null) ...[
+            const SizedBox(width: 8),
+            trailingIcon!,
+          ],
         ],
       );
     }

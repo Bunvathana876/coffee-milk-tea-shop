@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { dbQuery } from '../db/database.js';
+import { validId } from '../utils/adminCatalogValidation.js';
 
 const router = Router();
 
@@ -7,6 +8,14 @@ const router = Router();
 router.get('/', async (req, res, next) => {
   try {
     const { category_id, category, search, is_available } = req.query;
+    if (
+      (category_id !== undefined && (typeof category_id !== 'string' || !validId(category_id))) ||
+      (category !== undefined && (typeof category !== 'string' || category.length > 255)) ||
+      (search !== undefined && (typeof search !== 'string' || search.length > 100)) ||
+      (is_available !== undefined && !['', 'true', 'false', '1', '0'].includes(is_available))
+    ) {
+      return res.status(400).json({ detail: 'Invalid product filter.' });
+    }
 
     let query = `
       SELECT
@@ -20,7 +29,7 @@ router.get('/', async (req, res, next) => {
     const params = [];
 
     if (category_id) {
-      params.push(parseInt(category_id, 10));
+      params.push(Number(category_id));
       query += ` AND p.category_id = $${params.length}`;
     }
 
@@ -66,10 +75,10 @@ router.get('/', async (req, res, next) => {
 // GET /api/products/:id
 router.get('/:id', async (req, res, next) => {
   try {
-    const productId = parseInt(req.params.id, 10);
-    if (isNaN(productId)) {
+    if (!validId(req.params.id)) {
       return res.status(400).json({ detail: 'Invalid product ID' });
     }
+    const productId = Number(req.params.id);
 
     const result = await dbQuery(
       `

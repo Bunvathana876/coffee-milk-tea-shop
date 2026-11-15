@@ -41,8 +41,9 @@ htmlcov/
 # Operating System & IDE Files
 .DS_Store
 Thumbs.db
-.vscode/
-!.vscode/extensions.json
+**/.vscode/*
+!**/.vscode/extensions.json
+!**/.vscode/launch.json
 .idea/
 .codex/
 *.swp
@@ -55,3 +56,4 @@ archive/
 .neon
 .vercel
 .env*
+*.standalone-backup/

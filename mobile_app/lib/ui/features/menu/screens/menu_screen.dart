@@ -1,432 +1,321 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/empty_state.dart';
-import '../../../../providers/shop_provider.dart';
+import '../../../../data/models/category_model.dart';
+import '../../../../data/models/product_model.dart';
 import '../../../../providers/cart_provider.dart';
-import '../../../../providers/user_provider.dart';
-import '../widgets/category_chip.dart';
+import '../../../../providers/shop_provider.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_detail_sheet.dart';
+import '../widgets/brand_banner_carousel.dart';
+import '../widgets/brand_category_icon.dart';
 
-/// Main explore and menu browsing screen.
 class MenuScreen extends StatefulWidget {
-  const MenuScreen({super.key, this.onNavigateToCart});
-
+  const MenuScreen({
+    super.key,
+    this.onNavigateToCart,
+    this.onNavigateToProfile,
+    this.isActive = true,
+  });
   final VoidCallback? onNavigateToCart;
-
+  final VoidCallback? onNavigateToProfile;
+  final bool isActive;
   @override
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-  final TextEditingController _searchController = TextEditingController();
+  final search = TextEditingController();
+  final scroll = ScrollController();
+  final catalogKey = GlobalKey();
 
   @override
   void dispose() {
-    _searchController.dispose();
+    search.dispose();
+    scroll.dispose();
     super.dispose();
+  }
+
+  void openCatalog([int categoryId = 0]) {
+    final shop = context.read<ShopProvider>();
+    search.clear();
+    shop.clearSearch();
+    shop.selectCategory(categoryId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || catalogKey.currentContext == null) return;
+      Scrollable.ensureVisible(
+        catalogKey.currentContext!,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+        alignment: .32,
+      );
+    });
+  }
+
+  void openBanner(int index, ShopProvider shop) {
+    if (index != 1) {
+      openCatalog();
+      return;
+    }
+    final coffee = shop.categories.where(
+      (c) => c.isActive && c.name.toLowerCase().contains('coffee'),
+    );
+    openCatalog(coffee.isEmpty ? 0 : coffee.first.id);
+  }
+
+  void customize(ProductModel product, CartProvider cart) {
+    ProductDetailSheet.show(
+      context,
+      product: product,
+      onAddToCart: (item) {
+        cart.addItem(item);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Added ${item.product.name} to your bag'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final shop = context.watch<ShopProvider>();
     final cart = context.watch<CartProvider>();
-    final user = context.watch<UserProvider>();
-
+    final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+    final categories = shop.categories.where((c) => c.isActive).toList();
+    CategoryModel? selectedCategory;
+    for (final category in categories) {
+      if (category.id == shop.selectedCategoryId) {
+        selectedCategory = category;
+        break;
+      }
+    }
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.primary,
       body: SafeArea(
         child: Stack(
           children: [
             RefreshIndicator(
-              onRefresh: () => shop.refreshCatalog(),
-              color: AppColors.primary,
+              onRefresh: shop.refreshCatalog,
               child: CustomScrollView(
+                controller: scroll,
                 slivers: [
-                  // App Bar / Header
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Center(
+                            child: Image.asset(
+                              'assets/welcome/welcome_wordmark_cream.png',
+                              width: 190,
+                              height: 54,
+                              fit: BoxFit.contain,
+                              semanticLabel: 'Brew & Boba Café',
+                            ),
+                          ),
+                          const SizedBox(height: 8),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Flexible(
-                                          child: Text(
-                                            AppConfig.appName,
-                                            style: AppTypography.displayLarge,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          width: 8,
-                                          height: 8,
-                                          decoration: BoxDecoration(
-                                            color: user.isServerOnline
-                                                ? AppColors.statusCompleted
-                                                : AppColors.secondary,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      AppConfig.appTagline,
-                                      style: AppTypography.bodySmall.copyWith(
-                                        color: AppColors.textSecondary,
+                                child: TextField(
+                                  key: const Key('home-search'),
+                                  controller: search,
+                                  onChanged: shop.setSearchQuery,
+                                  textInputAction: TextInputAction.search,
+                                  style: AppTypography.bodyLarge.copyWith(
+                                    color: AppColors.bobaPearl,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'Search coffee, boba, matcha...',
+                                    hintStyle: AppTypography.bodyMedium
+                                        .copyWith(color: AppColors.primary),
+                                    filled: true,
+                                    fillColor: AppColors.secondaryLight,
+                                    prefixIcon: Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Image.asset(
+                                        'assets/home/icons/png/search.png',
+                                        width: 22,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  ],
+                                    suffixIcon: search.text.isEmpty
+                                        ? null
+                                        : IconButton(
+                                            tooltip: 'Clear search',
+                                            onPressed: () {
+                                              search.clear();
+                                              shop.clearSearch();
+                                            },
+                                            icon: const Icon(
+                                              Icons.close_rounded,
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(28),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(28),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              CircleAvatar(
-                                radius: 22,
-                                backgroundColor: AppColors.primary.withAlpha(
-                                  20,
-                                ),
-                                child: const Icon(
-                                  Icons.coffee_rounded,
-                                  color: AppColors.primary,
-                                  size: 24,
+                              Semantics(
+                                button: true,
+                                label: 'Open profile',
+                                child: InkWell(
+                                  onTap: widget.onNavigateToProfile,
+                                  borderRadius: BorderRadius.circular(32),
+                                  child: CircleAvatar(
+                                    radius: 28,
+                                    backgroundColor: AppColors.secondaryLight,
+                                    child: ClipOval(
+                                      child: Image.asset(
+                                        'assets/home/icons/png/avatar_boy.png',
+                                        width: 52,
+                                        height: 52,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
-
-                          // Search Bar
-                          TextField(
-                            controller: _searchController,
-                            onChanged: (val) => shop.setSearchQuery(val),
-                            decoration: InputDecoration(
-                              hintText: 'Search iced latte, boba, matcha...',
-                              prefixIcon: const Icon(
-                                Icons.search,
-                                color: AppColors.textSecondary,
-                              ),
-                              suffixIcon: _searchController.text.isNotEmpty
-                                  ? IconButton(
-                                      icon: const Icon(Icons.clear, size: 18),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        shop.clearSearch();
-                                      },
-                                    )
-                                  : null,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                            ),
+                          const SizedBox(height: 12),
+                          BrandBannerCarousel(
+                            key: const Key('home-banner-carousel'),
+                            isActive: widget.isActive,
+                            onBannerTap: (index) => openBanner(index, shop),
                           ),
                           const SizedBox(height: 16),
-
-                          // Promo / Announcement Card
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [
-                                  AppColors.primary,
-                                  AppColors.primaryLight,
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primary.withAlpha(60),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.secondary,
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
-                                        ),
-                                        child: const Text(
-                                          'TODAY\'S SPECIAL',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w800,
-                                            color: Colors.white,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      const Text(
-                                        'Fresh Brews & Brown Sugar Boba',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Customize sweetness & ice to your taste',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.white.withAlpha(200),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withAlpha(30),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.local_cafe_rounded,
-                                    color: Colors.white,
-                                    size: 28,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          section('Categories', () => openCatalog()),
+                          const SizedBox(height: 10),
                         ],
                       ),
                     ),
                   ),
-
-                  // Horizontal Category Pills
                   SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: SizedBox(
-                        height: 40,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          children: [
-                            CategoryChip(
-                              label: 'All Drinks',
-                              count: shop.products.length,
-                              isSelected: shop.selectedCategoryId == 0,
-                              onTap: () => shop.selectCategory(0),
-                            ),
-                            ...shop.categories.map((cat) {
-                              return CategoryChip(
-                                label: cat.name,
-                                count: cat.productCount,
-                                isSelected: shop.selectedCategoryId == cat.id,
-                                onTap: () => shop.selectCategory(cat.id),
-                              );
-                            }),
-                          ],
-                        ),
+                    child: SizedBox(
+                      height: 124 * scale.clamp(1.0, 1.5),
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: categories.length + 1,
+                        separatorBuilder: (_, _) => const SizedBox(width: 10),
+                        itemBuilder: (context, index) => index == 0
+                            ? allDrinksTile(shop.selectedCategoryId == 0)
+                            : categoryTile(
+                                categories[index - 1],
+                                shop.selectedCategoryId ==
+                                    categories[index - 1].id,
+                              ),
                       ),
                     ),
                   ),
-
-                  // Products Grid
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      key: catalogKey,
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                      child: section(
+                        selectedCategory != null
+                            ? '${selectedCategory.name} Drinks'
+                            : shop.searchQuery.isNotEmpty
+                            ? 'Search Results'
+                            : 'Featured Drinks',
+                        () => openCatalog(),
+                        actionLabel:
+                            selectedCategory == null && shop.searchQuery.isEmpty
+                            ? 'View all'
+                            : 'All Drinks',
+                      ),
+                    ),
+                  ),
                   if (shop.isLoading)
-                    const SliverFillRemaining(
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.secondaryLight,
+                          ),
                         ),
                       ),
                     )
+                  else if (shop.errorMessage != null && shop.products.isEmpty)
+                    SliverToBoxAdapter(
+                      child: EmptyState(
+                        icon: Icons.wifi_off_rounded,
+                        title: 'Menu unavailable',
+                        description: shop.errorMessage!,
+                        actionLabel: 'Retry',
+                        onAction: shop.refreshCatalog,
+                      ),
+                    )
                   else if (shop.filteredProducts.isEmpty)
-                    SliverFillRemaining(
+                    SliverToBoxAdapter(
                       child: EmptyState(
                         icon: Icons.search_off_rounded,
-                        title: 'No drinks found',
-                        description:
-                            'Try searching with another keyword or pick a different category.',
-                        actionLabel: 'Reset Filters',
-                        onAction: () {
-                          _searchController.clear();
-                          shop.clearSearch();
-                          shop.selectCategory(0);
-                        },
+                        title: selectedCategory == null
+                            ? 'No drinks found'
+                            : 'No ${selectedCategory.name} drinks yet',
+                        description: selectedCategory == null
+                            ? 'Try a different search or category.'
+                            : 'Explore another category or see all drinks.',
+                        actionLabel: 'All Drinks',
+                        onAction: () => openCatalog(),
                       ),
                     )
                   else
                     SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
-                        20,
-                        8,
-                        20,
-                        cart.isEmpty
-                            ? 24
-                            : 96, // extra bottom padding when floating cart bar is shown
-                      ),
-                      sliver: SliverGrid(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisExtent: 248,
-                              crossAxisSpacing: 14,
-                              mainAxisSpacing: 14,
-                            ),
-                        delegate: SliverChildBuilderDelegate((context, index) {
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      sliver: SliverList.builder(
+                        itemCount: shop.filteredProducts.length,
+                        itemBuilder: (context, index) {
                           final product = shop.filteredProducts[index];
-                          return ProductCard(
-                            product: product,
-                            onTap: () {
-                              ProductDetailSheet.show(
-                                context,
-                                product: product,
-                                onAddToCart: (customizedItem) {
-                                  cart.addItem(customizedItem);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Added "${customizedItem.product.name}" to order!',
-                                      ),
-                                      duration: const Duration(seconds: 2),
-                                      backgroundColor: AppColors.primary,
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                },
-                              );
-                            },
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: ProductCard(
+                              product: product,
+                              onTap: () => customize(product, cart),
+                            ),
                           );
-                        }, childCount: shop.filteredProducts.length),
+                        },
                       ),
                     ),
+                  SliverToBoxAdapter(
+                    child: SizedBox(height: cart.isEmpty ? 24 : 88),
+                  ),
                 ],
               ),
             ),
-
-            // Floating Bag / Order Summary Bar
             if (!cart.isEmpty)
               Positioned(
                 left: 16,
                 right: 16,
-                bottom: 16,
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: widget.onNavigateToCart,
-                    borderRadius: BorderRadius.circular(18),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 14,
+                bottom: 8,
+                child: ElevatedButton(
+                  onPressed: widget.onNavigateToCart,
+                  child: Row(
+                    children: [
+                      Badge(
+                        label: Text('${cart.totalQuantity}'),
+                        child: const Icon(Icons.shopping_bag_outlined),
                       ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withAlpha(100),
-                            blurRadius: 16,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 9,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.secondary,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '${cart.totalQuantity}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Text(
-                                  'Your Order Bag',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                Text(
-                                  CurrencyFormatter.formatDual(
-                                    cart.subtotalUsd,
-                                  ),
-                                  style: TextStyle(
-                                    color: Colors.white.withAlpha(200),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Row(
-                            children: const [
-                              Text(
-                                'View Cart',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              SizedBox(width: 6),
-                              Icon(
-                                Icons.arrow_forward_rounded,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                      const SizedBox(width: 16),
+                      const Expanded(child: Text('View your bag')),
+                      Text(CurrencyFormatter.formatUsd(cart.subtotalUsd)),
+                    ],
                   ),
                 ),
               ),
@@ -435,4 +324,112 @@ class _MenuScreenState extends State<MenuScreen> {
       ),
     );
   }
+
+  Widget section(
+    String title,
+    VoidCallback action, {
+    String actionLabel = 'View all',
+  }) => Row(
+    children: [
+      Expanded(
+        child: Text(
+          title,
+          style: AppTypography.titleLarge.copyWith(
+            color: Colors.white,
+            fontSize: 21,
+          ),
+        ),
+      ),
+      TextButton(
+        onPressed: action,
+        child: Text(
+          actionLabel,
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.secondaryLight,
+          ),
+        ),
+      ),
+    ],
+  );
+
+  Widget allDrinksTile(bool selected) => _categoryTile(
+    key: const Key('category-all'),
+    label: 'All Drinks',
+    selected: selected,
+    onTap: () => openCatalog(),
+    icon: const BrandCategoryIcon(categoryName: 'All Drinks', size: 68),
+  );
+
+  Widget categoryTile(CategoryModel category, bool selected) => _categoryTile(
+    key: Key('category-${category.id}'),
+    label: category.name,
+    selected: selected,
+    onTap: () => openCatalog(category.id),
+    icon: BrandCategoryIcon(categoryName: category.name, size: 68),
+  );
+
+  Widget _categoryTile({
+    required Key key,
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+    required Widget icon,
+  }) => SizedBox(
+    width: 86,
+    child: InkWell(
+      key: key,
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Column(
+        children: [
+          AnimatedContainer(
+            key: selected
+                ? Key('selected-${label.toLowerCase().replaceAll(' ', '-')}')
+                : null,
+            duration: const Duration(milliseconds: 180),
+            width: 78,
+            height: 78,
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: selected ? AppColors.secondary : Colors.transparent,
+              border: Border.all(
+                color: selected ? AppColors.primary : Colors.transparent,
+                width: 2,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: selected
+                  ? [
+                      BoxShadow(
+                        color: AppColors.secondaryLight.withAlpha(110),
+                        blurRadius: 9,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: icon,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: AppTypography.bodySmall.copyWith(
+              color: selected ? AppColors.secondaryLight : Colors.white,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+              height: 1.1,
+            ),
+          ),
+          if (selected)
+            const Padding(
+              padding: EdgeInsets.only(top: 3),
+              child: CircleAvatar(
+                radius: 3,
+                backgroundColor: AppColors.secondary,
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
 }

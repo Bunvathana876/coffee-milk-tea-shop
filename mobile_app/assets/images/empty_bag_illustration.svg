@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+  <defs>
+    <linearGradient id="blob" x1="140" y1="280" x2="800" y2="760" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#CFE0FF"/><stop offset="1" stop-color="#E4EEFF"/>
+    </linearGradient>
+    <linearGradient id="bag" x1="300" y1="375" x2="744" y2="814" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDF7"/><stop offset="1" stop-color="#FFF4DF"/>
+    </linearGradient>
+    <linearGradient id="base" x1="200" y1="785" x2="847" y2="832" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C1D6FF"/><stop offset="1" stop-color="#A7C5FF"/>
+    </linearGradient>
+  </defs>
+  <!-- Gentle pastel-blue organic backdrop -->
+  <path d="M216 521C166 477 160 399 203 350C246 301 325 266 392 285C454 304 475 360 539 355C607 349 627 301 686 317C752 335 737 411 783 463C822 507 866 525 852 601C840 666 771 716 695 722C635 727 618 749 568 772C501 803 437 769 373 753C315 739 256 744 209 701C168 664 177 589 216 521Z" fill="url(#blob)"/>
+  <!-- Ground shadow -->
+  <ellipse cx="514" cy="799" rx="342" ry="41" fill="url(#base)"/>
+  <ellipse cx="514" cy="803" rx="250" ry="20" fill="#9DBDFA" opacity=".24"/>
+  <!-- Gold twinkles -->
+  <path d="M248 449L260 477L288 489L260 501L248 529L236 501L208 489L236 477Z" fill="#FFD15D" stroke="#0645AB" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M814 596L827 623L854 636L827 649L814 677L801 649L774 636L801 623Z" fill="#FFD15D" stroke="#0645AB" stroke-width="10" stroke-linejoin="round"/>
+  <!-- Celebration rays -->
+  <path d="M711 239L684 311" stroke="#FFB600" stroke-width="24" stroke-linecap="round"/>
+  <path d="M778 270L731 330" stroke="#FFB600" stroke-width="24" stroke-linecap="round"/>
+  <path d="M807 335L744 352" stroke="#FFB600" stroke-width="24" stroke-linecap="round"/>
+  <!-- Shopping bag right fold -->
+  <path d="M684 397L742 411L780 759L698 793L684 397Z" fill="#F8DBA7" stroke="#0747AE" stroke-width="19" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M704 696L736 741L708 778L694 786L693 696Z" fill="#FFEFCD"/>
+  <!-- Bag body -->
+  <path d="M347 400C345 399 343 402 342 409L296 758C295 772 302 782 317 783L695 797L685 397L347 400Z" fill="url(#bag)" stroke="#0747AE" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Handles: two arching loops -->
+  <path d="M420 425V349C420 279 458 244 500 244C546 244 579 281 579 350V424" stroke="#0747AE" stroke-width="21" stroke-linecap="round"/>
+  <path d="M503 425V342C503 281 536 249 579 249C627 249 662 287 662 352V426" stroke="#0747AE" stroke-width="21" stroke-linecap="round"/>
+  <!-- Coffee cup emblem on bag -->
+  <path d="M440 574H574V612C574 657 550 684 507 684C463 684 440 656 440 612V574Z" fill="none" stroke="#0747AE" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M576 588H600C635 588 633 635 603 643H571" stroke="#0747AE" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M428 702H602" stroke="#0747AE" stroke-width="14" stroke-linecap="round"/>
+  <path d="M472 548C451 522 488 519 474 496" stroke="#0747AE" stroke-width="10" stroke-linecap="round"/>
+  <path d="M514 548C493 522 530 519 516 496" stroke="#0747AE" stroke-width="10" stroke-linecap="round"/>
+  <path d="M556 548C535 522 572 519 558 496" stroke="#0747AE" stroke-width="10" stroke-linecap="round"/>
+</svg>

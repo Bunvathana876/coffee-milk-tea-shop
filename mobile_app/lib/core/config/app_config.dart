@@ -15,39 +15,73 @@ class AppConfig {
   /// Exchange rate: 1 USD to Cambodian Riel (KHR)
   static const double khrExchangeRate = 4100.0;
 
-  /// Supply BREW_BOBA_API_URL with --dart-define for production or a device host.
-  /// Development fallback depends on platform:
-  /// - Android Emulator uses `10.0.2.2` to refer to host machine localhost
-  /// - iOS Simulator, macOS, Windows, and Web use `localhost` (or `127.0.0.1`)
-  static String get defaultApiBaseUrl {
-    const configured = String.fromEnvironment('BREW_BOBA_API_URL');
-    if (configured.isNotEmpty) {
-      final parsed = Uri.tryParse(configured);
-      if (parsed == null ||
-          !['http', 'https'].contains(parsed.scheme) ||
-          parsed.host.isEmpty ||
-          parsed.userInfo.isNotEmpty) {
+  static const String configuredApiBaseUrl = String.fromEnvironment(
+    'BREW_BOBA_API_URL',
+  );
+
+  /// Returns a usable API base URL without changing the saved preference.
+  static String? normalizeApiBaseUrl(String? value) {
+    final candidate = value?.trim();
+    if (candidate == null ||
+        candidate.isEmpty ||
+        RegExp(r'\s').hasMatch(candidate)) {
+      return null;
+    }
+    final parsed = Uri.tryParse(candidate);
+    if (parsed == null ||
+        !['http', 'https'].contains(parsed.scheme) ||
+        parsed.host.isEmpty ||
+        parsed.userInfo.isNotEmpty ||
+        parsed.hasQuery ||
+        parsed.hasFragment ||
+        parsed.port == 0) {
+      return null;
+    }
+    return candidate.replaceFirst(RegExp(r'/+$'), '');
+  }
+
+  /// A compile-time URL wins; a saved URL applies only to development builds.
+  static String resolveApiBaseUrl({
+    String? savedCustomApiUrl,
+    String? explicitApiUrl,
+    bool? releaseMode,
+    bool? web,
+    bool? android,
+  }) {
+    final explicit = explicitApiUrl ?? configuredApiBaseUrl;
+    final isRelease = releaseMode ?? kReleaseMode;
+    if (explicit.isNotEmpty) {
+      final normalized = normalizeApiBaseUrl(explicit);
+      if (normalized == null) {
         throw StateError('BREW_BOBA_API_URL must be a full HTTP or HTTPS URL.');
       }
-      return configured.replaceFirst(RegExp(r'/+$'), '');
+      if (isRelease && Uri.parse(normalized).scheme != 'https') {
+        throw StateError('BREW_BOBA_API_URL must use HTTPS in release builds.');
+      }
+      return normalized;
     }
-    if (kReleaseMode) {
+    if (isRelease) {
       throw StateError(
         'BREW_BOBA_API_URL must be configured for release builds.',
       );
     }
-    if (kIsWeb) {
-      return 'http://localhost:8001';
+    final saved = normalizeApiBaseUrl(savedCustomApiUrl);
+    // Earlier development builds stored port 8000, which now serves a different
+    // local API. Keep the preference intact but use this project's default.
+    if (saved != null &&
+        !{'http://localhost:8000', 'http://127.0.0.1:8000'}.contains(saved)) {
+      return saved;
     }
+    if (web ?? kIsWeb) return 'http://127.0.0.1:8003';
     try {
-      if (Platform.isAndroid) {
-        return 'http://10.0.2.2:8001';
-      }
+      if (android ?? Platform.isAndroid) return 'http://10.0.2.2:8003';
     } catch (_) {
-      // Fallback for environments where Platform isn't supported
+      // Platform is unavailable in some test and web environments.
     }
-    return 'http://localhost:8001';
+    return 'http://127.0.0.1:8003';
   }
+
+  static String get defaultApiBaseUrl => resolveApiBaseUrl();
 
   /// Cup size price modifiers in USD
   static const Map<String, double> sizePriceModifiers = {

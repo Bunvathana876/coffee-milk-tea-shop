@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/product_image_url.dart';
 import '../../../../data/models/cart_item_model.dart';
 
 /// Card tile for a customized drink in the cart bag.
@@ -23,10 +24,11 @@ class CartItemTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 0,
+      elevation: 2,
+      shadowColor: AppColors.primary.withAlpha(20),
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         side: const BorderSide(color: AppColors.surfaceBorder, width: 1),
       ),
       child: Padding(
@@ -43,8 +45,11 @@ class CartItemTile extends StatelessWidget {
                 child:
                     item.product.image != null && item.product.image!.isNotEmpty
                     ? CachedNetworkImage(
-                        imageUrl: item.product.image!,
-                        fit: BoxFit.cover,
+                        imageUrl: productImageUrl(item.product.image!, width: 160),
+                        fit: item.product.image!.startsWith('https://res.cloudinary.com/dr5o7ft6/')
+                            ? BoxFit.contain
+                            : BoxFit.cover,
+                        placeholder: (context, url) => _buildPlaceholder(),
                         errorWidget: (context, url, error) =>
                             _buildPlaceholder(),
                       )
@@ -139,27 +144,28 @@ class CartItemTile extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            InkWell(
-                              onTap: onDecrement,
-                              borderRadius: const BorderRadius.horizontal(
-                                left: Radius.circular(10),
+                            IconButton(
+                              tooltip: item.quantity == 1
+                                  ? 'Remove one drink'
+                                  : 'Decrease quantity',
+                              onPressed: onDecrement,
+                              constraints: const BoxConstraints(
+                                minWidth: 40,
+                                minHeight: 40,
                               ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(6),
-                                child: Icon(
-                                  item.quantity == 1
-                                      ? Icons.delete_outline_rounded
-                                      : Icons.remove,
-                                  size: 16,
-                                  color: item.quantity == 1
-                                      ? AppColors.statusCancelled
-                                      : AppColors.textPrimary,
-                                ),
+                              icon: Icon(
+                                item.quantity == 1
+                                    ? Icons.delete_outline_rounded
+                                    : Icons.remove,
+                                size: 18,
+                                color: item.quantity == 1
+                                    ? AppColors.statusCancelled
+                                    : AppColors.textPrimary,
                               ),
                             ),
                             Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
+                                horizontal: 2,
                               ),
                               child: Text(
                                 '${item.quantity}',
@@ -170,18 +176,17 @@ class CartItemTile extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            InkWell(
-                              onTap: onIncrement,
-                              borderRadius: const BorderRadius.horizontal(
-                                right: Radius.circular(10),
+                            IconButton(
+                              tooltip: 'Increase quantity',
+                              onPressed: onIncrement,
+                              constraints: const BoxConstraints(
+                                minWidth: 40,
+                                minHeight: 40,
                               ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(6),
-                                child: const Icon(
-                                  Icons.add,
-                                  size: 16,
-                                  color: AppColors.textPrimary,
-                                ),
+                              icon: const Icon(
+                                Icons.add,
+                                size: 18,
+                                color: AppColors.textPrimary,
                               ),
                             ),
                           ],
@@ -222,7 +227,7 @@ class CartItemTile extends StatelessWidget {
       child: const Center(
         child: Icon(
           Icons.local_cafe_rounded,
-          color: AppColors.primaryLight,
+          color: AppColors.primary,
           size: 28,
         ),
       ),

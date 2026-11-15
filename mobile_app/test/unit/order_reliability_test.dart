@@ -476,7 +476,7 @@ void main() {
   );
 
   test('development API defaults use the Brew & Boba backend port', () {
-    expect(AppConfig.defaultApiBaseUrl, 'http://localhost:8001');
+    expect(AppConfig.defaultApiBaseUrl, 'http://127.0.0.1:8003');
   });
 
   testWidgets(

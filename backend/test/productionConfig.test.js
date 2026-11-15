@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { developmentCredentialDefaults, validateProductionConfig } from '../src/config.js';
+import { developmentCredentialDefaults, validateProductionConfig, jwtExpiresInMinutes } from '../src/config.js';
 
 function validProductionEnv(overrides = {}) {
   return {
@@ -73,4 +73,21 @@ test('production mode cannot opt into the isolated test database', () => {
       validateProductionConfig(validProductionEnv({ NODE_ENV: 'test', ENVIRONMENT: 'production' })),
     /NODE_ENV=test cannot be combined with production/,
   );
+});
+
+test('production configuration rejects insecure remote PostgreSQL TLS modes and invalid ports', () => {
+  assert.throws(
+    () => validateProductionConfig(validProductionEnv({ DATABASE_URL: 'postgresql://user:pass@db.example.test/cafe?sslmode=disable' })),
+    /sslmode=verify-full/,
+  );
+  assert.doesNotThrow(() => validateProductionConfig(validProductionEnv({ DATABASE_URL: 'postgresql://user:pass@db.example.test/cafe?sslmode=verify-full' })));
+  assert.throws(() => validateProductionConfig(validProductionEnv({ PORT: 'NaN' })), /Invalid PORT/);
+  assert.throws(() => validateProductionConfig(validProductionEnv({ DB_POOL_MAX: '0' })), /Invalid DB_POOL_MAX/);
+});
+
+test('JWT expiry metadata matches a bounded token lifetime', () => {
+  assert.equal(jwtExpiresInMinutes('7d'), 10080);
+  assert.equal(jwtExpiresInMinutes('2h'), 120);
+  assert.throws(() => validateProductionConfig(validProductionEnv({ JWT_EXPIRES_IN: '1y' })), /JWT_EXPIRES_IN/);
+  assert.throws(() => validateProductionConfig(validProductionEnv({ JWT_EXPIRES_IN: '31d' })), /JWT_EXPIRES_IN/);
 });

@@ -23,6 +23,7 @@ import {
   type Category,
   type Product,
 } from '../lib/api';
+import { isCloudinaryProductImage, productThumbnailUrl } from '../lib/productImage';
 
 interface ProductFormData {
   category_id: number;
@@ -61,6 +62,7 @@ export function ProductsPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ProductFormData>(blankForm);
+  const originalFormRef = useRef<ProductFormData | null>(null);
   const [imagePreviewError, setImagePreviewError] = useState(false);
 
   // Filters & Search
@@ -137,6 +139,7 @@ export function ProductsPage() {
 
   function handleOpenCreate() {
     setEditingId(null);
+    originalFormRef.current = null;
     setForm({
       ...blankForm,
       category_id: categories.length > 0 ? categories[0].id : 0,
@@ -159,14 +162,16 @@ export function ProductsPage() {
 
   function handleOpenEdit(product: Product) {
     setEditingId(product.id);
-    setForm({
+    const initialForm = {
       category_id: product.category_id,
       name: product.name,
       description: product.description ?? '',
       image: product.image ?? '',
       base_price_usd: String(product.base_price_usd),
       is_available: product.is_available,
-    });
+    };
+    originalFormRef.current = initialForm;
+    setForm(initialForm);
     setFormError('');
     setImagePreviewError(false);
     setIsDrawerOpen(true);
@@ -194,7 +199,8 @@ export function ProductsPage() {
       price > 9999999.99 ||
       Math.abs(Math.round(price * 100) - price * 100) > 1e-6 ||
       form.description.length > 1000 ||
-      form.image.length > 2048
+      form.image.length > 2048 ||
+      (form.image.trim() !== '' && !/^https:\/\/[^\s/]+(?:\/|$)/i.test(form.image.trim()))
     ) {
       setFormError(
         'Choose a category, enter a name and a positive USD price with at most two decimals.',
@@ -206,7 +212,7 @@ export function ProductsPage() {
     setFormError('');
 
     try {
-      const body = {
+      const body: Pick<Product, 'category_id' | 'name' | 'description' | 'image' | 'base_price_usd' | 'is_available'> = {
         category_id: form.category_id,
         name: form.name.trim(),
         description: form.description.trim() || null,
@@ -216,12 +222,22 @@ export function ProductsPage() {
       };
 
       if (editingId) {
-        await updateProduct(token, editingId, body);
+        const original = originalFormRef.current;
+        const changes: Partial<typeof body> = {};
+        if (!original || form.category_id !== original.category_id) changes.category_id = body.category_id;
+        if (!original || form.name !== original.name) changes.name = body.name;
+        if (!original || form.description !== original.description) changes.description = body.description;
+        if (!original || form.image !== original.image) changes.image = body.image;
+        if (!original || form.base_price_usd !== original.base_price_usd) changes.base_price_usd = body.base_price_usd;
+        if (!original || form.is_available !== original.is_available) changes.is_available = body.is_available;
+        if (Object.keys(changes).length > 0) await updateProduct(token, editingId, changes);
       } else {
         await createProduct(token, body);
       }
 
-      handleCloseDrawer();
+      setIsDrawerOpen(false);
+      setEditingId(null);
+      originalFormRef.current = null;
       reload();
     } catch (cause) {
       setFormError(cause instanceof Error ? cause.message : 'Could not save product.');
@@ -450,8 +466,10 @@ export function ProductsPage() {
                       <div className="flex items-center gap-3">
                         <div className="thumbnail-box" aria-hidden="true">
                           <img
-                            src={product.image?.trim() || DRINK_THUMBNAIL_FALLBACK}
+                            key={product.image}
+                            src={productThumbnailUrl(product.image?.trim(), 160) || DRINK_THUMBNAIL_FALLBACK}
                             alt=""
+                            className={isCloudinaryProductImage(product.image) ? 'cloudinary-product-image' : undefined}
                             onError={e => {
                               const target = e.currentTarget as HTMLImageElement;
                               if (!target.dataset.fallback) {
@@ -621,6 +639,7 @@ export function ProductsPage() {
             <input
               className="text-input"
               type="url"
+              pattern="https://.*"
               maxLength={2048}
               placeholder="https://example.com/drinks/milk-tea.webp"
               value={form.image}
@@ -643,6 +662,11 @@ export function ProductsPage() {
                 onError={() => setImagePreviewError(true)}
               />
             </div>
+          )}
+          {form.image.trim() && imagePreviewError && (
+            <p className="text-xs text-rose-700" role="status">
+              Image preview unavailable. Check the HTTPS URL before saving.
+            </p>
           )}
 
           <label className="check-field mt-2 flex items-center gap-2 cursor-pointer font-bold text-xs text-slate-800">

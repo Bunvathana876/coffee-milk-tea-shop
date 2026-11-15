@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Brew & Boba Café (iOS Simulator)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/mobile_app",
+      "program": "${workspaceFolder}/mobile_app/lib/main.dart",
+      "emulatorId": "apple_ios_simulator",
+      "toolArgs": [
+        "--dart-define=BREW_BOBA_API_URL=http://127.0.0.1:8003"
+      ]
+    },
+    {
+      "name": "Brew & Boba Café (Android Emulator)",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/mobile_app",
+      "program": "${workspaceFolder}/mobile_app/lib/main.dart",
+      "emulatorId": "Pixel_5",
+      "toolArgs": [
+        "--dart-define=BREW_BOBA_API_URL=http://10.0.2.2:8003"
+      ]
+    }
+  ]
+}

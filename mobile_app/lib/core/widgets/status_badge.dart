@@ -85,3 +85,32 @@ class StatusBadge extends StatelessWidget {
     }
   }
 }
+
+/// Payment is displayed independently from drink preparation status.
+class PaymentStatusBadge extends StatelessWidget {
+  const PaymentStatusBadge({super.key, required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final paid = status.toLowerCase() == 'paid';
+    final color = paid ? AppColors.statusCompleted : AppColors.statusPending;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: paid ? AppColors.statusCompletedBg : AppColors.statusPendingBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withAlpha(60)),
+      ),
+      child: Text(
+        'Payment: ${status.isEmpty ? 'Unknown' : status}',
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}

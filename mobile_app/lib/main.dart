@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kReleaseMode;
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:provider/provider.dart';
 import 'core/config/app_config.dart';
 import 'core/theme/app_theme.dart';
@@ -12,6 +12,8 @@ import 'providers/cart_provider.dart';
 import 'providers/order_provider.dart';
 import 'providers/user_provider.dart';
 import 'ui/navigation/main_screen.dart';
+import 'ui/features/auth/screens/auth_screen.dart';
+import 'ui/features/welcome/welcome_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,12 +23,13 @@ void main() async {
 
   // Initialize HTTP network service
   final savedApiUrl = localStorageService.getCustomApiUrl();
-  final configuredApiUrl = AppConfig.defaultApiBaseUrl;
-  final apiService = ApiService(
-    baseUrl: !kReleaseMode && savedApiUrl != null && savedApiUrl.isNotEmpty
-        ? savedApiUrl
-        : configuredApiUrl,
+  final resolvedApiUrl = AppConfig.resolveApiBaseUrl(
+    savedCustomApiUrl: savedApiUrl,
   );
+  if (kDebugMode) {
+    debugPrint('Café API base URL: $resolvedApiUrl');
+  }
+  final apiService = ApiService(baseUrl: resolvedApiUrl);
 
   // Initialize repositories
   final shopRepository = ShopRepository(apiService: apiService);
@@ -71,7 +74,23 @@ class BrewAndBobaApp extends StatelessWidget {
       title: AppConfig.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const MainScreen(),
+      home: Builder(
+        builder: (context) => WelcomeScreen(
+          onLogin: () async {
+            final signedIn = await Navigator.of(
+              context,
+            ).push<bool>(MaterialPageRoute(builder: (_) => const AuthScreen()));
+            if (signedIn == true && context.mounted) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute<void>(builder: (_) => const MainScreen()),
+              );
+            }
+          },
+          onMenu: () => Navigator.of(context).pushReplacement(
+            MaterialPageRoute<void>(builder: (_) => const MainScreen()),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../data/models/product_model.dart';
 import '../../../../data/models/cart_item_model.dart';
+import '../../../../data/models/product_model.dart';
 import '../../../../providers/shop_provider.dart';
+import 'drink_hero_artwork.dart';
 
-/// Interactive modal sheet to customize cup size, sweetness, ice, and quantity.
+/// Full-height drink customization sheet backed by the existing cart item model.
 class ProductDetailSheet extends StatefulWidget {
   const ProductDetailSheet({
     super.key,
@@ -18,19 +20,19 @@ class ProductDetailSheet extends StatefulWidget {
   });
 
   final ProductModel product;
-  final Function(CartItemModel) onAddToCart;
+  final ValueChanged<CartItemModel> onAddToCart;
 
   static void show(
     BuildContext context, {
     required ProductModel product,
-    required Function(CartItemModel) onAddToCart,
+    required ValueChanged<CartItemModel> onAddToCart,
   }) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) =>
-          ProductDetailSheet(product: product, onAddToCart: onAddToCart),
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) =>
+            ProductDetailSheet(product: product, onAddToCart: onAddToCart),
+      ),
     );
   }
 
@@ -39,519 +41,575 @@ class ProductDetailSheet extends StatefulWidget {
 }
 
 class _ProductDetailSheetState extends State<ProductDetailSheet> {
-  String _selectedSize = 'Medium';
-  String _selectedSugar = '50%';
-  String _selectedIce = 'Normal Ice';
+  late String _selectedSize;
+  late String _selectedSugar;
+  late String _selectedIce;
   final Set<String> _selectedToppings = <String>{};
   int _quantity = 1;
+  bool _submitting = false;
 
-  double get _unitPrice {
-    final sizeModifier = AppConfig.sizePriceModifiers[_selectedSize] ?? 0.0;
-    final toppingsModifier = _selectedToppings.fold(0.0, (sum, topping) {
-      return sum + (AppConfig.toppingPrices[topping] ?? 0.0);
-    });
-    return widget.product.basePriceUsd + sizeModifier + toppingsModifier;
+  @override
+  void initState() {
+    super.initState();
+    _selectedSize = AppConfig.availableSizes.contains('Medium')
+        ? 'Medium'
+        : AppConfig.availableSizes.isNotEmpty
+        ? AppConfig.availableSizes.first
+        : 'Medium';
+    _selectedSugar = AppConfig.availableSugarLevels.contains('50%')
+        ? '50%'
+        : AppConfig.availableSugarLevels.isNotEmpty
+        ? AppConfig.availableSugarLevels.first
+        : '50%';
+    _selectedIce = AppConfig.availableIceLevels.contains('Normal Ice')
+        ? 'Normal Ice'
+        : AppConfig.availableIceLevels.isNotEmpty
+        ? AppConfig.availableIceLevels.first
+        : 'Normal Ice';
   }
 
-  double get _totalPrice => _unitPrice * _quantity;
+  CartItemModel get _cartItem => CartItemModel(
+    product: widget.product,
+    size: _selectedSize,
+    sugarLevel: _selectedSugar,
+    iceLevel: _selectedIce,
+    toppings: _selectedToppings.toList(),
+    quantity: _quantity,
+  );
+
+  void _addToCart() {
+    if (_submitting || !widget.product.isAvailable) return;
+    setState(() => _submitting = true);
+    try {
+      widget.onAddToCart(_cartItem);
+      if (mounted && Navigator.canPop(context)) Navigator.pop(context);
+    } catch (_) {
+      if (mounted) setState(() => _submitting = false);
+      rethrow;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.88,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
-              width: 48,
-              height: 5,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceBorder,
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
+    final screen = MediaQuery.sizeOf(context);
+    final heroHeight = (screen.height * .42).clamp(240.0, 340.0);
+    final imageSize = (screen.width * .77).clamp(238.0, 330.0);
+    final imageTop = (heroHeight - imageSize * .84).clamp(60.0, 105.0);
+    final introHeight = imageTop + imageSize + 14;
+    final total = _cartItem.subtotalUsd;
 
-          // Scrollable Content
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              children: [
-                // Header image & details
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: ColoredBox(
+        color: AppColors.bobaPearl,
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  key: const Key('drink-detail-scroll'),
+                  padding: EdgeInsets.zero,
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: SizedBox(
-                        width: 90,
-                        height: 90,
-                        child:
-                            widget.product.image != null &&
-                                widget.product.image!.isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: widget.product.image!,
-                                fit: BoxFit.cover,
-                                errorWidget: (context, url, error) =>
-                                    _buildPlaceholder(),
-                              )
-                            : _buildPlaceholder(),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    SizedBox(
+                      height: introHeight,
+                      child: Stack(
                         children: [
-                          if (widget.product.categoryName != null)
-                            Text(
-                              widget.product.categoryName!.toUpperCase(),
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.secondary,
-                                letterSpacing: 0.5,
+                          Column(
+                            children: [
+                              SizedBox(
+                                height: heroHeight,
+                                child: const DecoratedBox(
+                                  key: Key('drink-detail-hero'),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        AppColors.primary,
+                                        AppColors.bobaPearl,
+                                      ],
+                                    ),
+                                    image: DecorationImage(
+                                      image: AssetImage(
+                                        'assets/drink_details/navy_cafe_pattern.png',
+                                      ),
+                                      fit: BoxFit.cover,
+                                      opacity: .35,
+                                    ),
+                                  ),
+                                  child: SizedBox.expand(),
+                                ),
                               ),
-                            ),
-                          const SizedBox(height: 2),
-                          Text(
-                            widget.product.name,
-                            style: AppTypography.titleLarge,
+                              const Expanded(
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondaryLight,
+                                    borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(36),
+                                    ),
+                                  ),
+                                  child: SizedBox.expand(),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            CurrencyFormatter.formatDual(
-                              widget.product.basePriceUsd,
+                          Positioned.fill(
+                            child: DrinkHeroArtwork(
+                              imageUrl: widget.product.image,
+                              productName: widget.product.name,
+                              size: imageSize,
+                              heroHeight: introHeight,
+                              imageTop: imageTop,
                             ),
-                            style: AppTypography.priceLarge.copyWith(
-                              fontSize: 15,
+                          ),
+                          Positioned(
+                            top: 8,
+                            left: 20,
+                            child: Material(
+                              color: AppColors.secondaryLight,
+                              borderRadius: BorderRadius.circular(16),
+                              child: IconButton(
+                                key: const Key('drink-detail-back'),
+                                tooltip: 'Back to menu',
+                                onPressed: () => Navigator.maybePop(context),
+                                color: AppColors.bobaPearl,
+                                icon: const Icon(
+                                  Icons.arrow_back_ios_new_rounded,
+                                ),
+                                constraints: const BoxConstraints.tightFor(
+                                  width: 52,
+                                  height: 52,
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Consumer<ShopProvider>(
-                      builder: (context, shop, _) {
-                        final currentItem = CartItemModel(
-                          product: widget.product,
-                          size: _selectedSize,
-                          sugarLevel: _selectedSugar,
-                          iceLevel: _selectedIce,
-                          toppings: _selectedToppings.toList(),
-                          quantity: 1,
-                        );
-                        final isFav =
-                            shop.isFavorite(currentItem) ||
-                            shop.isProductFavorited(widget.product.id);
-                        return IconButton(
-                          icon: Icon(
-                            isFav
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            color: isFav
-                                ? AppColors.accentRed
-                                : AppColors.textSecondary,
-                          ),
-                          tooltip: isFav
-                              ? 'Remove from favorites'
-                              : 'Save to favorites',
-                          onPressed: () {
-                            shop.toggleFavoriteCustomItem(currentItem);
-                          },
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                if (widget.product.description != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    widget.product.description!,
-                    style: AppTypography.bodyMedium,
-                  ),
-                ],
-
-                const Divider(height: 32, color: AppColors.surfaceBorder),
-
-                // 1. Cup Size Option
-                _buildSectionTitle('Cup Size', required: true),
-                const SizedBox(height: 10),
-                Row(
-                  children: AppConfig.availableSizes.map((size) {
-                    final modifier = AppConfig.sizePriceModifiers[size] ?? 0.0;
-                    final isSelected = _selectedSize == size;
-                    final priceLabel = modifier > 0
-                        ? '+${CurrencyFormatter.formatUsd(modifier)}'
-                        : 'Standard';
-
-                    return Expanded(
+                    Material(
+                      key: const Key('drink-detail-content'),
+                      color: AppColors.secondaryLight,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: _buildOptionTile(
-                          title: size,
-                          subtitle: priceLabel,
-                          isSelected: isSelected,
-                          onTap: () => setState(() => _selectedSize = size),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-
-                const SizedBox(height: 24),
-
-                // 2. Sweetness / Sugar Level
-                _buildSectionTitle('Sweetness Level'),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: AppConfig.availableSugarLevels.map((sugar) {
-                    final isSelected = _selectedSugar == sugar;
-                    return _buildSelectablePill(
-                      label: sugar,
-                      isSelected: isSelected,
-                      onTap: () => setState(() => _selectedSugar = sugar),
-                    );
-                  }).toList(),
-                ),
-
-                const SizedBox(height: 24),
-
-                // 3. Ice Level
-                _buildSectionTitle('Ice Level'),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: AppConfig.availableIceLevels.map((ice) {
-                    final isSelected = _selectedIce == ice;
-                    return _buildSelectablePill(
-                      label: ice,
-                      isSelected: isSelected,
-                      onTap: () => setState(() => _selectedIce = ice),
-                    );
-                  }).toList(),
-                ),
-
-                const SizedBox(height: 24),
-
-                // 4. Add-ons & Toppings
-                _buildSectionTitle('Toppings & Add-ons (Optional)'),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: AppConfig.availableToppings.map((topping) {
-                    final price = AppConfig.toppingPrices[topping] ?? 0.0;
-                    final isSelected = _selectedToppings.contains(topping);
-                    return InkWell(
-                      onTap: () {
-                        setState(() {
-                          if (isSelected) {
-                            _selectedToppings.remove(topping);
-                          } else {
-                            _selectedToppings.add(topping);
-                          }
-                        });
-                      },
-                      borderRadius: BorderRadius.circular(20),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.primary.withAlpha(25)
-                              : AppColors.surfaceMuted,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: isSelected
-                                ? AppColors.primary
-                                : Colors.transparent,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(
-                              isSelected
-                                  ? Icons.check_circle_rounded
-                                  : Icons.add_circle_outline_rounded,
-                              size: 16,
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : AppColors.textSecondary,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (widget
+                                              .product
+                                              .categoryName
+                                              ?.isNotEmpty ==
+                                          true)
+                                        Text(
+                                          widget.product.categoryName!
+                                              .toUpperCase(),
+                                          style: AppTypography.bodySmall
+                                              .copyWith(
+                                                color: AppColors.primary,
+                                                fontWeight: FontWeight.w700,
+                                                letterSpacing: .8,
+                                              ),
+                                        ),
+                                      Text(
+                                        widget.product.name,
+                                        key: const Key('drink-detail-name'),
+                                        style: AppTypography.displayLarge
+                                            .copyWith(
+                                              color: AppColors.bobaPearl,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Consumer<ShopProvider>(
+                                  builder: (context, shop, _) {
+                                    final item = _cartItem.copyWith(
+                                      quantity: 1,
+                                    );
+                                    final favorite =
+                                        shop.isFavorite(item) ||
+                                        shop.isProductFavorited(
+                                          widget.product.id,
+                                        );
+                                    return IconButton(
+                                      tooltip: favorite
+                                          ? 'Remove from favorites'
+                                          : 'Save to favorites',
+                                      onPressed: () =>
+                                          shop.toggleFavoriteCustomItem(item),
+                                      icon: Icon(
+                                        favorite
+                                            ? Icons.favorite_rounded
+                                            : Icons.favorite_border_rounded,
+                                        color: favorite
+                                            ? AppColors.accentRed
+                                            : AppColors.primary,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 6),
-                            Text(
-                              topping,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: isSelected
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : AppColors.textPrimary,
+                            if (widget.product.description?.isNotEmpty ==
+                                true) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                widget.product.description!,
+                                style: AppTypography.bodyMedium,
                               ),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '+${CurrencyFormatter.formatUsd(price)}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary,
+                            ],
+                            if (!widget.product.isAvailable) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                'Currently unavailable',
+                                style: AppTypography.labelLarge.copyWith(
+                                  color: AppColors.statusCancelled,
+                                ),
                               ),
+                            ],
+                            if (AppConfig.availableSizes.isNotEmpty) ...[
+                              _divider(),
+                              _sectionTitle('Size options'),
+                              const SizedBox(height: 12),
+                              _sizeOptions(),
+                            ],
+                            if (AppConfig.availableIceLevels.isNotEmpty) ...[
+                              _divider(),
+                              _sectionTitle('Ice level'),
+                              const SizedBox(height: 10),
+                              _exclusiveOptions(
+                                AppConfig.availableIceLevels,
+                                _selectedIce,
+                                'ice',
+                                (value) => setState(() => _selectedIce = value),
+                              ),
+                            ],
+                            if (AppConfig.availableSugarLevels.isNotEmpty) ...[
+                              _divider(),
+                              _sectionTitle('Sweetness level'),
+                              const SizedBox(height: 10),
+                              _exclusiveOptions(
+                                AppConfig.availableSugarLevels,
+                                _selectedSugar,
+                                'sugar',
+                                (value) =>
+                                    setState(() => _selectedSugar = value),
+                              ),
+                            ],
+                            if (AppConfig.availableToppings.isNotEmpty) ...[
+                              _divider(),
+                              _sectionTitle('Toppings'),
+                              const SizedBox(height: 4),
+                              for (final topping in AppConfig.availableToppings)
+                                CheckboxListTile(
+                                  key: Key('topping-$topping'),
+                                  value: _selectedToppings.contains(topping),
+                                  onChanged: (checked) => setState(() {
+                                    if (checked == true) {
+                                      _selectedToppings.add(topping);
+                                    } else {
+                                      _selectedToppings.remove(topping);
+                                    }
+                                  }),
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  activeColor: AppColors.primary,
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  title: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          topping,
+                                          style: AppTypography.bodyMedium,
+                                        ),
+                                      ),
+                                      Text(
+                                        '+${CurrencyFormatter.formatUsd(AppConfig.toppingPrices[topping] ?? 0)}',
+                                        style: AppTypography.labelLarge
+                                            .copyWith(color: AppColors.primary),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                            _divider(),
+                            Row(
+                              key: const Key('drink-detail-last-option'),
+                              children: [
+                                Expanded(child: _sectionTitle('Quantity')),
+                                IconButton(
+                                  tooltip: 'Decrease quantity',
+                                  onPressed: _quantity > 1
+                                      ? () => setState(() => _quantity--)
+                                      : null,
+                                  icon: const Icon(Icons.remove_circle_outline),
+                                ),
+                                Text(
+                                  '$_quantity',
+                                  key: const Key('drink-detail-quantity'),
+                                  style: AppTypography.titleMedium,
+                                ),
+                                IconButton(
+                                  tooltip: 'Increase quantity',
+                                  onPressed: _quantity < 20
+                                      ? () => setState(() => _quantity++)
+                                      : null,
+                                  icon: const Icon(Icons.add_circle_outline),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
-                    );
-                  }).toList(),
-                ),
-
-                const SizedBox(height: 24),
-
-                // 5. Quantity Stepper
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Quantity', style: AppTypography.titleMedium),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceMuted,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.remove, size: 18),
-                            onPressed: _quantity > 1
-                                ? () => setState(() => _quantity--)
-                                : null,
-                            color: AppColors.textPrimary,
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
-                              '$_quantity',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.add, size: 18),
-                            onPressed: _quantity < 20
-                                ? () => setState(() => _quantity++)
-                                : null,
-                            color: AppColors.textPrimary,
-                          ),
-                        ],
-                      ),
                     ),
                   ],
                 ),
-
-                const SizedBox(height: 28),
-              ],
-            ),
-          ),
-
-          // Bottom Bar: Price & Add to Cart
-          Container(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 14,
-              bottom: MediaQuery.of(context).padding.bottom + 14,
-            ),
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              border: Border(
-                top: BorderSide(color: AppColors.surfaceBorder, width: 1),
               ),
-            ),
-            child: Row(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('Total Price', style: AppTypography.bodySmall),
-                    Text(
-                      CurrencyFormatter.formatUsd(_totalPrice),
-                      style: AppTypography.priceLarge,
-                    ),
-                    Text(
-                      CurrencyFormatter.formatKhr(_totalPrice),
-                      style: AppTypography.priceSmall,
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: SizedBox(
-                    height: 52,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        final cartItem = CartItemModel(
-                          product: widget.product,
-                          size: _selectedSize,
-                          sugarLevel: _selectedSugar,
-                          iceLevel: _selectedIce,
-                          toppings: _selectedToppings.toList(),
-                          quantity: _quantity,
-                        );
-                        widget.onAddToCart(cartItem);
-                        Navigator.pop(context);
-                      },
-                      icon: const Icon(
-                        Icons.shopping_bag_outlined,
-                        color: Colors.white,
-                      ),
-                      label: const Text(
-                        'Add to Order',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              _footer(total),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title, {bool required = false}) {
-    return Row(
-      children: [
-        Text(title, style: AppTypography.titleSmall),
-        if (required) ...[
-          const SizedBox(width: 4),
-          const Text(
-            '*',
-            style: TextStyle(
-              color: AppColors.secondary,
-              fontWeight: FontWeight.bold,
+  Widget _divider() => const Padding(
+    padding: EdgeInsets.symmetric(vertical: 20),
+    child: Divider(height: 1, color: AppColors.surfaceBorder),
+  );
+
+  Widget _sectionTitle(String title) => Text(
+    title,
+    style: AppTypography.titleLarge.copyWith(color: AppColors.bobaPearl),
+  );
+
+  Widget _sizeOptions() => LayoutBuilder(
+    builder: (context, constraints) {
+      final sizes = AppConfig.availableSizes;
+      final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
+      final columns = constraints.maxWidth < 340 || textScale > 1.25
+          ? 2
+          : sizes.length < 3
+          ? sizes.length
+          : 3;
+      final width = (constraints.maxWidth - 8 * (columns - 1)) / columns;
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final size in sizes)
+            SizedBox(width: width, child: _sizeTile(size)),
+        ],
+      );
+    },
+  );
+
+  Widget _sizeTile(String size) {
+    final selected = size == _selectedSize;
+    final modifier = AppConfig.sizePriceModifiers[size] ?? 0;
+    final normalized = size.toLowerCase().trim();
+    final cup = normalized.contains('small')
+        ? 'cup_small.png'
+        : normalized.contains('medium')
+        ? 'cup_medium.png'
+        : normalized.contains('large')
+        ? 'cup_large.png'
+        : null;
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: InkWell(
+        key: Key('size-$size'),
+        onTap: () => setState(() => _selectedSize = size),
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedContainer(
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 180),
+          constraints: const BoxConstraints(minHeight: 126),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primaryLight : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: selected ? AppColors.primary : AppColors.surfaceBorder,
+              width: selected ? 2 : 1,
             ),
           ),
-        ],
-      ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: 58,
+                child: cup == null
+                    ? const Icon(
+                        Icons.local_cafe_outlined,
+                        size: 42,
+                        color: AppColors.primary,
+                      )
+                    : Image.asset(
+                        'assets/drink_detail/size_icons/$cup',
+                        key: Key('size-icon-$size'),
+                        fit: BoxFit.contain,
+                      ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                size,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: AppTypography.labelLarge.copyWith(
+                  color: selected ? AppColors.primary : AppColors.textSecondary,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                ),
+              ),
+              Text(
+                modifier == 0
+                    ? 'Included'
+                    : '+${CurrencyFormatter.formatUsd(modifier)}',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.primary : Colors.transparent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildOptionTile({
-    required String title,
-    required String subtitle,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withAlpha(20)
-              : AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.surfaceBorder,
-            width: isSelected ? 2 : 1,
+  Widget _exclusiveOptions(
+    List<String> options,
+    String selected,
+    String prefix,
+    ValueChanged<String> onSelect,
+  ) => Wrap(
+    spacing: 8,
+    runSpacing: 8,
+    children: [
+      for (final option in options)
+        ChoiceChip(
+          key: Key('$prefix-$option'),
+          label: Text(option),
+          selected: option == selected,
+          onSelected: (_) => onSelect(option),
+          selectedColor: AppColors.primaryLight,
+          backgroundColor: Colors.white,
+          side: BorderSide(
+            color: option == selected
+                ? AppColors.primary
+                : AppColors.surfaceBorder,
+          ),
+          labelStyle: AppTypography.labelLarge.copyWith(
+            color: option == selected
+                ? AppColors.primary
+                : AppColors.textSecondary,
           ),
         ),
+    ],
+  );
+
+  Widget _footer(double total) => Container(
+    key: const Key('drink-detail-footer'),
+    width: double.infinity,
+    decoration: const BoxDecoration(
+      color: AppColors.secondaryLight,
+      border: Border(top: BorderSide(color: AppColors.surfaceBorder)),
+    ),
+    child: SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? AppColors.primary : AppColors.textPrimary,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Your total',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.titleLarge.copyWith(
+                      color: AppColors.bobaPearl,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          CurrencyFormatter.formatUsd(total),
+                          key: const Key('drink-detail-total-usd'),
+                          style: AppTypography.priceLarge.copyWith(
+                            fontSize: 23,
+                          ),
+                        ),
+                      ),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          CurrencyFormatter.formatKhr(total),
+                          key: const Key('drink-detail-total-khr'),
+                          style: AppTypography.priceSmall,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 11,
-                color: isSelected ? AppColors.primary : AppColors.textSecondary,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: ElevatedButton.icon(
+                key: const Key('drink-detail-add'),
+                onPressed: widget.product.isAvailable && !_submitting
+                    ? _addToCart
+                    : null,
+                icon: const Icon(Icons.shopping_bag_outlined),
+                label: Text(
+                  widget.product.isAvailable ? 'Add to Cart' : 'Unavailable',
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildSelectablePill({
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.surfaceMuted,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.transparent,
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? Colors.white : AppColors.textPrimary,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlaceholder() {
-    return Container(
-      color: AppColors.surfaceMuted,
-      child: const Center(
-        child: Icon(
-          Icons.local_cafe_rounded,
-          color: AppColors.primaryLight,
-          size: 36,
-        ),
-      ),
-    );
-  }
+    ),
+  );
 }

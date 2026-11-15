@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 import 'package:http/http.dart' as http;
 import '../../core/config/app_config.dart';
 import '../models/category_model.dart';
@@ -22,9 +23,9 @@ class ApiService {
   String get baseUrl => _baseUrl;
 
   void updateBaseUrl(String newUrl) {
-    _baseUrl = newUrl.endsWith('/')
-        ? newUrl.substring(0, newUrl.length - 1)
-        : newUrl;
+    final normalized = AppConfig.normalizeApiBaseUrl(newUrl);
+    if (normalized == null) throw ArgumentError.value(newUrl, 'newUrl');
+    _baseUrl = normalized;
   }
 
   void updateAuthToken(String token) {
@@ -36,6 +37,60 @@ class ApiService {
   };
 
   static const Duration timeoutDuration = Duration(seconds: 8);
+
+  void _logCatalogError(Uri uri, Object error) {
+    if (kDebugMode) debugPrint('Catalog GET $uri failed: $error');
+  }
+
+  HttpException _catalogHttpError(http.Response response, String resource) {
+    String? detail;
+    try {
+      final body = jsonDecode(utf8.decode(response.bodyBytes));
+      if (body is Map<String, dynamic> && body['detail'] is String) {
+        detail = (body['detail'] as String).trim();
+      }
+    } catch (_) {
+      // Gateways can return HTML or an empty body; keep the status actionable.
+    }
+    return HttpException(
+      'Café API returned HTTP ${response.statusCode} for $resource'
+      '${detail == null || detail.isEmpty ? '.' : ': $detail'}',
+    );
+  }
+
+  List<T> _parseCatalogResponse<T>(
+    http.Response response,
+    Uri uri,
+    String resource,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
+    Object? decoded;
+    try {
+      decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    } catch (_) {
+      throw FormatException(
+        'The server at ${uri.origin} returned invalid $resource JSON.',
+      );
+    }
+    if (decoded is! List) {
+      throw FormatException(
+        'The server at ${uri.origin} returned unexpected $resource data. '
+        'The café API expects a JSON list; check the API address.',
+      );
+    }
+    try {
+      return decoded.map((item) {
+        if (item is! Map<String, dynamic>) {
+          throw const FormatException('Catalog item is not a JSON object.');
+        }
+        return fromJson(item);
+      }).toList();
+    } catch (_) {
+      throw FormatException(
+        'The server at ${uri.origin} returned invalid $resource fields.',
+      );
+    }
+  }
 
   OrderModel _parseServerOrder(http.Response response) {
     if (response.bodyBytes.isEmpty) {
@@ -96,7 +151,11 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/api/health');
       final res = await _client.get(uri).timeout(const Duration(seconds: 4));
-      return res.statusCode == 200;
+      if (res.statusCode != 200) return false;
+      final body = jsonDecode(utf8.decode(res.bodyBytes));
+      return body is Map<String, dynamic> &&
+          body['status'] == 'healthy' &&
+          body['app'] == 'Coffee & Milk Tea Shop API';
     } catch (_) {
       return false;
     }
@@ -106,32 +165,35 @@ class ApiService {
   // Categories
   // -------------------------------------------------------------
   Future<List<CategoryModel>> getCategories({bool activeOnly = true}) async {
+    final uri = Uri.parse(
+      '$_baseUrl/api/categories',
+    ).replace(queryParameters: {'active_only': activeOnly.toString()});
     try {
-      final uri = Uri.parse(
-        '$_baseUrl/api/categories',
-      ).replace(queryParameters: {'active_only': activeOnly.toString()});
       final response = await _client.get(uri).timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
-        final List<dynamic> jsonList = jsonDecode(
-          utf8.decode(response.bodyBytes),
+        return _parseCatalogResponse(
+          response,
+          uri,
+          'categories',
+          CategoryModel.fromJson,
         );
-        return jsonList
-            .map((item) => CategoryModel.fromJson(item as Map<String, dynamic>))
-            .toList();
       } else {
-        throw HttpException(
-          'Failed to load categories: ${response.statusCode}',
-        );
+        throw _catalogHttpError(response, 'categories');
       }
-    } on SocketException {
-      throw const SocketException(
-        'Unable to reach café server. Please check your network.',
+    } on SocketException catch (error) {
+      _logCatalogError(uri, error);
+      throw SocketException(
+        'Unable to reach café API at ${uri.origin}. Check the address and network.',
       );
-    } on TimeoutException {
+    } on TimeoutException catch (error) {
+      _logCatalogError(uri, error);
       throw TimeoutException(
-        'Request timed out while connecting to café server.',
+        'Café API at ${uri.origin} did not respond. Check the address and retry.',
       );
+    } catch (error) {
+      _logCatalogError(uri, error);
+      rethrow;
     }
   }
 
@@ -143,38 +205,42 @@ class ApiService {
     String? search,
     bool isAvailable = true,
   }) async {
+    final params = <String, String>{'is_available': isAvailable.toString()};
+    if (categoryId != null) {
+      params['category_id'] = categoryId.toString();
+    }
+    if (search != null && search.trim().isNotEmpty) {
+      params['search'] = search.trim();
+    }
+    final uri = Uri.parse(
+      '$_baseUrl/api/products',
+    ).replace(queryParameters: params);
     try {
-      final params = <String, String>{'is_available': isAvailable.toString()};
-      if (categoryId != null) {
-        params['category_id'] = categoryId.toString();
-      }
-      if (search != null && search.trim().isNotEmpty) {
-        params['search'] = search.trim();
-      }
-
-      final uri = Uri.parse(
-        '$_baseUrl/api/products',
-      ).replace(queryParameters: params);
       final response = await _client.get(uri).timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
-        final List<dynamic> jsonList = jsonDecode(
-          utf8.decode(response.bodyBytes),
+        return _parseCatalogResponse(
+          response,
+          uri,
+          'products',
+          ProductModel.fromJson,
         );
-        return jsonList
-            .map((item) => ProductModel.fromJson(item as Map<String, dynamic>))
-            .toList();
       } else {
-        throw HttpException('Failed to load products: ${response.statusCode}');
+        throw _catalogHttpError(response, 'products');
       }
-    } on SocketException {
-      throw const SocketException(
-        'Unable to reach café server. Please check your network.',
+    } on SocketException catch (error) {
+      _logCatalogError(uri, error);
+      throw SocketException(
+        'Unable to reach café API at ${uri.origin}. Check the address and network.',
       );
-    } on TimeoutException {
+    } on TimeoutException catch (error) {
+      _logCatalogError(uri, error);
       throw TimeoutException(
-        'Request timed out while connecting to café server.',
+        'Café API at ${uri.origin} did not respond. Check the address and retry.',
       );
+    } catch (error) {
+      _logCatalogError(uri, error);
+      rethrow;
     }
   }
 

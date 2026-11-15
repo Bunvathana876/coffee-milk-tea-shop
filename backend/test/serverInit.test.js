@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createServer } from 'node:net';
 
 process.env.NODE_ENV = 'test';
 process.env.ENVIRONMENT = 'test';
@@ -76,5 +77,16 @@ test('Application server starts up, initializes router stack, and responds to HT
     assert.equal(healthData.status, 'healthy');
   } finally {
     await new Promise(resolve => server.close(resolve));
+  }
+});
+
+test('occupied port rejects startup cleanly', async () => {
+  const { startServer } = await import('../src/server.js');
+  const occupied = createServer();
+  await new Promise(resolve => occupied.listen(0, '0.0.0.0', resolve));
+  try {
+    await assert.rejects(startServer(occupied.address().port), error => error.code === 'EADDRINUSE');
+  } finally {
+    await new Promise(resolve => occupied.close(resolve));
   }
 });

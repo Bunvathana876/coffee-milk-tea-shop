@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { dbQuery } from '../../db/database.js';
+import { dbQuery, withTransaction } from '../../db/database.js';
 import { authenticateStaff, requireAdmin } from '../../middleware/auth.js';
 import {
   validBoolean,
   validId,
   validName,
+  validOptionalImageUrl,
   validOptionalText,
   validPrice,
 } from '../../utils/adminCatalogValidation.js';
@@ -57,7 +58,7 @@ router.post('/', requireAdmin, async (req, res, next) => {
       !validName(name) ||
       !validPrice(base_price_usd) ||
       !validOptionalText(description) ||
-      !validOptionalText(image, 2048) ||
+      !validOptionalImageUrl(image) ||
       !validBoolean(is_available)
     ) {
       return res.status(422).json({ detail: 'Invalid product details.' });
@@ -133,7 +134,7 @@ router.patch('/:id', requireAdmin, async (req, res, next) => {
       updates.push(`description = $${params.length}`);
     }
     if (image !== undefined) {
-      if (!validOptionalText(image, 2048))
+      if (!validOptionalImageUrl(image))
         return res.status(422).json({ detail: 'Invalid product image.' });
       params.push(image);
       updates.push(`image = $${params.length}`);
@@ -193,8 +194,18 @@ router.delete('/:id', requireAdmin, async (req, res, next) => {
   try {
     if (!validId(req.params.id)) return res.status(400).json({ detail: 'Invalid product ID.' });
     const productId = Number(req.params.id);
-    const result = await dbQuery('DELETE FROM products WHERE id = $1', [productId]);
-    if (result.rowCount === 0) {
+    const deletion = await withTransaction(async query => {
+      const product = await query('SELECT id FROM products WHERE id = $1 FOR UPDATE', [productId]);
+      if (product.rows.length === 0) return 'missing';
+      const historicalItem = await query('SELECT id FROM order_items WHERE product_id = $1 LIMIT 1', [productId]);
+      if (historicalItem.rows.length > 0) return 'historical';
+      await query('DELETE FROM products WHERE id = $1', [productId]);
+      return 'deleted';
+    });
+    if (deletion === 'historical') {
+      return res.status(409).json({ detail: 'Product has historical orders. Mark it unavailable instead.' });
+    }
+    if (deletion === 'missing') {
       return res.status(404).json({ detail: 'Product not found.' });
     }
     res.json({ message: 'Product deleted successfully.' });

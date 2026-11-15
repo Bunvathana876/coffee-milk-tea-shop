@@ -1,0 +1,36 @@
+{
+  "palette": {
+    "cobalt": "#1345A3",
+    "cream": "#FFF8DF",
+    "butter": "#F5E4AD",
+    "navy": "#17294D",
+    "white": "#FFFFFF"
+  },
+  "banners": [
+    {
+      "asset": "assets/home/banners/banner_01_boba_art.png",
+      "preview": "previews/banner_01_boba_preview.png",
+      "headline": "Fresh Brew, Happy You!",
+      "subtitle": "Your everyday caf\u00e9 moment",
+      "button": "Explore Menu",
+      "action": "Open existing catalog/menu"
+    },
+    {
+      "asset": "assets/home/banners/banner_02_coffee_art.png",
+      "preview": "previews/banner_02_coffee_preview.png",
+      "headline": "Coffee Time, Your Way",
+      "subtitle": "A little joy in every cup",
+      "button": "Explore Coffee",
+      "action": "Filter actual coffee category only if available; otherwise open menu"
+    },
+    {
+      "asset": "assets/home/banners/banner_03_treats_art.png",
+      "preview": "previews/banner_03_treats_preview.png",
+      "headline": "Sweet Moments Start Here",
+      "subtitle": "Coffee, boba & sweet treats",
+      "button": "Discover More",
+      "action": "Open existing catalog/menu"
+    }
+  ],
+  "note": "Art-only image assets are separate from live Flutter text and buttons; do not interpret images as active promotions or prices."
+}

@@ -3,19 +3,21 @@ import bcrypt from 'bcryptjs';
 import { dbQuery } from '../../db/database.js';
 import { createToken, authenticateSeller } from '../../middleware/auth.js';
 import { logSecurityEvent } from '../../middleware/audit.js';
+import { authRateLimit } from '../../middleware/rateLimit.js';
 
 const router = Router();
+const limitLogin = authRateLimit();
 
 /**
  * POST /api/seller/auth/login
  * Authenticates a registered seller using their email and password.
  * Deactivated sellers and non-seller accounts are denied.
  */
-router.post('/login', async (req, res, next) => {
+router.post('/login', limitLogin, async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (typeof email !== 'string' || !email.trim() || email.length > 255 || typeof password !== 'string' || !password || Buffer.byteLength(password) > 72) {
       return res.status(400).json({ detail: 'Email and password are required.' });
     }
 

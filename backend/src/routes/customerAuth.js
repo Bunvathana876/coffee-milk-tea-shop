@@ -2,26 +2,35 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { dbQuery } from '../db/database.js';
 import { createToken, authenticateCustomer } from '../middleware/auth.js';
+import { authRateLimit } from '../middleware/rateLimit.js';
+import { config, jwtExpiresInMinutes } from '../config.js';
 
 const router = Router();
+const limitRegistration = authRateLimit({ max: 50 });
+const limitLogin = authRateLimit();
+const validEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+const validPhone = value => /^[+0-9() .-]+$/.test(value) && value.replace(/\D/g, '').length >= 8;
 
 // POST /api/auth/register
-router.post('/register', async (req, res, next) => {
+router.post('/register', limitRegistration, async (req, res, next) => {
   try {
     const { full_name, phone, email, password } = req.body;
 
-    if (!full_name || String(full_name).trim().length < 2) {
+    if (typeof full_name !== 'string' || full_name.trim().length < 2 || full_name.trim().length > 255) {
       return res.status(422).json({ detail: 'Full name must be at least 2 characters.' });
     }
-    if (!phone || String(phone).trim().length < 8) {
+    if (typeof phone !== 'string' || phone.trim().length > 50 || !validPhone(phone.trim())) {
       return res.status(422).json({ detail: 'Phone number must be at least 8 digits.' });
     }
-    if (!password || String(password).length < 6) {
+    if (typeof password !== 'string' || password.length < 6 || Buffer.byteLength(password) > 72) {
       return res.status(422).json({ detail: 'Password must be at least 6 characters.' });
     }
 
     const cleanPhone = String(phone).trim();
     const cleanEmail = email && String(email).trim() ? String(email).trim().toLowerCase() : null;
+    if (cleanEmail && (typeof email !== 'string' || cleanEmail.length > 255 || !validEmail(cleanEmail))) {
+      return res.status(422).json({ detail: 'Invalid email address.' });
+    }
 
     // Check duplicate phone
     const existingPhone = await dbQuery('SELECT id FROM customer_users WHERE phone = $1', [
@@ -66,7 +75,7 @@ router.post('/register', async (req, res, next) => {
     res.status(201).json({
       access_token: accessToken,
       token_type: 'bearer',
-      expires_in_minutes: 10080,
+      expires_in_minutes: jwtExpiresInMinutes(config.jwtExpiresIn),
       user: {
         ...user,
         is_active: Boolean(user.is_active),
@@ -79,11 +88,11 @@ router.post('/register', async (req, res, next) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res, next) => {
+router.post('/login', limitLogin, async (req, res, next) => {
   try {
     const { identifier, password } = req.body;
 
-    if (!identifier || !password) {
+    if (typeof identifier !== 'string' || !identifier.trim() || identifier.length > 255 || typeof password !== 'string' || !password || Buffer.byteLength(password) > 72) {
       return res
         .status(422)
         .json({ detail: 'Identifier (phone or email) and password are required.' });
@@ -129,7 +138,7 @@ router.post('/login', async (req, res, next) => {
     res.json({
       access_token: accessToken,
       token_type: 'bearer',
-      expires_in_minutes: 10080,
+      expires_in_minutes: jwtExpiresInMinutes(config.jwtExpiresIn),
       user: {
         ...updatedUser,
         is_active: Boolean(updatedUser.is_active),
@@ -165,7 +174,7 @@ router.patch('/me', authenticateCustomer, async (req, res, next) => {
     const params = [];
 
     if (full_name !== undefined) {
-      if (String(full_name).trim().length < 2) {
+      if (typeof full_name !== 'string' || full_name.trim().length < 2 || full_name.trim().length > 255) {
         return res.status(422).json({ detail: 'Full name must be at least 2 characters.' });
       }
       params.push(String(full_name).trim());
@@ -174,6 +183,9 @@ router.patch('/me', authenticateCustomer, async (req, res, next) => {
 
     if (email !== undefined) {
       const cleanEmail = email && String(email).trim() ? String(email).trim().toLowerCase() : null;
+      if (cleanEmail && (typeof email !== 'string' || cleanEmail.length > 255 || !validEmail(cleanEmail))) {
+        return res.status(422).json({ detail: 'Invalid email address.' });
+      }
       if (cleanEmail) {
         const existing = await dbQuery(
           'SELECT id FROM customer_users WHERE email = $1 AND id != $2',

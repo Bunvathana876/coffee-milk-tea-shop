@@ -972,6 +972,20 @@ section[id] {
   transition: transform 600ms cubic-bezier(0.2, 0.6, 0.3, 1);
 }
 
+.drink-image-button img.cloudinary-product-image {
+  object-fit: contain;
+  padding: 12px;
+}
+
+.drink-image-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--color-cream-deep);
+  pointer-events: none;
+}
+
 .drink-image-button:focus-visible {
   outline-offset: -5px;
 }

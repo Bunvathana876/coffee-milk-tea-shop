@@ -3,6 +3,7 @@ import { Heart, Plus, ArrowUpRight } from 'lucide-react';
 import { useFavorites } from '../../features/favorites/useFavorites';
 import { formatUsd, formatKhr } from '../../config/currency';
 import type { Product } from '../../types';
+import { isCloudinaryProductImage, productThumbnailUrl } from '../../utils/productImage';
 
 interface ProductCardProps {
   product: Product;
@@ -13,6 +14,7 @@ export function ProductCard({ product, onSelect }: ProductCardProps) {
   const { isFavorite, toggleFavorite } = useFavorites();
   const favorited = isFavorite(product.id);
   const [failedImage, setFailedImage] = useState<string | null>(null);
+  const [loadedImage, setLoadedImage] = useState<string | null>(null);
   const canSelect = product.is_available && !!onSelect;
   const open = () => {
     if (canSelect) onSelect?.(product);
@@ -28,15 +30,24 @@ export function ProductCard({ product, onSelect }: ProductCardProps) {
           aria-label={`View details and customize ${product.name}`}
         >
           {product.image && failedImage !== product.image ? (
-            <img
-              src={product.image}
-              alt={product.name}
-              width="600"
-              height="750"
-              loading="lazy"
-              decoding="async"
-              onError={() => setFailedImage(product.image ?? null)}
-            />
+            <>
+              <img
+                src={productThumbnailUrl(product.image)}
+                alt={product.name}
+                className={isCloudinaryProductImage(product.image) ? 'cloudinary-product-image' : undefined}
+                width="600"
+                height="750"
+                loading="lazy"
+                decoding="async"
+                onLoad={() => setLoadedImage(product.image ?? null)}
+                onError={() => setFailedImage(product.image ?? null)}
+              />
+              {loadedImage !== product.image && (
+                <span className="drink-image-loading" aria-hidden="true">
+                  <span className="size-12 rounded-full bg-cobalt/10 animate-pulse" />
+                </span>
+              )}
+            </>
           ) : (
             <span className="drink-placeholder">
               <img

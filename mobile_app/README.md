@@ -2,7 +2,7 @@
 
 A clean, production-grade Flutter mobile application for **Brew & Boba Café** customers to browse drinks, customize drink options (Cup Size, Sweetness %, Ice Level, Quantity), manage their order bag, place orders, and track order status in real time.
 
-Built following **Clean Architecture (MVVM & Repository Pattern)** with Flutter, Provider, Material 3, and full offline resilience.
+Built with Flutter, Provider, and Material 3. The menu loads from the café API, while failed order submissions retain a local retry key.
 
 ---
 
@@ -39,7 +39,7 @@ mobile_app/lib/
 │   │   ├── api_service.dart           # HTTP client connecting to the Express backend
 │   │   └── local_storage_service.dart # SharedPreferences wrapper for saving profile & cart
 │   └── repositories/
-│       ├── shop_repository.dart       # Fetches categories & products (with automatic offline fallback!)
+│       ├── shop_repository.dart       # Fetches categories & products from the API
 │       └── order_repository.dart      # Places orders, phone lookup, order tracking polling
 │
 ├── providers/                         # State Management (ChangeNotifier ViewModels)
@@ -76,6 +76,10 @@ mobile_app/lib/
 ---
 
 ## 🚀 How to Run the App
+
+### Run from VS Code
+
+Open either the project root or `mobile_app` in VS Code. Install the Dart and Flutter extensions, choose **Brew & Boba Café (iOS Simulator)** in **Run and Debug**, then press **F5** (or the green Run button). The launch profile starts the iOS simulator and passes the local café API URL automatically. Choose **Brew & Boba Café (Android Emulator)** for the Pixel 5 emulator. The backend must be running on host port `8003` first.
 
 ### 1. Run on Connected Device, Simulator, or Browser
 
@@ -116,13 +120,15 @@ flutter test
    cd ../backend
    npm run dev
    ```
+   The standalone backend defaults to host port `8003`. Docker Compose maps its internal port `8000` to host port `8001` by default; when using Compose, pass `--dart-define=BREW_BOBA_API_URL=http://127.0.0.1:8001` on the iOS simulator (or `http://10.0.2.2:8001` on the Android emulator). Check `/api/health` on the selected host port before launching the app.
 2. **API Host Settings**:
-   - **Android Emulator**: Uses `http://10.0.2.2:8001` in development.
-   - **iOS Simulator / macOS / Chrome**: Uses `http://localhost:8001` in development.
-   - **Physical Devices**: Use **Profile → Configure API Host** with the computer's reachable Wi-Fi address and backend port (for example, `http://192.168.1.15:8001`).
+   - **Android Emulator**: Uses `http://10.0.2.2:8003` in development.
+   - **iOS Simulator / macOS / Chrome**: Uses `http://127.0.0.1:8003` in development.
+   - A valid saved custom URL overrides the development default. The old saved `localhost:8000` address is ignored because that port serves another local API; the preference remains stored. Pass `--dart-define=BREW_BOBA_API_URL=http://127.0.0.1:8003` to select the café API explicitly.
+   - **Physical Devices**: Set `BREW_BOBA_API_URL` to the computer's reachable Wi-Fi address and backend port (for example, `--dart-define=BREW_BOBA_API_URL=http://192.168.1.15:8003`).
    - **Release builds**: Set an explicit API URL with `--dart-define=BREW_BOBA_API_URL=https://your-api-host`. A new release installation has no localhost fallback.
 
-> **Offline behavior**: The catalog may use local fallback data. A failed or timed-out checkout keeps the cart and a retry key, and shows a local estimate only. It does not create an order reference, payment confirmation, or server loyalty credit.
+> **Offline behavior**: The menu requires the café API and shows a retry state when it cannot load. A failed or timed-out checkout keeps the cart and a retry key, and shows a local estimate only. It does not create an order reference, payment confirmation, or server loyalty credit.
 
 ---
 
@@ -130,5 +136,5 @@ flutter test
 
 - **Change Theme & Colors**: Edit `lib/core/theme/app_colors.dart` to tweak brand colors (Espresso, Matcha, Caramel).
 - **Change Drink Sizes & Sugar/Ice Options**: Edit `lib/core/config/app_config.dart`.
-- **Add New Drink Categories or Fallback Items**: Edit `lib/data/repositories/shop_repository.dart`.
+- **Add New Drink Categories or Products**: Update the café database through the management API.
 - **Tweak UI Screens**: Browse directly into `lib/ui/features/[feature_name]/screens/`.

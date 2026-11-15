@@ -188,44 +188,51 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 color: AppColors.surfaceMuted,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withAlpha(20),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.storefront_rounded,
-                      color: AppColors.primary,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Pickup at ${AppConfig.appName}',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withAlpha(20),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          AppConfig.storeAddress,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                          ),
+                        child: const Icon(
+                          Icons.storefront_rounded,
+                          color: AppColors.primary,
+                          size: 24,
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Pickup at ${AppConfig.appName}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              AppConfig.storeAddress,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
+                  PaymentStatusBadge(status: currentOrder.paymentStatus),
+                  const SizedBox(height: 6),
                   Text(
                     currentOrder.paymentStatus.toLowerCase() == 'paid'
                         ? 'Payment confirmed by the café'
@@ -484,7 +491,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           style: TextStyle(
             fontSize: isBold ? 14 : 12,
             fontWeight: isBold ? FontWeight.w700 : FontWeight.w400,
-            color: isSecondary ? AppColors.secondary : AppColors.textPrimary,
+            color: isSecondary ? AppColors.primary : AppColors.textPrimary,
           ),
         ),
         Text(
@@ -492,7 +499,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           style: TextStyle(
             fontSize: isBold ? 15 : 13,
             fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
-            color: isSecondary ? AppColors.secondary : AppColors.textPrimary,
+            color: isSecondary ? AppColors.primary : AppColors.textPrimary,
           ),
         ),
       ],

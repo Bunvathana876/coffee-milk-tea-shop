@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { getDatabase, dbQuery } from './database.js';
-import { config, isProductionOrStaging } from '../config.js';
+import { config, isProductionOrStaging, developmentCredentialDefaults } from '../config.js';
 
 export const SEED_CATEGORIES = [
   {
@@ -229,7 +229,20 @@ export async function seedDatabase() {
       'Automatic database seeding is prohibited in staging and production environments.',
     );
   }
+  if (process.env.NODE_ENV !== 'test' &&
+      (config.adminInitialPassword === developmentCredentialDefaults.adminInitialPassword ||
+       /^(?:your_|change.?me|replace.?me|default|example)/i.test(config.adminInitialPassword) ||
+       config.adminInitialPassword.length < 12)) {
+    throw new Error('Explicit demo seeding requires a unique ADMIN_INITIAL_PASSWORD of at least 12 characters.');
+  }
   await getDatabase();
+
+  // The demo catalog is only for a new, empty development database. In particular,
+  // never reinsert removed sample products into a live or customized catalog.
+  const existingCatalog = await dbQuery('SELECT COUNT(*) as count FROM products');
+  if (Number(existingCatalog.rows[0].count) !== 0) {
+    throw new Error('Demo seeding requires an empty product catalog. Existing products were not changed.');
+  }
 
   // 1. Seed Categories
   const categoryMap = new Map();

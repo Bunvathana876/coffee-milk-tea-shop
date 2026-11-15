@@ -2,15 +2,17 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { dbQuery } from '../../db/database.js';
 import { createToken, authenticateStaff, isSupportedStaffRole } from '../../middleware/auth.js';
+import { authRateLimit } from '../../middleware/rateLimit.js';
 
 const router = Router();
+const limitLogin = authRateLimit();
 
 // POST /api/admin/auth/login
-router.post('/login', async (req, res, next) => {
+router.post('/login', limitLogin, async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (typeof email !== 'string' || !email.trim() || email.length > 255 || typeof password !== 'string' || !password || Buffer.byteLength(password) > 72) {
       return res.status(422).json({ detail: 'Email and password are required.' });
     }
 

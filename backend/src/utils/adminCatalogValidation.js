@@ -10,6 +10,17 @@ export function validOptionalText(value, max = 1000) {
   return value == null || (typeof value === 'string' && value.length <= max);
 }
 
+export function validOptionalImageUrl(value) {
+  if (value == null || value === '') return true;
+  if (typeof value !== 'string' || value.length > 2048 || value !== value.trim()) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && Boolean(url.hostname) && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}
+
 export function validPrice(value) {
   return (
     typeof value === 'number' &&

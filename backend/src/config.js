@@ -13,9 +13,19 @@ export const developmentCredentialDefaults = Object.freeze({
   adminInitialPassword: 'admin123',
 });
 
+export function jwtExpiresInMinutes(value) {
+  const match = /^(\d+)(m|h|d)$/.exec(value);
+  if (!match) throw new Error('JWT_EXPIRES_IN must use minutes, hours, or days (for example 7d).');
+  const minutes = Number(match[1]) * { m: 1, h: 60, d: 1440 }[match[2]];
+  if (!Number.isSafeInteger(minutes) || minutes < 1 || minutes > 43200) {
+    throw new Error('JWT_EXPIRES_IN must be between 1 minute and 30 days.');
+  }
+  return minutes;
+}
+
 export const config = {
-  port: parseInt(process.env.PORT || '8001', 10),
-  environment: process.env.ENVIRONMENT || 'development',
+  port: parseInt(process.env.PORT || '8003', 10),
+  environment: process.env.ENVIRONMENT || process.env.NODE_ENV || 'development',
   jwtSecret: process.env.JWT_SECRET || developmentCredentialDefaults.jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   usdToKhrRate: parseFloat(process.env.USD_TO_KHR_RATE || '4100'),
@@ -63,6 +73,22 @@ export function isProductionOrStaging(env = process.env) {
 
 /** Fail before connecting to the database or seeding accounts in production or staging. */
 export function validateProductionConfig(env = process.env) {
+  jwtExpiresInMinutes(env.JWT_EXPIRES_IN || '7d');
+  if (env.PORT !== undefined && (!/^\d+$/.test(env.PORT) || Number(env.PORT) < 1 || Number(env.PORT) > 65535)) {
+    throw new Error('Invalid PORT: expected an integer from 1 to 65535.');
+  }
+  for (const [name, minimum, maximum] of [
+    ['DB_POOL_MAX', 1, 50],
+    ['DB_CONNECTION_TIMEOUT_MS', 100, 60000],
+    ['DB_IDLE_TIMEOUT_MS', 1000, 300000],
+  ]) {
+    if (env[name] !== undefined && (!/^\d+$/.test(env[name]) || Number(env[name]) < minimum || Number(env[name]) > maximum)) {
+      throw new Error(`Invalid ${name}: expected an integer from ${minimum} to ${maximum}.`);
+    }
+  }
+  if (env.USD_TO_KHR_RATE !== undefined && (!Number.isFinite(Number(env.USD_TO_KHR_RATE)) || Number(env.USD_TO_KHR_RATE) <= 0)) {
+    throw new Error('Invalid USD_TO_KHR_RATE: expected a positive number.');
+  }
   if (!isProductionOrStaging(env)) return;
 
   const errors = [];
@@ -72,8 +98,6 @@ export function validateProductionConfig(env = process.env) {
   const required = [
     'DATABASE_URL',
     'JWT_SECRET',
-    'ADMIN_INITIAL_EMAIL',
-    'ADMIN_INITIAL_PASSWORD',
     'CORS_ORIGINS',
   ];
   for (const name of required) {
@@ -113,8 +137,18 @@ export function validateProductionConfig(env = process.env) {
   }
 
   const databaseUrl = env.DATABASE_URL?.trim();
-  if (databaseUrl && !/^postgres(?:ql)?:\/\//.test(databaseUrl)) {
-    errors.push('DATABASE_URL must be a PostgreSQL connection URL');
+  if (databaseUrl) {
+    try {
+      const parsed = new URL(databaseUrl);
+      if (!['postgres:', 'postgresql:'].includes(parsed.protocol) || !parsed.hostname || !parsed.pathname || parsed.pathname === '/') {
+        throw new Error();
+      }
+      if (!['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname) && parsed.searchParams.get('sslmode') !== 'verify-full') {
+        errors.push('Remote DATABASE_URL must use sslmode=verify-full');
+      }
+    } catch {
+      errors.push('DATABASE_URL must be a valid PostgreSQL connection URL');
+    }
   }
 
   const origins =

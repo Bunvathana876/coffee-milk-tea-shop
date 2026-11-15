@@ -76,6 +76,9 @@ class OrderCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
 
+              const SizedBox(height: 10),
+              PaymentStatusBadge(status: order.paymentStatus),
+
               const Divider(height: 20, color: AppColors.surfaceBorder),
 
               // Footer: Date and Total

@@ -20,7 +20,7 @@ function validStagingEnv(overrides = {}) {
     NODE_ENV: 'staging',
     ENVIRONMENT: 'staging',
     DATABASE_URL:
-      'postgresql://coffee_shop_owner:secure_pass_123@ep-cool-fog-123456.aws.neon.tech/coffee_shop?sslmode=require',
+      'postgresql://coffee_shop_owner:secure_pass_123@ep-cool-fog-123456.aws.neon.tech/coffee_shop?sslmode=verify-full',
     JWT_SECRET: 'm7Qp4Vn8Rk2Ty6Wb9Hs3Ld5Fx7Zj1Ca0!',
     ADMIN_INITIAL_EMAIL: 'staging-operator@example.test',
     ADMIN_INITIAL_PASSWORD: 'OnlyForStagingStartup42!',

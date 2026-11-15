@@ -3,9 +3,13 @@ import bcrypt from 'bcryptjs';
 import { dbQuery } from '../../db/database.js';
 import { authenticateStaff, requireAdmin, isSupportedStaffRole } from '../../middleware/auth.js';
 import { logSecurityEvent } from '../../middleware/audit.js';
+import { validId } from '../../utils/adminCatalogValidation.js';
 
 const router = Router();
 router.use(authenticateStaff, requireAdmin);
+const validName = value => typeof value === 'string' && value.trim().length >= 2 && value.trim().length <= 255;
+const validPassword = value => typeof value === 'string' && value.length >= 6 && Buffer.byteLength(value) <= 72;
+const validEmail = value => typeof value === 'string' && value.trim().length <= 255 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
 // GET /api/admin/staff
 router.get('/', async (req, res, next) => {
@@ -30,7 +34,7 @@ router.post('/', async (req, res, next) => {
   try {
     const { email, full_name, password, role = 'staff' } = req.body;
 
-    if (!email || !full_name || !password) {
+    if (!validEmail(email) || !validName(full_name) || !validPassword(password)) {
       return res.status(422).json({ detail: 'email, full_name, and password are required.' });
     }
     if (!isSupportedStaffRole(role)) {
@@ -81,7 +85,8 @@ router.post('/', async (req, res, next) => {
 // PATCH /api/admin/staff/:id
 router.patch('/:id', async (req, res, next) => {
   try {
-    const staffId = parseInt(req.params.id, 10);
+    if (!validId(req.params.id)) return res.status(400).json({ detail: 'Invalid staff ID.' });
+    const staffId = Number(req.params.id);
     const staffRes = await dbQuery('SELECT * FROM staff_users WHERE id = $1', [staffId]);
     if (staffRes.rows.length === 0) {
       return res.status(404).json({ detail: 'Staff account not found.' });
@@ -89,6 +94,11 @@ router.patch('/:id', async (req, res, next) => {
 
     const targetStaff = staffRes.rows[0];
     const { full_name, role, is_active, password } = req.body;
+    if ((full_name !== undefined && !validName(full_name)) ||
+        (is_active !== undefined && typeof is_active !== 'boolean') ||
+        (password !== undefined && !validPassword(password))) {
+      return res.status(422).json({ detail: 'Invalid staff details.' });
+    }
     if (role !== undefined && !isSupportedStaffRole(role)) {
       return res.status(422).json({ detail: 'role must be admin or staff.' });
     }

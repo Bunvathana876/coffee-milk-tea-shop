@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../data/models/cart_item_model.dart';
 import '../data/models/category_model.dart';
@@ -25,6 +27,9 @@ class ShopProvider extends ChangeNotifier {
   String _searchQuery = '';
   bool _isLoading = false;
   String? _errorMessage;
+  int _catalogLoadId = 0;
+  Future<void>? _pendingCatalogLoad;
+  bool _initialized = false;
 
   // Getters
   List<CategoryModel> get categories => _categories;
@@ -57,13 +62,29 @@ class ShopProvider extends ChangeNotifier {
 
   /// Initial load of catalog
   Future<void> initialize() async {
+    if (_initialized) return;
+    _initialized = true;
     await refreshCatalog();
   }
 
   /// Refreshes both categories and products from the repository
-  Future<void> refreshCatalog() async {
+  Future<void> refreshCatalog() {
+    final pending = _pendingCatalogLoad;
+    if (pending != null) return pending;
+    final load = _loadCatalog();
+    _pendingCatalogLoad = load;
+    load.whenComplete(() {
+      if (identical(_pendingCatalogLoad, load)) _pendingCatalogLoad = null;
+    });
+    return load;
+  }
+
+  Future<void> _loadCatalog() async {
+    final loadId = ++_catalogLoadId;
     _isLoading = true;
     _errorMessage = null;
+    _categories = [];
+    _products = [];
     notifyListeners();
 
     try {
@@ -72,13 +93,30 @@ class ShopProvider extends ChangeNotifier {
 
       final results = await Future.wait([categoriesFuture, productsFuture]);
 
+      if (loadId != _catalogLoadId) return;
       _categories = results[0] as List<CategoryModel>;
       _products = results[1] as List<ProductModel>;
+      if (kDebugMode) {
+        debugPrint(
+          'Café catalog loaded: ${_categories.length} categories, '
+          '${_products.length} products',
+        );
+      }
     } catch (e) {
-      _errorMessage = 'Could not load menu: $e';
+      if (loadId != _catalogLoadId) return;
+      _errorMessage = switch (e) {
+        SocketException error => error.message,
+        TimeoutException error => error.message ?? 'Café API timed out.',
+        HttpException error => error.message,
+        FormatException error => error.message,
+        _ =>
+          'Could not load the café menu. Check the API connection and retry.',
+      };
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (loadId == _catalogLoadId) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 

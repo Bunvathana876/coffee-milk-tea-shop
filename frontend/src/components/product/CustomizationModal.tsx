@@ -9,6 +9,7 @@ import {
   calculateCustomizedPrice,
 } from '../../features/products/customization';
 import { formatUsd, formatKhr } from '../../config/currency';
+import { productThumbnailUrl } from '../../utils/productImage';
 
 export interface CustomizationModalProps {
   product: Product | null;
@@ -100,11 +101,11 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
         <div className="relative flex items-center gap-3.5 z-10 min-w-0 pr-4">
           {product.image && !imgError ? (
             <img
-              src={product.image}
+              src={productThumbnailUrl(product.image, 160)}
               alt=""
               width="56"
               height="56"
-              className="w-14 h-14 rounded-2xl object-cover shrink-0 border-2 border-white/20 shadow-md"
+              className="w-14 h-14 rounded-2xl object-contain shrink-0 border-2 border-white/20 shadow-md"
               onError={() => setImgError(true)}
             />
           ) : (

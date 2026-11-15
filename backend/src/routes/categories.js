@@ -1,11 +1,17 @@
 import { Router } from 'express';
 import { dbQuery } from '../db/database.js';
+import { validId } from '../utils/adminCatalogValidation.js';
 
 const router = Router();
 
 // GET /api/categories
 router.get('/', async (req, res, next) => {
   try {
+    if (req.query.active_only !== undefined &&
+        (typeof req.query.active_only !== 'string' ||
+          !['true', 'false'].includes(req.query.active_only))) {
+      return res.status(400).json({ detail: 'Invalid category filter.' });
+    }
     const activeOnly = req.query.active_only === 'true';
 
     let query = `
@@ -39,10 +45,10 @@ router.get('/', async (req, res, next) => {
 // GET /api/categories/:id
 router.get('/:id', async (req, res, next) => {
   try {
-    const categoryId = parseInt(req.params.id, 10);
-    if (isNaN(categoryId)) {
+    if (!validId(req.params.id)) {
       return res.status(400).json({ detail: 'Invalid category ID' });
     }
+    const categoryId = Number(req.params.id);
 
     const catResult = await dbQuery(
       `

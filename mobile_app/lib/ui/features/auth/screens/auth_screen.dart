@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../providers/user_provider.dart';
 
@@ -60,6 +59,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _submit() async {
+    if (context.read<UserProvider>().isLoading) return;
     if (!_formKey.currentState!.validate()) return;
 
     final userProvider = context.read<UserProvider>();
@@ -98,382 +98,456 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  bool _showForgot = false;
+
+  static const _cobalt = AppColors.primary;
+  static const _cream = AppColors.background;
+
+  InputDecoration _authField(String label, IconData icon, {Widget? suffix}) {
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(24),
+      borderSide: const BorderSide(color: _cream, width: 1.5),
+    );
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: _cream),
+      prefixIcon: Icon(icon, color: _cream),
+      suffixIcon: suffix,
+      filled: false,
+      enabledBorder: border,
+      border: border,
+      focusedBorder: border.copyWith(
+        borderSide: const BorderSide(color: AppColors.secondary, width: 2),
+      ),
+      errorBorder: border,
+      focusedErrorBorder: border,
+      errorStyle: const TextStyle(color: _cream),
+      errorMaxLines: 3,
+    );
+  }
+
+  Widget _brand(String mascot) => Column(
+    children: [
+      Image.asset(
+        'assets/login/login_wordmark_cream.png',
+        height: _responsiveBrandHeight(140, 100),
+        fit: BoxFit.contain,
+        semanticLabel: 'Brew & Boba Café',
+      ),
+      const SizedBox(height: 12),
+      Image.asset(
+        mascot,
+        height: _responsiveBrandHeight(200, 130),
+        fit: BoxFit.contain,
+        excludeFromSemantics: true,
+      ),
+    ],
+  );
+
+  double _responsiveBrandHeight(double preferred, double minimum) {
+    final availableHeight = MediaQuery.sizeOf(context).height;
+    return (availableHeight * (preferred / 850)).clamp(minimum, preferred);
+  }
+
+  Widget _authButton(
+    String label,
+    VoidCallback? action, {
+    bool loading = false,
+  }) {
+    final scaledLabel = MediaQuery.textScalerOf(context).scale(15);
+    final buttonHeight = (scaledLabel * 2 + 22).clamp(52.0, 88.0);
+    if (action == null) {
+      return SizedBox(
+        height: buttonHeight,
+        child: ElevatedButton(
+          onPressed: null,
+          style: ElevatedButton.styleFrom(
+            disabledBackgroundColor: _cream,
+            disabledForegroundColor: _cobalt,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+          ),
+        ),
+      );
+    }
+    return CustomButton(
+      text: label,
+      onPressed: action,
+      isLoading: loading,
+      backgroundColor: _cream,
+      foregroundColor: _cobalt,
+      height: buttonHeight,
+    );
+  }
+
+  Widget _authScaffold(Widget child) => Scaffold(
+    backgroundColor: _cobalt,
+    appBar: AppBar(
+      backgroundColor: _cobalt,
+      iconTheme: const IconThemeData(color: _cream),
+      leading: IconButton(
+        tooltip: 'Back',
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () {
+          if (_showForgot) {
+            setState(() => _showForgot = false);
+          } else if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            _toggleMode(false);
+          }
+        },
+      ),
+    ),
+    body: SafeArea(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            child: child,
+          ),
+        ),
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
-    final userProvider = context.watch<UserProvider>();
+    final user = context.watch<UserProvider>();
+    if (_showForgot) return _buildForgot();
+    if (!_isRegister) return _buildLogin(user);
+    return _authScaffold(
+      Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _brand('assets/auth/mascot_signup_thumbs_up.png'),
+            const SizedBox(height: 24),
+            TextFormField(
+              controller: _nameController,
+              style: const TextStyle(color: _cream),
+              textInputAction: TextInputAction.next,
+              decoration: _authField('Full Name', Icons.person_outline_rounded),
+              validator: (v) => (v?.trim().length ?? 0) < 2
+                  ? 'Please enter your name (at least 2 characters)'
+                  : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _emailController,
+              style: const TextStyle(color: _cream),
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              decoration: _authField('Email', Icons.mail_outline_rounded),
+              validator: (v) =>
+                  v != null &&
+                      v.trim().isNotEmpty &&
+                      !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(v.trim())
+                  ? 'Please enter a valid email address'
+                  : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _phoneController,
+              style: const TextStyle(color: _cream),
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.next,
+              decoration: _authField('Phone Number', Icons.phone_outlined),
+              validator: (v) =>
+                  (v ?? '').replaceAll(RegExp(r'\D'), '').length < 8
+                  ? 'Please enter a valid phone number (at least 8 digits)'
+                  : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _passwordController,
+              style: const TextStyle(color: _cream),
+              obscureText: _obscurePassword,
+              textInputAction: TextInputAction.next,
+              decoration: _authField(
+                'Password',
+                Icons.lock_outline_rounded,
+                suffix: IconButton(
+                  tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: _cream,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
+              validator: (v) => (v?.length ?? 0) < 6
+                  ? 'Password must be at least 6 characters'
+                  : null,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _confirmPasswordController,
+              style: const TextStyle(color: _cream),
+              obscureText: _obscureConfirmPassword,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _submit(),
+              decoration: _authField(
+                'Confirm Password',
+                Icons.lock_outline_rounded,
+                suffix: IconButton(
+                  tooltip: _obscureConfirmPassword
+                      ? 'Show confirm password'
+                      : 'Hide confirm password',
+                  icon: Icon(
+                    _obscureConfirmPassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: _cream,
+                  ),
+                  onPressed: () => setState(
+                    () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                  ),
+                ),
+              ),
+              validator: (v) => v != _passwordController.text
+                  ? 'Passwords do not match'
+                  : null,
+            ),
+            if (user.errorMessage != null) ...[
+              const SizedBox(height: 12),
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  user.errorMessage!,
+                  style: const TextStyle(color: _cream),
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            _authButton('Sign Up', _submit, loading: user.isLoading),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: user.isLoading ? null : () => _toggleMode(false),
+              child: const Text(
+                'Already have an account? Log In',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: _cream),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
+  Widget _buildForgot() => _authScaffold(
+    Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _brand('assets/auth/mascot_forgot_boba_toast.png'),
+        const SizedBox(height: 10),
+        const Text(
+          'Forgot Password?',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: _cream,
+            fontSize: 30,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Enter your email address to reset your password.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: _cream, fontSize: 16),
+        ),
+        const SizedBox(height: 24),
+        TextFormField(
+          controller: _emailController,
+          style: const TextStyle(color: _cream),
+          keyboardType: TextInputType.emailAddress,
+          decoration: _authField('Email', Icons.mail_outline_rounded),
+        ),
+        const SizedBox(height: 14),
+        const Text(
+          'Password reset is currently unavailable. No email will be sent.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: _cream, fontSize: 13),
+        ),
+        const SizedBox(height: 18),
+        _authButton('Send Reset Link', null),
+        const SizedBox(height: 16),
+        TextButton.icon(
+          onPressed: () => setState(() => _showForgot = false),
+          icon: const Icon(Icons.arrow_back, color: _cream),
+          label: const Text('Back to Log In', style: TextStyle(color: _cream)),
+        ),
+      ],
+    ),
+  );
+
+  Widget _buildLogin(UserProvider user) {
+    final outline = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(24),
+      borderSide: const BorderSide(color: AppColors.background, width: 1.5),
+    );
+    InputDecoration field(String label, IconData icon) => InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: AppColors.background),
+      prefixIcon: Icon(icon, color: AppColors.background),
+      filled: false,
+      enabledBorder: outline,
+      border: outline,
+      focusedBorder: outline.copyWith(
+        borderSide: const BorderSide(color: AppColors.secondary, width: 2),
+      ),
+      errorStyle: const TextStyle(color: AppColors.secondary),
+      errorMaxLines: 3,
+    );
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(title: Text(_isRegister ? 'Create Account' : 'Sign In')),
+      backgroundColor: AppColors.primary,
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        iconTheme: const IconThemeData(color: AppColors.background),
+      ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Brand Header
-              Center(
-                child: Column(
-                  children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(
-                          color: AppColors.surfaceBorder,
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha(15),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: Image.asset(
-                          'assets/icons/Coffee_Icon.jpeg',
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => Container(
-                            color: AppColors.primary,
-                            child: const Icon(
-                              Icons.local_cafe_rounded,
-                              color: Colors.white,
-                              size: 40,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(AppConfig.appName, style: AppTypography.displayMedium),
-                    const SizedBox(height: 4),
-                    Text(
-                      _isRegister
-                          ? 'Join our café rewards & save your favorite drinks'
-                          : 'Sign in to earn stamps & reorder in 1 tap',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.bodyMedium,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Mode Switcher (Sign In / Register)
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceMuted,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.surfaceBorder),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => _toggleMode(false),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: !_isRegister
-                                ? AppColors.primary
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Sign In',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: !_isRegister
-                                  ? Colors.white
-                                  : AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => _toggleMode(true),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: _isRegister
-                                ? AppColors.primary
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            'Register',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: _isRegister
-                                  ? Colors.white
-                                  : AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Error Banner
-              if (userProvider.errorMessage != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.statusCancelledBg,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppColors.statusCancelled.withAlpha(80),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.error_outline_rounded,
-                        color: AppColors.statusCancelled,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          userProvider.errorMessage!,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.statusCancelled,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // Form Card
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.surfaceBorder),
-                ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: AutofillGroup(
                 child: Form(
                   key: _formKey,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (_isRegister) ...[
-                        const Text(
-                          'Full Name',
-                          style: AppTypography.titleSmall,
-                        ),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _nameController,
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            hintText: 'e.g. Sokha Chan',
-                            prefixIcon: Icon(
-                              Icons.person_outline_rounded,
-                              size: 20,
-                            ),
-                          ),
-                          validator: (val) {
-                            if (val == null || val.trim().length < 2) {
-                              return 'Please enter your name (at least 2 characters)';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        const Text(
-                          'Phone Number',
-                          style: AppTypography.titleSmall,
-                        ),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            hintText: 'e.g. 012 345 678',
-                            prefixIcon: Icon(Icons.phone_outlined, size: 20),
-                          ),
-                          validator: (val) {
-                            final digits = (val ?? '').replaceAll(
-                              RegExp(r'\D'),
-                              '',
-                            );
-                            if (digits.length < 8) {
-                              return 'Please enter a valid phone number (at least 8 digits)';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        const Text(
-                          'Email Address (Optional)',
-                          style: AppTypography.titleSmall,
-                        ),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            hintText: 'e.g. sokha@example.com',
-                            prefixIcon: Icon(Icons.email_outlined, size: 20),
-                          ),
-                          validator: (val) {
-                            if (val == null || val.trim().isEmpty) return null;
-                            if (!val.contains('@') || !val.contains('.')) {
-                              return 'Please enter a valid email address';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                      ] else ...[
-                        const Text(
-                          'Phone Number or Email',
-                          style: AppTypography.titleSmall,
-                        ),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _identifierController,
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            hintText: 'Enter your phone or email',
-                            prefixIcon: Icon(
-                              Icons.person_outline_rounded,
-                              size: 20,
-                            ),
-                          ),
-                          validator: (val) {
-                            if (val == null || val.trim().length < 3) {
-                              return 'Please enter your phone number or email';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      const Text('Password', style: AppTypography.titleSmall),
-                      const SizedBox(height: 6),
+                      Image.asset(
+                        'assets/login/login_wordmark_cream.png',
+                        height: 140,
+                        fit: BoxFit.contain,
+                        semanticLabel: 'Brew & Boba Café',
+                      ),
+                      const SizedBox(height: 12),
+                      Image.asset(
+                        'assets/login/login_mascot_waving.png',
+                        height: 200,
+                        fit: BoxFit.contain,
+                        excludeFromSemantics: true,
+                      ),
+                      const SizedBox(height: 24),
                       TextFormField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        textInputAction: _isRegister
-                            ? TextInputAction.next
-                            : TextInputAction.done,
-                        onFieldSubmitted: (_) {
-                          if (!_isRegister) _submit();
-                        },
-                        decoration: InputDecoration(
-                          hintText: _isRegister
-                              ? 'At least 6 characters'
-                              : 'Enter your password',
-                          prefixIcon: const Icon(
-                            Icons.lock_outline_rounded,
-                            size: 20,
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              );
-                            },
-                          ),
+                        controller: _identifierController,
+                        style: const TextStyle(color: AppColors.background),
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        autofillHints: const [AutofillHints.username],
+                        decoration: field(
+                          'Email or phone',
+                          Icons.mail_outline_rounded,
                         ),
-                        validator: (val) {
-                          if (val == null || val.isEmpty) {
-                            return 'Please enter your password';
+                        validator: (value) {
+                          final input = value?.trim() ?? '';
+                          if (input.isEmpty) {
+                            return 'Enter your email or phone number';
                           }
-                          if (_isRegister && val.length < 6) {
-                            return 'Password must be at least 6 characters';
+                          if (input.contains('@')) {
+                            if (!RegExp(
+                              r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
+                            ).hasMatch(input)) {
+                              return 'Enter a valid email address';
+                            }
+                          } else if (!RegExp(
+                            r'^\+?[0-9 ()-]{8,20}$',
+                          ).hasMatch(input)) {
+                            return 'Enter a valid email or phone number';
                           }
                           return null;
                         },
                       ),
-
-                      if (_isRegister) ...[
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Confirm Password',
-                          style: AppTypography.titleSmall,
-                        ),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _confirmPasswordController,
-                          obscureText: _obscureConfirmPassword,
-                          textInputAction: TextInputAction.done,
-                          onFieldSubmitted: (_) => _submit(),
-                          decoration: InputDecoration(
-                            hintText: 'Re-enter your password',
-                            prefixIcon: const Icon(
-                              Icons.lock_reset_rounded,
-                              size: 20,
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscureConfirmPassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                                size: 20,
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _passwordController,
+                        style: const TextStyle(color: AppColors.background),
+                        obscureText: _obscurePassword,
+                        enableSuggestions: false,
+                        autocorrect: false,
+                        autofillHints: const [AutofillHints.password],
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _submit(),
+                        decoration:
+                            field(
+                              'Password',
+                              Icons.lock_outline_rounded,
+                            ).copyWith(
+                              suffixIcon: IconButton(
+                                tooltip: _obscurePassword
+                                    ? 'Show password'
+                                    : 'Hide password',
+                                onPressed: () => setState(
+                                  () => _obscurePassword = !_obscurePassword,
+                                ),
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                  color: AppColors.background,
+                                ),
                               ),
-                              onPressed: () {
-                                setState(
-                                  () => _obscureConfirmPassword =
-                                      !_obscureConfirmPassword,
-                                );
-                              },
                             ),
+                        validator: (value) => value == null || value.isEmpty
+                            ? 'Enter your password'
+                            : null,
+                      ),
+                      if (user.errorMessage != null) ...[
+                        const SizedBox(height: 16),
+                        Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            user.errorMessage!,
+                            style: const TextStyle(color: AppColors.background),
                           ),
-                          validator: (val) {
-                            if (val != _passwordController.text) {
-                              return 'Passwords do not match';
-                            }
-                            return null;
-                          },
                         ),
                       ],
-
                       const SizedBox(height: 24),
                       CustomButton(
-                        text: _isRegister ? 'Create Account' : 'Sign In',
-                        isLoading: userProvider.isLoading,
+                        text: 'Log In',
                         onPressed: _submit,
+                        isLoading: user.isLoading,
+                        backgroundColor: AppColors.background,
+                        foregroundColor: AppColors.primary,
+                      ),
+                      const SizedBox(height: 16),
+                      TextButton(
+                        onPressed: () => setState(() => _showForgot = true),
+                        child: const Text(
+                          'Forgot Password?',
+                          style: TextStyle(color: AppColors.background),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: user.isLoading
+                            ? null
+                            : () => _toggleMode(true),
+                        child: const Text(
+                          "Don't have an account? Sign Up",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: AppColors.background),
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),

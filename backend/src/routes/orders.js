@@ -10,6 +10,7 @@ import {
   calculateOrderItem,
 } from '../utils/orderValidation.js';
 import { authenticateCustomer } from '../middleware/auth.js';
+import { validId } from '../utils/adminCatalogValidation.js';
 
 const router = Router();
 router.use(authenticateCustomer);
@@ -265,10 +266,10 @@ router.get('/ref/:order_number', async (req, res, next) => {
 // GET /api/orders/:id
 router.get('/:id', async (req, res, next) => {
   try {
-    const orderId = parseInt(req.params.id, 10);
-    if (isNaN(orderId)) {
+    if (!validId(req.params.id)) {
       return res.status(400).json({ detail: 'Invalid order ID.' });
     }
+    const orderId = Number(req.params.id);
 
     const orderRes = await dbQuery('SELECT * FROM orders WHERE id = $1', [orderId]);
     if (

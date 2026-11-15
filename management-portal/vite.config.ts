@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         '/api': {
-          target: env.VITE_PROXY_TARGET || 'http://localhost:8001',
+          target: env.VITE_PROXY_TARGET || 'http://localhost:8003',
           changeOrigin: true,
         },
       },

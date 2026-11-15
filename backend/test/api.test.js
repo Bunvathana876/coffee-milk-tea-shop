@@ -10,6 +10,7 @@ process.env.DATABASE_URL = 'postgresql://127.0.0.1:1/isolated';
 const { startServer } = await import('../src/server.js');
 const { createToken } = await import('../src/middleware/auth.js');
 const { dbQuery, getDatabase } = await import('../src/db/database.js');
+const { seedDatabase } = await import('../src/db/seed.js');
 
 let server;
 let baseUrl;
@@ -19,6 +20,9 @@ test.before(async () => {
   server = await startServer(0);
   const port = server.address().port;
   baseUrl = `http://localhost:${port}`;
+  const beforeSeed = await dbQuery('SELECT COUNT(*) as count FROM products');
+  assert.equal(Number(beforeSeed.rows[0].count), 0, 'startup must not seed demo products');
+  await seedDatabase();
 });
 
 test.after(() => {
@@ -60,6 +64,9 @@ test('2. Categories endpoint returns seeded categories with product counts', asy
   const coffee = res.data.find(c => c.name === 'Coffee');
   assert.ok(coffee);
   assert.ok(coffee.product_count >= 1);
+  assert.ok(res.data.every(category => category.is_active === true));
+  assert.equal((await apiRequest('/api/categories?active_only=invalid')).status, 400);
+  assert.equal((await apiRequest('/api/categories?active_only[]=true')).status, 400);
 });
 
 test('3. Products endpoint supports category filtering and search', async () => {
@@ -78,6 +85,71 @@ test('3. Products endpoint supports category filtering and search', async () => 
   assert.equal(resSearch.status, 200);
   assert.ok(resSearch.data.length >= 1);
   assert.ok(resSearch.data.some(p => p.name.includes('Matcha')));
+  const available = await apiRequest('/api/products?is_available=true');
+  assert.equal(available.status, 200);
+  assert.ok(available.data.every(product => product.is_available === true));
+  const unavailable = await apiRequest('/api/products?is_available=false');
+  assert.equal(unavailable.status, 200);
+  assert.deepEqual(unavailable.data, []);
+  const empty = await apiRequest('/api/products?search=no-such-cafe-drink-987654');
+  assert.equal(empty.status, 200);
+  assert.deepEqual(empty.data, []);
+});
+
+test('demo seeding refuses an existing catalog and leaves it unchanged', async () => {
+  const before = await dbQuery('SELECT COUNT(*) as count FROM products');
+  await assert.rejects(seedDatabase(), /requires an empty product catalog/);
+  const after = await dbQuery('SELECT COUNT(*) as count FROM products');
+  assert.equal(Number(after.rows[0].count), Number(before.rows[0].count));
+});
+
+test('public product filters and IDs reject malformed values', async () => {
+  assert.equal((await apiRequest('/api/products?category_id=abc')).status, 400);
+  assert.equal((await apiRequest('/api/products?is_available=maybe')).status, 400);
+  assert.equal((await apiRequest('/api/products/1junk')).status, 400);
+  assert.equal((await apiRequest('/api/categories/1junk')).status, 400);
+});
+
+test('catalog database failures return a sanitized JSON 500', async () => {
+  const db = await getDatabase();
+  const originalQuery = db.query;
+  db.query = function (sql, params) {
+    if (/FROM categories c|FROM products p/i.test(sql)) {
+      throw new Error('private database diagnostic');
+    }
+    return originalQuery.call(this, sql, params);
+  };
+  try {
+    for (const path of ['/api/categories', '/api/products']) {
+      const response = await apiRequest(path);
+      assert.equal(response.status, 500);
+      assert.deepEqual(response.data, { detail: 'Internal server error.' });
+    }
+  } finally {
+    db.query = originalQuery;
+  }
+});
+
+test('registration validates bounded customer fields', async () => {
+  const bad = await apiRequest('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ full_name: 'A'.repeat(256), phone: '12345678', email: 'bad', password: 'secret42' }),
+  });
+  assert.equal(bad.status, 422);
+  const badEmail = await apiRequest('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ full_name: 'Customer', phone: '12345678', email: 'bad', password: 'secret42' }),
+  });
+  assert.equal(badEmail.status, 422);
+});
+
+test('oversized request bodies are rejected with JSON 413', async () => {
+  const response = await apiRequest('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ identifier: 'A'.repeat(70000), password: 'secret42' }),
+  });
+  assert.equal(response.status, 413);
+  assert.equal(response.data.detail, 'Request body is too large.');
 });
 
 test('4. Customer Registration, Login and Profile (/me)', async () => {
@@ -666,6 +738,25 @@ test('phase 4 catalog CRUD is admin-only and validates input', async () => {
   });
   assert.equal(product.status, 201);
   const productId = product.data.id;
+  const cloudinaryImage =
+    'https://res.cloudinary.com/dr5o7ft6/image/upload/v1794704052/02_cappuccino.png';
+  const imageUpdate = await apiRequest(`/api/admin/products/${productId}`, {
+    method: 'PATCH',
+    headers: adminHeaders,
+    body: JSON.stringify({ image: cloudinaryImage }),
+  });
+  assert.equal(imageUpdate.status, 200);
+  assert.equal(imageUpdate.data.image, cloudinaryImage);
+  assert.equal(imageUpdate.data.base_price_usd, 2.3);
+  assert.equal((await apiRequest(`/api/products/${productId}`)).data.image, cloudinaryImage);
+  assert.equal(
+    (await apiRequest(`/api/admin/products/${productId}`, {
+      method: 'PATCH',
+      headers: adminHeaders,
+      body: JSON.stringify({ image: 'javascript:alert(1)' }),
+    })).status,
+    422,
+  );
   assert.equal(
     (
       await apiRequest('/api/admin/products', {
@@ -733,6 +824,19 @@ test('phase 4 catalog CRUD is admin-only and validates input', async () => {
     ).status,
     200,
   );
+});
+
+test('admin cannot delete a product referenced by historical order items', async () => {
+  const memory = await getDatabase();
+  const historical = memory.tables.order_items.find(item => item.product_id != null);
+  assert.ok(historical);
+  const admin = memory.tables.staff_users.find(row => row.role === 'admin' && row.is_active);
+  const headers = { Authorization: `Bearer ${createToken({ sub: admin.id, role: 'admin' })}` };
+  const response = await apiRequest(`/api/admin/products/${historical.product_id}`, { method: 'DELETE', headers });
+  assert.equal(response.status, 409);
+  const product = await apiRequest(`/api/products/${historical.product_id}`);
+  assert.equal(product.status, 200);
+  assert.equal(historical.product_id, product.data.id);
 });
 
 test('phase 4 order transitions, payment restrictions, and revenue policy', async () => {

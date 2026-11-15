@@ -28,7 +28,9 @@ class CategoryChip extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(24),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : const Duration(milliseconds: 180),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: isSelected ? AppColors.primary : AppColors.surface,

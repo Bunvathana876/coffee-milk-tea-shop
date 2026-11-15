@@ -193,9 +193,21 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
           if (orderProvider.errorMessage != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                orderProvider.errorMessage!,
-                style: const TextStyle(color: AppColors.statusCancelled),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      orderProvider.errorMessage!,
+                      style: const TextStyle(color: AppColors.statusCancelled),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => _lookupController.text.isNotEmpty
+                        ? _performLookup()
+                        : orderProvider.loadMyOrders(),
+                    child: const Text('Retry'),
+                  ),
+                ],
               ),
             ),
           Expanded(

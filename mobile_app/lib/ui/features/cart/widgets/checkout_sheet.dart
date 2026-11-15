@@ -10,7 +10,7 @@ import '../../../../data/models/order_model.dart';
 import '../../../../providers/cart_provider.dart';
 import '../../../../providers/order_provider.dart';
 import '../../../../providers/user_provider.dart';
-import '../../orders/screens/order_tracking_screen.dart';
+import '../../orders/screens/order_confirmation_screen.dart';
 
 /// One-screen checkout sheet with phone memory and payment choices.
 class CheckoutSheet extends StatefulWidget {
@@ -114,7 +114,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => OrderTrackingScreen(order: confirmedOrder),
+          builder: (_) => OrderConfirmationScreen(order: confirmedOrder),
         ),
       );
     } else {
@@ -139,7 +139,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
         maxHeight: MediaQuery.of(context).size.height * 0.90,
       ),
       decoration: const BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Padding(
@@ -231,6 +231,11 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                     const SizedBox(height: 20),
 
                     // Customer Name
+                    const Text(
+                      'Your information',
+                      style: AppTypography.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
                     const Text('Your Name', style: AppTypography.titleSmall),
                     const SizedBox(height: 8),
                     TextFormField(
@@ -323,8 +328,8 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                         Expanded(
                           child: _buildPaymentTile(
                             id: 'khqr',
-                            label: 'ABA KHQR',
-                            sublabel: 'Demo option — payment stays unpaid',
+                            label: 'KHQR · DEMO ONLY',
+                            sublabel: 'No bank payment. Status stays unpaid.',
                             icon: Icons.qr_code_scanner_rounded,
                           ),
                         ),
@@ -332,6 +337,57 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                     ),
 
                     const SizedBox(height: 24),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Review your drinks',
+                        style: AppTypography.titleSmall,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...cart.items.map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceMuted,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppColors.surfaceBorder),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${item.quantity} × ${item.product.name}',
+                                      style: AppTypography.titleSmall,
+                                    ),
+                                    Text(
+                                      [
+                                        item.size,
+                                        '${item.sugarLevel} sugar',
+                                        item.iceLevel,
+                                        ...item.toppings,
+                                      ].join(' · '),
+                                      style: AppTypography.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                CurrencyFormatter.formatUsd(item.subtotalUsd),
+                                style: AppTypography.labelLarge,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
                     // Order Summary Breakdown
                     Container(
@@ -360,7 +416,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text(
-                                'Total Amount',
+                                'Estimated total',
                                 style: AppTypography.titleMedium,
                               ),
                               Column(
@@ -384,6 +440,11 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                           ),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'The café server confirms the final amount when your order is placed.',
+                      style: AppTypography.bodySmall,
                     ),
                   ],
                 ),

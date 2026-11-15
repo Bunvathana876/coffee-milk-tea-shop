@@ -5,6 +5,7 @@ import { verifyMigrations } from './verifyMigrations.js';
 const { Pool } = pg;
 
 let pool = null;
+let poolIsReadOnly = false;
 let isConnectedToPostgres = false;
 let isTestMemoryDatabase = false;
 
@@ -323,7 +324,11 @@ class MemoryPgDb {
       rows = rows.map(c => {
         const prods = this.tables.products.filter(p => p.category_id === c.id);
         const availProds = prods.filter(p => p.is_available);
-        return { ...c, product_count: prods.length, available_product_count: availProds.length };
+        return {
+          ...c,
+          product_count: /p\.is_available = TRUE/i.test(cleanSql) ? availProds.length : prods.length,
+          available_product_count: availProds.length,
+        };
       });
 
       return Promise.resolve({ rows, rowCount: rows.length });
@@ -369,6 +374,10 @@ class MemoryPgDb {
       if (params.length > 0 && /LOWER\(c\.name\) = LOWER\(\$/i.test(cleanSql)) {
         const catName = String(params[0]).toLowerCase();
         rows = rows.filter(r => r.category_name && r.category_name.toLowerCase() === catName);
+      }
+      const availabilityParam = /p\.is_available = \$(\d+)/i.exec(cleanSql);
+      if (availabilityParam) {
+        rows = rows.filter(r => Boolean(r.is_available) === Boolean(params[Number(availabilityParam[1]) - 1]));
       }
 
       return Promise.resolve({ rows, rowCount: rows.length });
@@ -846,6 +855,8 @@ class MemoryPgDb {
       let rows = [...this.tables.order_items];
       if (/WHERE order_id = \$1/i.test(cleanSql)) {
         rows = rows.filter(r => r.order_id === Number(params[0]));
+      } else if (/WHERE product_id = \$1/i.test(cleanSql)) {
+        rows = rows.filter(r => r.product_id === Number(params[0]));
       }
       return Promise.resolve({ rows, rowCount: rows.length });
     }
@@ -1026,15 +1037,37 @@ export async function closeDatabase() {
     const currentPool = pool;
     pool = null;
     isConnectedToPostgres = false;
+    poolIsReadOnly = false;
     await currentPool.end();
   }
 }
 
-export async function getDatabase() {
-  if (pool) return pool;
-  if (isTestMemoryDatabase) return memoryDb;
+export async function getDatabase({ readOnly = false } = {}) {
+  if (pool) {
+    if (readOnly && !poolIsReadOnly) {
+      throw new Error('Cannot reuse a writable database pool for read-only startup.');
+    }
+    return pool;
+  }
+  if (isTestMemoryDatabase) {
+    if (readOnly) throw new Error('Read-only startup requires local PostgreSQL.');
+    return memoryDb;
+  }
 
   const poolConfig = buildPoolConfig(config.databaseUrl);
+  if (readOnly) {
+    const target = new URL(config.databaseUrl);
+    if (
+      isProductionOrStaging() ||
+      config.environment !== 'development' ||
+      !['localhost', '127.0.0.1', '[::1]'].includes(target.hostname) ||
+      Number(target.port) !== 5433 ||
+      target.pathname !== '/coffee_shop'
+    ) {
+      throw new Error('Read-only startup requires the approved local development database.');
+    }
+    poolConfig.options = '-c default_transaction_read_only=on';
+  }
   const nextPool = new Pool(poolConfig);
 
   nextPool.on('error', err => {
@@ -1049,17 +1082,23 @@ export async function getDatabase() {
     client.release();
     isConnectedToPostgres = true;
     console.log('🐘 Connected to PostgreSQL.');
-    if (isProductionOrStaging()) {
+    if (readOnly) {
+      const mode = await nextPool.query('SHOW default_transaction_read_only');
+      if (mode.rows[0]?.default_transaction_read_only !== 'on') {
+        throw new Error('PostgreSQL did not enable read-only transactions.');
+      }
+    } else if (isProductionOrStaging()) {
       await verifyMigrations(nextPool);
     } else {
       await initSchema(nextPool);
     }
     pool = nextPool;
+    poolIsReadOnly = readOnly;
     return pool;
   } catch (err) {
     isConnectedToPostgres = false;
     await nextPool.end().catch(() => {});
-    if (process.env.NODE_ENV === 'test' && process.env.ALLOW_IN_MEMORY_DB === 'true') {
+    if (!readOnly && process.env.NODE_ENV === 'test' && process.env.ALLOW_IN_MEMORY_DB === 'true') {
       isTestMemoryDatabase = true;
       console.warn('PostgreSQL unavailable; using isolated in-memory database for tests only.');
       return memoryDb;

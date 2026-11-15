@@ -8,7 +8,7 @@ const getBaseUrl = (): string => {
       .replace(/^["']|["']$/g, '')
       .replace(/\/+$/, '');
   }
-  return 'http://localhost:8001';
+  return 'http://localhost:8003';
 };
 
 export const API_BASE_URL = getBaseUrl();
@@ -71,7 +71,7 @@ export async function request<T>(endpoint: string, options?: RequestInit): Promi
       // Prevent Safari's cryptic "The string did not match the expected pattern."
       // by inspecting non-JSON bodies (e.g. HTML pages returned by an unproxied dev server)
       throw new Error(
-        'The server returned an unexpected response (non-JSON). Please verify the backend is running at http://localhost:8001.',
+        `The server returned an unexpected response (non-JSON). Please verify the backend is running at ${API_BASE_URL || 'the configured API origin'}.`,
       );
     }
 
@@ -86,7 +86,7 @@ export async function request<T>(endpoint: string, options?: RequestInit): Promi
         (typeof navigator !== 'undefined' && !navigator.onLine)
       ) {
         throw new Error(
-          'Network error: Unable to connect to the café server. Please verify the backend is running at http://localhost:8001.',
+          `Network error: Unable to connect to the café server. Please verify the backend is running at ${API_BASE_URL || 'the configured API origin'}.`,
         );
       }
       throw error;

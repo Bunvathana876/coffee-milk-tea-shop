@@ -65,12 +65,8 @@ class UserProvider extends ChangeNotifier {
         ? (_localStorageService.getConfirmedLoyaltyStamps(_accountPhone) ?? 0)
         : 0;
     final savedUrl = _localStorageService.getCustomApiUrl();
-    if (!kReleaseMode && savedUrl != null && savedUrl.isNotEmpty) {
-      _apiUrl = savedUrl;
-      _apiService.updateBaseUrl(savedUrl);
-    } else {
-      _apiUrl = AppConfig.defaultApiBaseUrl;
-    }
+    _apiUrl = AppConfig.resolveApiBaseUrl(savedCustomApiUrl: savedUrl);
+    _apiService.updateBaseUrl(_apiUrl);
     checkServerConnection();
     if (hasServerSession) unawaited(refreshServerLoyalty());
     notifyListeners();
@@ -369,11 +365,7 @@ class UserProvider extends ChangeNotifier {
     }
     final clean = newUrl.trim();
     if (clean.isNotEmpty) {
-      final parsed = Uri.tryParse(clean);
-      if (parsed == null ||
-          !['http', 'https'].contains(parsed.scheme) ||
-          parsed.host.isEmpty ||
-          parsed.userInfo.isNotEmpty) {
+      if (AppConfig.normalizeApiBaseUrl(clean) == null) {
         _errorMessage =
             'Enter a full café API URL beginning with http:// or https://.';
         notifyListeners();
@@ -381,14 +373,13 @@ class UserProvider extends ChangeNotifier {
       }
     }
     _errorMessage = null;
-    _apiUrl = clean;
     if (clean.isNotEmpty) {
       await _localStorageService.setCustomApiUrl(clean);
-      _apiService.updateBaseUrl(clean);
     } else {
       await _localStorageService.clearCustomApiUrl();
-      _apiService.updateBaseUrl(AppConfig.defaultApiBaseUrl);
     }
+    _apiUrl = AppConfig.resolveApiBaseUrl(savedCustomApiUrl: clean);
+    _apiService.updateBaseUrl(_apiUrl);
     await checkServerConnection();
     notifyListeners();
   }

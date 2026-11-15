@@ -771,6 +771,11 @@ a {
   display: block;
 }
 
+.thumbnail-box img.cloudinary-product-image {
+  object-fit: contain;
+  padding: 3px;
+}
+
 .thumbnail-placeholder {
   color: #8a9bb5;
 }

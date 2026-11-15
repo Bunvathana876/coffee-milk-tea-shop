@@ -6,14 +6,14 @@ class AppTypography {
   AppTypography._();
 
   static const TextStyle displayLarge = TextStyle(
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: FontWeight.w800,
     letterSpacing: -0.5,
     color: AppColors.textPrimary,
   );
 
   static const TextStyle displayMedium = TextStyle(
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: FontWeight.w700,
     letterSpacing: -0.3,
     color: AppColors.textPrimary,
@@ -45,7 +45,7 @@ class AppTypography {
   );
 
   static const TextStyle bodyMedium = TextStyle(
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: FontWeight.w400,
     height: 1.4,
     color: AppColors.textSecondary,
@@ -73,6 +73,6 @@ class AppTypography {
   static const TextStyle priceSmall = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w600,
-    color: AppColors.secondary,
+    color: AppColors.textSecondary,
   );
 }

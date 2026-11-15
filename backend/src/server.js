@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import { config, validateProductionConfig, isProductionOrStaging } from './config.js';
 import { getDatabase, closeDatabase } from './db/database.js';
-import { seedDatabase } from './db/seed.js';
 
 import healthRouter from './routes/health.js';
 import categoriesRouter from './routes/categories.js';
@@ -26,6 +25,18 @@ import sellerOrdersRouter from './routes/seller/orders.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 const app = express();
+app.disable('x-powered-by');
+app.set('trust proxy', isProductionOrStaging() ? 1 : false);
+
+app.use((req, res, next) => {
+  res.set({
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'no-referrer',
+    'Cache-Control': 'no-store',
+  });
+  next();
+});
 
 // CORS configuration to allow Web and Mobile clients
 app.use(
@@ -43,8 +54,14 @@ app.use(
   }),
 );
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '64kb' }));
+app.use(express.urlencoded({ extended: true, limit: '64kb' }));
+app.use((req, res, next) => {
+  if (['POST', 'PUT', 'PATCH'].includes(req.method) && (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))) {
+    return res.status(422).json({ detail: 'Request body must be a JSON object.' });
+  }
+  next();
+});
 
 // Root info
 app.get('/', (req, res) => {
@@ -82,29 +99,28 @@ app.use('/api/seller/orders', sellerOrdersRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Auto-seed on startup if needed and listen
-export async function startServer(port = config.port) {
+// Startup only checks/initializes schema; demonstration data is seeded explicitly.
+export async function startServer(port = config.port, { readOnlyDatabase = false } = {}) {
   validateProductionConfig();
-  // Initialize database schema and seed default data in development only
-  await getDatabase();
-  if (!isProductionOrStaging()) {
-    await seedDatabase();
-  }
-
-  return new Promise(resolve => {
-    const server = app.listen(port, () => {
+  // Verification mode opens a read-only local connection without schema or seed writes.
+  await getDatabase({ readOnly: readOnlyDatabase });
+  return new Promise((resolve, reject) => {
+    const server = app.listen(port, '0.0.0.0', () => {
       console.log(
         `☕ Coffee & Milk Tea Shop Node.js Backend is running on http://localhost:${port}`,
       );
       console.log(`👉 Health check: http://localhost:${port}/api/health`);
       resolve(server);
     });
+    server.once('error', reject);
   });
 }
 
 // Start immediately if executed directly
 if (process.argv[1] && process.argv[1].endsWith('server.js')) {
-  startServer()
+  startServer(config.port, {
+    readOnlyDatabase: process.env.BREW_BOBA_READ_ONLY_STARTUP === 'true',
+  })
     .then(server => {
       let stopping = false;
       const shutdown = () => {

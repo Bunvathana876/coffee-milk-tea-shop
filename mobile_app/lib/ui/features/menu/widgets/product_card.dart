@@ -1,235 +1,146 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/product_image_url.dart';
 import '../../../../data/models/product_model.dart';
 import '../../../../providers/shop_provider.dart';
 
-/// Drink card in the catalog grid.
 class ProductCard extends StatelessWidget {
   const ProductCard({super.key, required this.product, required this.onTap});
-
   final ProductModel product;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final shop = context.watch<ShopProvider>();
-    final isFav = shop.isProductFavorited(product.id);
-
-    return Card(
+    final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+    final favorite = shop.isProductFavorited(product.id);
+    return Material(
+      color: AppColors.secondaryLight,
+      borderRadius: BorderRadius.circular(22),
       clipBehavior: Clip.antiAlias,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.surfaceBorder, width: 1),
-      ),
       child: InkWell(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Drink Image with Category Badge
-            Stack(
-              children: [
-                AspectRatio(
-                  aspectRatio: 1.35,
-                  child: product.image != null && product.image!.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: product.image!,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: AppColors.surfaceMuted,
-                            child: const Center(
-                              child: SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                          errorWidget: (context, url, error) =>
-                              _buildPlaceholder(),
-                        )
-                      : _buildPlaceholder(),
+        onTap: product.isAvailable ? onTap : null,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  width: 76,
+                  height: 76,
+                  child: product.image == null || product.image!.isEmpty
+                      ? _placeholder()
+                      : CachedNetworkImage(
+                          imageUrl: productImageUrl(product.image!),
+                          fit: product.image!.startsWith('https://res.cloudinary.com/dr5o7ft6/')
+                              ? BoxFit.contain
+                              : BoxFit.cover,
+                          placeholder: (_, _) => _placeholder(),
+                          errorWidget: (_, _, _) => _placeholder(),
+                        ),
                 ),
-                if (product.categoryName != null)
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    right: 42,
-                    child: Align(
-                      alignment: Alignment.topLeft,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withAlpha(160),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          product.categoryName!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                // Heart favorite button
-                Positioned(
-                  top: 6,
-                  right: 6,
-                  child: InkWell(
-                    onTap: () => shop.toggleFavoriteProduct(product),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.all(5),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(220),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha(25),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        isFav
-                            ? Icons.favorite_rounded
-                            : Icons.favorite_border_rounded,
-                        color: isFav
-                            ? AppColors.secondary
-                            : AppColors.textSecondary,
-                        size: 16,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            // Card Body
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(10),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Flexible(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            product.name,
-                            style: AppTypography.titleSmall,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (product.description != null &&
-                              product.description!.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Flexible(
-                              child: Text(
-                                product.description!,
-                                style: AppTypography.bodySmall.copyWith(
-                                  height: 1.25,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ],
+                    Text(
+                      product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.titleMedium.copyWith(
+                        color: AppColors.bobaPearl,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                CurrencyFormatter.formatUsd(
-                                  product.basePriceUsd,
-                                ),
-                                style: AppTypography.priceLarge.copyWith(
-                                  fontSize: 15,
-                                  height: 1.1,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 1),
-                              Text(
-                                CurrencyFormatter.formatKhr(
-                                  product.basePriceUsd,
-                                ),
-                                style: AppTypography.priceSmall.copyWith(
-                                  fontSize: 11,
-                                  height: 1.1,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
+                    if (product.description?.isNotEmpty == true)
+                      Text(
+                        product.description!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.primary,
                         ),
-                        const SizedBox(width: 6),
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(
-                            Icons.add,
-                            color: Colors.white,
-                            size: 18,
-                          ),
+                      ),
+                    if (!product.isAvailable)
+                      Text(
+                        'Sold out',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.statusCancelled,
                         ),
-                      ],
+                      ),
+                    Text(
+                      CurrencyFormatter.formatUsd(product.basePriceUsd),
+                      style: AppTypography.priceLarge.copyWith(fontSize: 16),
                     ),
                   ],
                 ),
               ),
-            ),
-          ],
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 38,
+                    height: 38,
+                    child: IconButton(
+                      tooltip: favorite ? 'Remove favorite' : 'Save favorite',
+                      padding: EdgeInsets.zero,
+                      onPressed: () => shop.toggleFavoriteProduct(product),
+                      icon: Icon(
+                        favorite
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 40,
+                    height: (40 * scale).clamp(40.0, 56.0),
+                    child: IconButton.filled(
+                      tooltip: product.isAvailable
+                          ? 'Customize ${product.name}'
+                          : 'Sold out',
+                      onPressed: product.isAvailable ? onTap : null,
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: AppColors.textTertiary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: Icon(
+                        product.isAvailable
+                            ? Icons.add_rounded
+                            : Icons.block_rounded,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildPlaceholder() {
-    return Container(
-      color: AppColors.surfaceMuted,
-      child: const Center(
-        child: Icon(
-          Icons.local_cafe_rounded,
-          size: 40,
-          color: AppColors.primaryLight,
-        ),
+  Widget _placeholder() => const ColoredBox(
+    color: AppColors.secondary,
+    child: Center(
+      child: Icon(
+        Icons.local_cafe_outlined,
+        color: AppColors.primary,
+        size: 36,
       ),
-    );
-  }
+    ),
+  );
 }

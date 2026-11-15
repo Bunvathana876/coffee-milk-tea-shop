@@ -1,0 +1,75 @@
+{
+  "source": "exact user-supplied banners and category icons",
+  "banner_note": "These are complete visual banners with embedded copy. Never overlay duplicate labels/buttons over them.",
+  "banners": [
+    {
+      "asset": "assets/home_refresh/banners/banner_01.png",
+      "size": [
+        1774,
+        887
+      ],
+      "aspect_ratio": 2.0,
+      "sha256": "b5e927659187b1d0e2ba1891d61f3f70b544af9e07d118e0416266b68aa4ca02"
+    },
+    {
+      "asset": "assets/home_refresh/banners/banner_02.png",
+      "size": [
+        1774,
+        887
+      ],
+      "aspect_ratio": 2.0,
+      "sha256": "735de961ce911fed6a8cbfceda8ea39d21069184344664c505a1dd4a43547923"
+    },
+    {
+      "asset": "assets/home_refresh/banners/banner_03.png",
+      "size": [
+        1870,
+        841
+      ],
+      "aspect_ratio": 2.224,
+      "sha256": "b9eb9ee133801664faf1444714b915ff68c24bf036f2a8d5fe2fdaf63a28a519"
+    }
+  ],
+  "categories": [
+    {
+      "asset": "assets/home_refresh/categories/coffee.png",
+      "size": [
+        340,
+        340
+      ],
+      "source": "coffee.png"
+    },
+    {
+      "asset": "assets/home_refresh/categories/milk_tea.png",
+      "size": [
+        337,
+        337
+      ],
+      "source": "milk_tea.png"
+    },
+    {
+      "asset": "assets/home_refresh/categories/fruit_tea.png",
+      "size": [
+        335,
+        335
+      ],
+      "source": "fruit_tea.png"
+    },
+    {
+      "asset": "assets/home_refresh/categories/smoothies.png",
+      "size": [
+        335,
+        335
+      ],
+      "source": "smoothies.png"
+    },
+    {
+      "asset": "assets/home_refresh/categories/matcha.png",
+      "size": [
+        335,
+        335
+      ],
+      "source": "matcha.png"
+    }
+  ]
+}
