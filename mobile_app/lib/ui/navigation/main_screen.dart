@@ -51,7 +51,9 @@ class _MainScreenState extends State<MainScreen> {
           children: List.generate(4, (index) {
             final selected = currentIndex == index;
             final icon = Image.asset(
-              'assets/home/icons/png/${assets[index]}.png',
+              index == 1
+                  ? 'assets/images/orders_v4/icons/nav_orders_96.png'
+                  : 'assets/home/icons/png/${assets[index]}.png',
               width: 28,
               height: 28,
               color: selected ? AppColors.primary : AppColors.secondaryLight,
@@ -95,7 +97,11 @@ class _MainScreenState extends State<MainScreen> {
     );
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: currentIndex == 0 || currentIndex == 3 || emptyBagSelected
+      value:
+          currentIndex == 0 ||
+              currentIndex == 1 ||
+              currentIndex == 3 ||
+              emptyBagSelected
           ? SystemUiOverlayStyle.light.copyWith(
               statusBarColor: Colors.transparent,
             )

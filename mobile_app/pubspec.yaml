@@ -93,6 +93,8 @@ flutter:
     - assets/drink_details/navy_cafe_pattern.png
     - assets/images/
     - assets/images/profile/
+    - assets/images/orders_v4/illustrations/
+    - assets/images/orders_v4/icons/
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

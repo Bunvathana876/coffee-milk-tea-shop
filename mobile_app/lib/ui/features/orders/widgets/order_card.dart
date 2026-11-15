@@ -102,7 +102,7 @@ class OrderCard extends StatelessWidget {
                         style: AppTypography.priceLarge.copyWith(fontSize: 15),
                       ),
                       Text(
-                        CurrencyFormatter.formatKhr(order.totalUsd),
+                        CurrencyFormatter.formatRawKhr(order.totalKhr),
                         style: AppTypography.priceSmall.copyWith(fontSize: 11),
                       ),
                     ],
