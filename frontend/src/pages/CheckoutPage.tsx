@@ -386,6 +386,9 @@ export const CheckoutPage: React.FC = () => {
               <div className="text-xs sm:text-sm space-y-1 flex-1">
                 <p className="font-bold">Could not place order</p>
                 <p className="text-rose-700 leading-relaxed">{submitError}</p>
+                <p className="text-xs text-rose-600 font-medium pt-1">
+                  Your cart is saved. Tap below to retry safely without creating duplicate orders.
+                </p>
               </div>
             </div>
           )}
@@ -406,13 +409,14 @@ export const CheckoutPage: React.FC = () => {
               {/* Pickup Option */}
               <button
                 type="button"
+                disabled={isLoading}
                 onClick={() => setFulfillmentMode('pickup')}
                 aria-pressed={fulfillmentMode === 'pickup'}
                 className={`min-h-[76px] rounded-xl px-3.5 py-3 text-left transition-all cursor-pointer ${
                   fulfillmentMode === 'pickup'
                     ? 'bg-cobalt text-white shadow-sm'
                     : 'text-ink-soft hover:bg-cream hover:text-ink'
-                }`}
+                } disabled:opacity-60 disabled:cursor-not-allowed`}
               >
                 <span className="flex items-center gap-2 font-sans text-sm font-bold">
                   <ShoppingBag className="w-4 h-4 text-butter" />
@@ -430,13 +434,14 @@ export const CheckoutPage: React.FC = () => {
               {/* Delivery Option */}
               <button
                 type="button"
+                disabled={isLoading}
                 onClick={() => setFulfillmentMode('delivery')}
                 aria-pressed={fulfillmentMode === 'delivery'}
                 className={`min-h-[76px] rounded-xl px-3.5 py-3 text-left transition-all cursor-pointer ${
                   fulfillmentMode === 'delivery'
                     ? 'bg-cobalt text-white shadow-sm'
                     : 'text-ink-soft hover:bg-cream hover:text-ink'
-                }`}
+                } disabled:opacity-60 disabled:cursor-not-allowed`}
               >
                 <span className="flex items-center gap-2 font-sans text-sm font-bold">
                   <Truck className="w-4 h-4 text-butter" />
@@ -466,6 +471,7 @@ export const CheckoutPage: React.FC = () => {
                   <input
                     id="deliveryAddress"
                     type="text"
+                    disabled={isLoading}
                     autoComplete="street-address"
                     value={deliveryAddress}
                     onChange={e => {
@@ -475,7 +481,7 @@ export const CheckoutPage: React.FC = () => {
                       }
                     }}
                     placeholder="e.g. Condo #402, Street 310, BKK1, Phnom Penh"
-                    className={`min-h-12 w-full rounded-2xl border bg-cream pl-11 pr-4 font-sans text-sm outline-none transition placeholder:text-ink-soft/60 ${
+                    className={`min-h-12 w-full rounded-2xl border bg-cream pl-11 pr-4 font-sans text-sm outline-none transition placeholder:text-ink-soft/60 disabled:opacity-60 disabled:cursor-not-allowed ${
                       errors.deliveryAddress
                         ? 'border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
                         : 'border-line focus:border-cobalt focus:ring-2 focus:ring-cobalt/20'
@@ -586,18 +592,20 @@ export const CheckoutPage: React.FC = () => {
               <textarea
                 id="orderNotes"
                 rows={2}
+                disabled={isLoading}
                 value={orderNotes}
                 onChange={e => setOrderNotes(e.target.value)}
                 placeholder="e.g. Pack ice separately, extra napkins, leave at guard house..."
-                className="w-full resize-none rounded-2xl border border-line bg-cream px-4 py-3 font-sans text-sm outline-none transition placeholder:text-ink-soft/60 focus:border-cobalt focus:ring-2 focus:ring-cobalt/20"
+                className="w-full resize-none rounded-2xl border border-line bg-cream px-4 py-3 font-sans text-sm outline-none transition placeholder:text-ink-soft/60 focus:border-cobalt focus:ring-2 focus:ring-cobalt/20 disabled:opacity-60 disabled:cursor-not-allowed"
               />
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {quickNotes.map(note => (
                   <button
                     key={note}
                     type="button"
+                    disabled={isLoading}
                     onClick={() => handleAddQuickNote(note)}
-                    className="text-[11px] font-bold px-3 py-1 rounded-full bg-cream-deep hover:bg-cobalt/15 hover:text-cobalt text-ink-soft border border-line/60 transition-colors cursor-pointer"
+                    className="text-[11px] font-bold px-3 py-1 rounded-full bg-cream-deep hover:bg-cobalt/15 hover:text-cobalt text-ink-soft border border-line/60 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     + {note}
                   </button>
@@ -619,13 +627,14 @@ export const CheckoutPage: React.FC = () => {
               {/* KHQR */}
               <button
                 type="button"
+                disabled={isLoading}
                 onClick={() => setPaymentMethod('khqr')}
                 aria-pressed={paymentMethod === 'khqr'}
                 className={`relative flex min-h-[76px] items-center gap-3.5 rounded-2xl border p-4 text-left transition-all cursor-pointer ${
                   paymentMethod === 'khqr'
                     ? 'border-cobalt bg-cobalt/5 ring-1 ring-cobalt'
                     : 'border-line bg-cream hover:border-cobalt/60'
-                }`}
+                } disabled:opacity-60 disabled:cursor-not-allowed`}
               >
                 <div
                   className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
@@ -655,13 +664,14 @@ export const CheckoutPage: React.FC = () => {
               {/* Cash */}
               <button
                 type="button"
+                disabled={isLoading}
                 onClick={() => setPaymentMethod('cash')}
                 aria-pressed={paymentMethod === 'cash'}
                 className={`relative flex min-h-[76px] items-center gap-3.5 rounded-2xl border p-4 text-left transition-all cursor-pointer ${
                   paymentMethod === 'cash'
                     ? 'border-cobalt bg-cobalt/5 ring-1 ring-cobalt'
                     : 'border-line bg-cream hover:border-cobalt/60'
-                }`}
+                } disabled:opacity-60 disabled:cursor-not-allowed`}
               >
                 <div
                   className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
@@ -794,6 +804,7 @@ export const CheckoutPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
+                aria-busy={isLoading}
                 className="mt-4 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-butter font-sans text-sm font-black text-ink-dark shadow-lg shadow-black/20 hover:bg-[#faeec7] active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer border border-butter-deep"
               >
                 {isLoading ? (
@@ -803,7 +814,7 @@ export const CheckoutPage: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <span>Place order · {formatUsd(totalPriceUsd)}</span>
+                    <span>{submitError ? 'Retry order' : 'Place order'} · {formatUsd(totalPriceUsd)}</span>
                     <ChevronRight className="w-4 h-4" />
                   </>
                 )}

@@ -53,6 +53,8 @@ export interface Product {
 
 export interface OrderItem {
   id: number;
+  order_id?: number;
+  product_id?: number | null;
   product_name: string;
   quantity: number;
   unit_price_usd: number;
@@ -70,6 +72,8 @@ export interface AdminOrder {
   order_number: string;
   customer_name: string;
   customer_phone: string;
+  customer_email?: string | null;
+  subtotal_usd?: number;
   total_usd: number;
   total_khr: number;
   payment_method: string;
@@ -182,8 +186,14 @@ export function getApiBaseUrl(options?: ApiResolverInput): string {
   return clean;
 }
 
+let globalApiOptions: ApiResolverInput | undefined = undefined;
+
+export function setPortalApiBaseUrl(options: ApiResolverInput | undefined) {
+  globalApiOptions = options;
+}
+
 export function resolveApiUrl(path: string, options?: ApiResolverInput): string {
-  const base = getApiBaseUrl(options);
+  const base = getApiBaseUrl(options !== undefined ? options : globalApiOptions);
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
 
   if (!base) {

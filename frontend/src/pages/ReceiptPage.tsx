@@ -17,6 +17,8 @@ import { getOrderById } from '../services/orderService';
 import { AbaKhqrPayment } from '../components/payment';
 import { downloadReceiptPdf } from '../utils/receiptPdfGenerator';
 import { isRecordedPaid } from '../utils/paymentStatus';
+import { getStatusBadge } from '../utils/orderStatusBadge';
+import { OrderBrewTimeline } from '../components/order/OrderBrewTimeline';
 import type { Order } from '../types';
 import confetti from 'canvas-confetti';
 
@@ -51,6 +53,7 @@ export const ReceiptPage: React.FC = () => {
     }
   }, [stateOrder]);
 
+  // Initial load when order is not provided by navigation state
   useEffect(() => {
     let isMounted = true;
     if (stateOrder || isInvalidId) return;
@@ -59,14 +62,15 @@ export const ReceiptPage: React.FC = () => {
       .then(data => {
         if (isMounted) {
           setOrder(data);
+          setFetchError(null);
         }
       })
       .catch(err => {
         if (isMounted) {
           console.error('Failed to load order:', err);
-          const msg =
-            err instanceof Error ? err.message : 'Could not load order details from server.';
-          setFetchError(msg);
+          setFetchError(
+            err instanceof Error ? err.message : 'Could not load order details from server.',
+          );
         }
       })
       .finally(() => {
@@ -76,7 +80,54 @@ export const ReceiptPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [orderId, stateOrder, isInvalidId]);
+  }, [orderId, isInvalidId, stateOrder]);
+
+  const currentOrderStatus = order?.order_status;
+
+  // Real-time polling for active kitchen order updates (Pending -> Preparing -> Ready -> Completed)
+  useEffect(() => {
+    let isMounted = true;
+    if (isInvalidId || !orderId) return;
+
+    const status = currentOrderStatus?.toLowerCase();
+    const isActive = ['pending', 'preparing', 'ready'].includes(status || '');
+    if (!isActive) return;
+
+    const interval = setInterval(() => {
+      getOrderById(Number(orderId))
+        .then(data => {
+          if (!isMounted) return;
+          setOrder(prev => {
+            if (!prev) return data;
+            // Celebrate when order becomes ready or completed
+            if (
+              prev.order_status !== data.order_status &&
+              (data.order_status === 'ready' || data.order_status === 'completed')
+            ) {
+              try {
+                confetti({
+                  particleCount: 80,
+                  spread: 70,
+                  origin: { y: 0.5 },
+                  colors: ['#10B981', '#1345A3', '#F5E4AD'],
+                });
+              } catch {
+                // decorative
+              }
+            }
+            return data;
+          });
+        })
+        .catch(() => {
+          // Keep existing order state on transient network error
+        });
+    }, 4000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [orderId, isInvalidId, currentOrderStatus]);
 
   const handleRetry = () => {
     if (isInvalidId) return;
@@ -247,6 +298,10 @@ export const ReceiptPage: React.FC = () => {
             </p>
           </div>
         </div>
+        {/* Live Kitchen Status Card (Screen interactive; Hidden on print) */}
+        <div className="print:hidden">
+          <OrderBrewTimeline status={order.order_status} variant="detailed" />
+        </div>
       </div>
 
       {/* Main Responsive Grid Layout (Desktop: Side-by-side; Mobile: Stacked; Print: Receipt First) */}
@@ -267,11 +322,11 @@ export const ReceiptPage: React.FC = () => {
 
         {/* Right / Main Digital Receipt Paper (Authentic Café Slip Aesthetic) */}
         <div
-          className={`${order.payment_method === 'khqr' ? 'lg:col-span-7' : 'lg:col-span-12'} order-1 lg:order-2 w-full print:w-full print:max-w-none`}
+          className={`${order.payment_method === 'khqr' ? 'lg:col-span-7' : 'lg:col-span-12'} order-1 lg:order-2 w-full print:w-full print:max-w-[80mm] print:mx-auto`}
         >
           <div
             id="printable-receipt"
-            className="bg-white rounded-3xl border border-stone-200/90 p-6 sm:p-8 shadow-md relative overflow-hidden font-sans print:border-none print:shadow-none print:p-0 print:m-0"
+            className="bg-white rounded-3xl border border-stone-200/90 p-6 sm:p-8 shadow-md relative overflow-hidden font-sans print:border-none print:shadow-none print:p-0 print:m-0 print:rounded-none print:max-w-[80mm] print:mx-auto print:text-black"
           >
             {/* Top Decorative Receipt Notch (Screen only) */}
             <div className="print:hidden absolute top-0 left-1/2 -translate-x-1/2 w-16 h-2 bg-stone-100 rounded-b-xl border-b border-stone-200/60" />
@@ -326,6 +381,18 @@ export const ReceiptPage: React.FC = () => {
                 </span>
                 <span className="font-mono font-medium text-stone-800">{order.customer_phone}</span>
               </div>
+              <div className="flex justify-between items-baseline pt-1 border-t border-stone-100">
+                <span className="text-stone-500 uppercase tracking-wider text-[11px] font-bold">
+                  Order Status:
+                </span>
+                <span
+                  className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${getStatusBadge(
+                    order.order_status,
+                  )}`}
+                >
+                  {order.order_status}
+                </span>
+              </div>
             </div>
 
             {/* --- ITEMS SECTION --- */}
@@ -340,7 +407,7 @@ export const ReceiptPage: React.FC = () => {
                 {(order.items || []).map((item, idx) => (
                   <div
                     key={item.id || idx}
-                    className="py-3 first:pt-1 last:pb-0 text-xs sm:text-sm space-y-1"
+                    className="py-3 first:pt-1 last:pb-0 text-xs sm:text-sm space-y-1 print:break-inside-avoid"
                   >
                     <div className="flex justify-between items-start gap-3">
                       <div className="font-bold text-stone-900 flex-1">
@@ -372,6 +439,21 @@ export const ReceiptPage: React.FC = () => {
                         (@ {formatUsd(item.unit_price_usd)} each)
                       </span>
                     </div>
+
+                    {/* Toppings (if present) */}
+                    {(() => {
+                      const toppingsText = Array.isArray(item.toppings)
+                        ? item.toppings.filter(Boolean).join(', ')
+                        : typeof item.toppings === 'string'
+                          ? item.toppings.trim()
+                          : '';
+                      if (!toppingsText) return null;
+                      return (
+                        <div className="pl-5 text-[11px] font-semibold text-cobalt print:text-black">
+                          + Toppings: {toppingsText}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>
@@ -514,6 +596,11 @@ export const ReceiptPage: React.FC = () => {
             >
               Print Receipt
             </Button>
+            <Link to="/orders" className="w-full">
+              <Button variant="secondary" className="w-full py-3">
+                Track Orders
+              </Button>
+            </Link>
             <Link to="/menu" className="w-full">
               <Button variant="primary" className="w-full py-3">
                 Order More Drinks

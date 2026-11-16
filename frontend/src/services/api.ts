@@ -1,8 +1,21 @@
 import type { Category, Product, HealthCheckResponse } from '../types';
 
-const getBaseUrl = (): string => {
-  const envUrl = import.meta.env.VITE_API_URL;
-  if (typeof envUrl === 'string') {
+let customBaseUrl: string | null = null;
+
+export function setApiBaseUrl(url: string | null): void {
+  customBaseUrl = url
+    ? url.trim().replace(/^["']|["']$/g, '').replace(/\/+$/, '')
+    : null;
+}
+
+export const getBaseUrl = (): string => {
+  if (customBaseUrl !== null) return customBaseUrl;
+  const envUrl =
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) ||
+    (typeof globalThis !== 'undefined' &&
+      (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
+        ?.VITE_API_URL);
+  if (typeof envUrl === 'string' && envUrl.trim()) {
     return envUrl
       .trim()
       .replace(/^["']|["']$/g, '')
@@ -25,19 +38,33 @@ export interface ProductFilters {
  */
 export async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const url = API_BASE_URL ? `${API_BASE_URL}${cleanEndpoint}` : cleanEndpoint;
+  const baseUrl = getBaseUrl();
+  const url = baseUrl ? `${baseUrl}${cleanEndpoint}` : cleanEndpoint;
+
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  let signal = options?.signal;
+  if (!signal && typeof AbortController !== 'undefined') {
+    const controller = new AbortController();
+    signal = controller.signal;
+    // 20-second timeout avoids hanging indefinitely on dropped cellular or network connections
+    timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 20000);
+  }
 
   try {
     const headers = new Headers(options?.headers);
     if (!headers.has('Accept')) headers.set('Accept', 'application/json');
     if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
     if (cleanEndpoint.startsWith('/api/orders')) {
-      const token = localStorage.getItem('coffee_customer_token');
+      const token =
+        typeof localStorage !== 'undefined' ? localStorage.getItem('coffee_customer_token') : null;
       if (token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
     }
     const response = await fetch(url, {
       ...options,
       headers,
+      signal,
     });
 
     const contentType = response.headers.get('content-type') || '';
@@ -71,13 +98,22 @@ export async function request<T>(endpoint: string, options?: RequestInit): Promi
       // Prevent Safari's cryptic "The string did not match the expected pattern."
       // by inspecting non-JSON bodies (e.g. HTML pages returned by an unproxied dev server)
       throw new Error(
-        `The server returned an unexpected response (non-JSON). Please verify the backend is running at ${API_BASE_URL || 'the configured API origin'}.`,
+        `The server returned an unexpected response (non-JSON). Please verify the backend is running at ${getBaseUrl() || 'the configured API origin'}.`,
       );
     }
 
     return await response.json();
   } catch (error) {
     if (error instanceof Error) {
+      if (
+        error.name === 'AbortError' ||
+        error.name === 'TimeoutError' ||
+        error.message.includes('aborted')
+      ) {
+        throw new Error(
+          'Network timeout: The café server did not respond in time. Your order was not confirmed; please retry.',
+        );
+      }
       if (
         error.message === 'Failed to fetch' ||
         error.name === 'TypeError' ||
@@ -86,12 +122,16 @@ export async function request<T>(endpoint: string, options?: RequestInit): Promi
         (typeof navigator !== 'undefined' && !navigator.onLine)
       ) {
         throw new Error(
-          `Network error: Unable to connect to the café server. Please verify the backend is running at ${API_BASE_URL || 'the configured API origin'}.`,
+          `Network error: Unable to connect to the café server. Please verify the backend is running at ${getBaseUrl() || 'the configured API origin'}.`,
         );
       }
       throw error;
     }
     throw new Error('An unknown network error occurred. Please check backend connection.');
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
 }
 
@@ -167,6 +207,13 @@ export async function getOrderById(id: number): Promise<import('../types').Order
  */
 export async function getOrderByReference(orderNumber: string): Promise<import('../types').Order> {
   return request<import('../types').Order>(`/api/orders/ref/${encodeURIComponent(orderNumber)}`);
+}
+
+/**
+ * Fetch all orders for the current customer from GET /api/orders
+ */
+export async function getMyOrders(): Promise<import('../types').Order[]> {
+  return request<import('../types').Order[]>('/api/orders');
 }
 
 /**

@@ -19,6 +19,7 @@ class MemoryPgDb {
       staff_users: 1,
       orders: 1,
       order_items: 1,
+      payment_settlements: 1,
       security_audit_logs: 1,
       stores: 1,
       seller_store_assignments: 1,
@@ -31,6 +32,7 @@ class MemoryPgDb {
       orders: [],
       order_items: [],
       order_idempotency: [],
+      payment_settlements: [],
       security_audit_logs: [],
       stores: [],
       seller_store_assignments: [],
@@ -291,6 +293,22 @@ class MemoryPgDb {
           ...row,
           seller_id: sellerId,
           store_id: storeId,
+        };
+      } else if (tableName === 'payment_settlements') {
+        const orderId = Number(params[0]);
+        if (table.some(r => r.order_id === orderId)) {
+          const err = new Error('duplicate key value violates unique constraint');
+          err.code = '23505';
+          return Promise.reject(err);
+        }
+        row = {
+          ...row,
+          order_id: orderId,
+          staff_id: Number(params[1]),
+          method: 'cash',
+          reference: String(params[2]),
+          amount_usd: Number(params[3]),
+          recorded_at: new Date().toISOString(),
         };
       }
 
@@ -945,12 +963,26 @@ class MemoryPgDb {
       }
       return Promise.resolve({ rows: store ? [store] : [], rowCount: store ? 1 : 0 });
     }
+    // SELECT FROM payment_settlements
+    if (/^SELECT/i.test(cleanSql) && /FROM payment_settlements/i.test(cleanSql)) {
+      let rows = [...(this.tables.payment_settlements || [])];
+      if (/COUNT\(\*\)/i.test(cleanSql)) {
+        return Promise.resolve({ rows: [{ count: rows.length }], rowCount: 1 });
+      }
+      if (/WHERE order_id = \$1/i.test(cleanSql)) {
+        rows = rows.filter(r => r.order_id === Number(params[0]));
+      }
+      return Promise.resolve({ rows, rowCount: rows.length });
+    }
+
     if (/^UPDATE orders SET/i.test(cleanSql)) {
       const orderId = Number(params[params.length - 1]);
       const order = this.tables.orders.find(o => o.id === orderId);
       if (order) {
         if (/order_status = \$1/i.test(cleanSql)) order.order_status = params[0];
-        if (/payment_status = \$1/i.test(cleanSql) || /payment_status = \$2/i.test(cleanSql)) {
+        if (/payment_status = 'paid'/i.test(cleanSql)) {
+          order.payment_status = 'paid';
+        } else if (/payment_status = \$1/i.test(cleanSql) || /payment_status = \$2/i.test(cleanSql)) {
           order.payment_status = params[params.length - 2];
         }
         if (/store_id = \$/i.test(cleanSql)) {

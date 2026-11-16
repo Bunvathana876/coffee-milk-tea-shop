@@ -28,3 +28,19 @@ export async function getOrderById(id: number): Promise<Order> {
 export async function getOrderByReference(orderNumber: string): Promise<Order> {
   return request<Order>(`/api/orders/ref/${encodeURIComponent(orderNumber)}`);
 }
+
+/**
+ * Fetches all orders placed by the currently authenticated customer
+ */
+export async function getMyOrders(): Promise<Order[]> {
+  return request<Order[]>('/api/orders');
+}
+
+/**
+ * Fetches all orders placed with a customer's phone number
+ */
+export async function getOrdersByPhone(phone: string): Promise<Order[]> {
+  return request<Order[]>(
+    `/api/orders/lookup/phone?phone=${encodeURIComponent(phone.trim())}`,
+  );
+}

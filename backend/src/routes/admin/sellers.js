@@ -551,8 +551,12 @@ router.get('/:id/stores', async (req, res, next) => {
       [id],
     );
 
+    const seller = sellerCheck.rows[0];
+
     res.json({
       seller_id: id,
+      seller_email: seller.email,
+      seller_name: seller.full_name,
       stores: assignments.rows.map(s => ({
         id: s.id,
         name: s.name,

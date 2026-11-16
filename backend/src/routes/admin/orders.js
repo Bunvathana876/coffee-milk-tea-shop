@@ -129,6 +129,7 @@ router.get('/', requireAdmin, async (req, res, next) => {
     const counts_by_status = {
       pending: 0,
       preparing: 0,
+      ready: 0,
       completed: 0,
       cancelled: 0,
     };

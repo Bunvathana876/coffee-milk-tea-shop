@@ -66,6 +66,7 @@ export function OrdersPage() {
   const [list, setList] = useState<OrderList | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [kdsActionError, setKdsActionError] = useState('');
 
   // Sync state when URL search parameter changes
   useEffect(() => {
@@ -90,10 +91,25 @@ export function OrdersPage() {
     setOffset(0);
     setLoading(true);
     setError('');
+    setKdsActionError('');
+    if (viewMode === 'kds' && value !== 'all') {
+      setViewMode('table');
+    }
     if (value === 'all') {
       setSearchParams({}, { replace: true });
     } else {
       setSearchParams({ status: value }, { replace: true });
+    }
+  }
+
+  function handleSelectViewMode(mode: 'table' | 'kds') {
+    setViewMode(mode);
+    setKdsActionError('');
+    if (mode === 'kds') {
+      setAutoRefresh(true);
+      if (status !== 'all') {
+        handleSelectStatus('all');
+      }
     }
   }
 
@@ -150,11 +166,12 @@ export function OrdersPage() {
   async function handleAdvanceStatus(orderId: number, nextStatus: OrderStatus) {
     if (!token || busy) return;
     setBusy(true);
+    setKdsActionError('');
     try {
       await updateOrderStatus(token, orderId, nextStatus);
       reload();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not update order status.');
+      setKdsActionError(cause instanceof Error ? cause.message : 'Could not update order status.');
     } finally {
       setBusy(false);
     }
@@ -162,6 +179,7 @@ export function OrdersPage() {
 
   function reload() {
     setError('');
+    setKdsActionError('');
     setLoading(true);
     setRevision(value => value + 1);
   }
@@ -269,7 +287,7 @@ export function OrdersPage() {
                   ? 'bg-slate-900 text-white shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
-              onClick={() => setViewMode('table')}
+              onClick={() => handleSelectViewMode('table')}
               aria-label="Table view"
             >
               <LayoutList size={14} />
@@ -282,7 +300,7 @@ export function OrdersPage() {
                   ? 'bg-amber-600 text-white shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
-              onClick={() => setViewMode('kds')}
+              onClick={() => handleSelectViewMode('kds')}
               aria-label="Kitchen Board KDS view"
             >
               <Coffee size={14} />
@@ -418,14 +436,31 @@ export function OrdersPage() {
         ) : error ? (
           <ErrorState message={error} retry={reload} />
         ) : viewMode === 'kds' ? (
-          <KitchenDisplayBoard
-            orders={visibleItems}
-            loading={loading}
-            onAdvanceStatus={handleAdvanceStatus}
-            onOpenDetails={openOrder}
-            onPrintTicket={setTicketOrder}
-            busy={busy}
-          />
+          <>
+            {kdsActionError && (
+              <div
+                role="alert"
+                className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs font-bold flex items-center justify-between"
+              >
+                <span>{kdsActionError}</span>
+                <button
+                  type="button"
+                  onClick={() => setKdsActionError('')}
+                  className="text-rose-600 hover:text-rose-900 font-bold ml-2 underline cursor-pointer"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+            <KitchenDisplayBoard
+              orders={visibleItems}
+              loading={loading}
+              onAdvanceStatus={handleAdvanceStatus}
+              onOpenDetails={openOrder}
+              onPrintTicket={setTicketOrder}
+              busy={busy}
+            />
+          </>
         ) : !list || list.items.length === 0 ? (
           <EmptyState title="No orders found" detail="No server orders match this status." />
         ) : visibleItems.length === 0 ? (

@@ -41,21 +41,43 @@ function drawDashedDivider(doc: jsPDF, x1: number, y: number, x2: number) {
 }
 
 /**
- * Generates and downloads a clean, professional PDF café receipt on the client side.
+ * Generates and returns a clean, professional 80mm PDF café receipt document on the client side.
  * Runs 100% offline in the browser without uploading any customer data or contacting servers.
  */
-export function downloadReceiptPdf(order: Order, paymentStatus = 'PENDING'): void {
+export function generateReceiptPdfDoc(order: Order, paymentStatus = 'PENDING'): jsPDF {
   const items = order.items || [];
-
-  // Calculate dynamic page height to fit all items and QR code comfortably
-  const baseHeight = 165;
-  const itemHeightEstimate = items.length * 15;
-  const pageHeight = Math.max(190, baseHeight + itemHeightEstimate);
   const pageWidth = 80; // Standard 80mm POS thermal slip format
-  const margin = 6;
+  const margin = 5;
   const contentWidth = pageWidth - margin * 2;
   const centerX = pageWidth / 2;
   const rightX = pageWidth - margin;
+
+  // Accurately compute dynamic page height for all items, customizations, toppings, notes, and QR code
+  let estimatedHeight = 58; // Header, metadata, totals, footer, margins
+  items.forEach(item => {
+    estimatedHeight += 11; // title and customizations
+    if (item.product_name && item.product_name.length > 22) estimatedHeight += 4;
+    const toppingsText = Array.isArray(item.toppings)
+      ? item.toppings.filter(Boolean).join(', ')
+      : typeof item.toppings === 'string'
+        ? item.toppings.trim()
+        : '';
+    if (toppingsText) {
+      estimatedHeight += 4;
+      if (toppingsText.length > 30) estimatedHeight += 3.5;
+    }
+  });
+
+  if (order.notes && order.notes.trim()) {
+    estimatedHeight += 12;
+    if (order.notes.length > 40) estimatedHeight += 4;
+  }
+
+  if (order.payment_method === 'khqr') {
+    estimatedHeight += 52; // QR section & banner
+  }
+
+  const pageHeight = Math.max(140, Math.ceil(estimatedHeight));
 
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -64,30 +86,30 @@ export function downloadReceiptPdf(order: Order, paymentStatus = 'PENDING'): voi
     compress: true,
   });
 
-  let y = 10;
+  let y = 8;
 
   // --- 1. CAFÉ HEADER ---
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setTextColor(28, 25, 23); // Dark charcoal
   doc.text('BREW & BOBA CAFÉ', centerX, y, { align: 'center' });
 
-  y += 4.5;
+  y += 4;
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
+  doc.setFontSize(6.8);
   doc.setTextColor(87, 83, 78);
   doc.text('Specialty Coffee & Artisanal Boba Lab', centerX, y, { align: 'center' });
 
-  y += 3.5;
-  doc.setFontSize(6.5);
+  y += 3.2;
+  doc.setFontSize(6.2);
   doc.setTextColor(120, 113, 108);
   doc.text('Street 214, BKK1, Phnom Penh, Cambodia', centerX, y, { align: 'center' });
-  y += 3.2;
-  doc.text('Tel: +855 23 999 888 • Order Receipt', centerX, y, { align: 'center' });
+  y += 3;
+  doc.text('Tel: +855 23 999 888 • 80mm POS Slip', centerX, y, { align: 'center' });
 
-  y += 4;
+  y += 3.5;
   drawDashedDivider(doc, margin, y, rightX);
-  y += 5;
+  y += 4.5;
 
   // --- 2. ORDER & CUSTOMER METADATA ---
   doc.setFontSize(7.5);
@@ -96,7 +118,6 @@ export function downloadReceiptPdf(order: Order, paymentStatus = 'PENDING'): voi
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(87, 83, 78);
   doc.text('Order Number:', margin, y);
-  doc.setFont('helvetica', 'bold');
   doc.setTextColor(28, 25, 23);
   doc.text(`#${order.order_number}`, rightX, y, { align: 'right' });
   y += 4;
@@ -143,25 +164,44 @@ export function downloadReceiptPdf(order: Order, paymentStatus = 'PENDING'): voi
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(28, 25, 23);
-    const itemTitle = `${index + 1}. ${item.quantity}x ${item.product_name}`;
-    doc.text(itemTitle, margin, y);
+    const itemTitle = `${index + 1}. ${item.quantity}× ${item.product_name}`;
+    const maxTitleWidth = contentWidth - 20;
+    const splitTitle = doc.splitTextToSize(itemTitle, maxTitleWidth);
+    doc.text(splitTitle, margin, y);
 
     // Item Subtotal (USD)
     doc.text(formatUsd(item.subtotal_usd), rightX, y, { align: 'right' });
-    y += 3.5;
+    y += splitTitle.length * 3.4;
 
     // Customization details
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.5);
     doc.setTextColor(100, 95, 90);
     const customLine = `${item.size} | ${item.sugar_level} Sugar | ${item.ice_level}`;
-    doc.text(customLine, margin + 2.5, y);
+    doc.text(customLine, margin + 2, y);
 
     // KHR Subtotal
     doc.setFontSize(6);
     doc.setTextColor(140, 135, 130);
     doc.text(formatKhr(item.subtotal_usd), rightX, y, { align: 'right' });
-    y += 4.5;
+    y += 3.5;
+
+    // Toppings (if present)
+    const toppingsText = Array.isArray(item.toppings)
+      ? item.toppings.filter(Boolean).join(', ')
+      : typeof item.toppings === 'string'
+        ? item.toppings.trim()
+        : '';
+    if (toppingsText) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(6);
+      doc.setTextColor(19, 69, 163); // Cobalt
+      const toppingLine = `+ Toppings: ${toppingsText}`;
+      const splitToppings = doc.splitTextToSize(toppingLine, contentWidth - 4);
+      doc.text(splitToppings, margin + 2, y);
+      y += splitToppings.length * 3.2;
+    }
+    y += 1;
   });
 
   drawDashedDivider(doc, margin, y, rightX);
@@ -171,13 +211,15 @@ export function downloadReceiptPdf(order: Order, paymentStatus = 'PENDING'): voi
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(87, 83, 78);
-  doc.text('Subtotal:', margin, y);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(28, 25, 23);
-  doc.text(`${formatUsd(order.subtotal_usd)} (${formatKhr(order.subtotal_usd)})`, rightX, y, {
-    align: 'right',
-  });
-  y += 5;
+  if (order.subtotal_usd !== undefined) {
+    doc.text('Subtotal:', margin, y);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(28, 25, 23);
+    doc.text(`${formatUsd(order.subtotal_usd)} (${formatKhr(order.subtotal_usd)})`, rightX, y, {
+      align: 'right',
+    });
+    y += 4.5;
+  }
 
   // Total USD
   doc.setFontSize(9);
@@ -232,10 +274,28 @@ export function downloadReceiptPdf(order: Order, paymentStatus = 'PENDING'): voi
   }
 
   y += 4;
+
+  // --- 6. SPECIAL INSTRUCTIONS / NOTES (if present) ---
+  if (order.notes && order.notes.trim()) {
+    drawDashedDivider(doc, margin, y, rightX);
+    y += 4;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(120, 53, 15);
+    doc.text('Special Instructions:', margin, y);
+    y += 3.5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(28, 25, 23);
+    const noteLines = doc.splitTextToSize(order.notes.trim(), contentWidth - 4);
+    doc.text(noteLines, margin + 2, y);
+    y += noteLines.length * 3.2 + 1;
+  }
+
   drawDashedDivider(doc, margin, y, rightX);
   y += 4;
 
-  // --- 6. MOCK ABA KHQR CODE (only for the selected demo method) ---
+  // --- 7. MOCK ABA KHQR CODE (only for the selected demo method) ---
   if (order.payment_method === 'khqr') {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.5);
@@ -249,7 +309,7 @@ export function downloadReceiptPdf(order: Order, paymentStatus = 'PENDING'): voi
 
     try {
       const matrix = generateQrMatrix(demoPayload);
-      const qrSize = 30; // 30 mm square
+      const qrSize = 28; // 28 mm square for compact 80mm fit
       const qrX = (pageWidth - qrSize) / 2;
       const qrY = y;
       const modSize = qrSize / matrix.length;
@@ -285,7 +345,7 @@ export function downloadReceiptPdf(order: Order, paymentStatus = 'PENDING'): voi
       doc.line(qrX + qrSize + 2, qrY + qrSize + 2, qrX + qrSize + 2, qrY + qrSize - 2);
 
       // Center Red KHQR Emblem
-      const emblemSize = 6;
+      const emblemSize = 5.5;
       const emblemX = centerX - emblemSize / 2;
       const emblemY = qrY + (qrSize - emblemSize) / 2;
       doc.setFillColor(225, 37, 27); // KHQR Red
@@ -293,45 +353,45 @@ export function downloadReceiptPdf(order: Order, paymentStatus = 'PENDING'): voi
       doc.setLineWidth(0.3);
       doc.rect(emblemX, emblemY, emblemSize, emblemSize, 'FD');
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(4);
+      doc.setFontSize(3.8);
       doc.setTextColor(255, 255, 255);
-      doc.text('KHQR', centerX, emblemY + 2.5, { align: 'center' });
-      doc.text('៛ / $', centerX, emblemY + 4.5, { align: 'center' });
+      doc.text('KHQR', centerX, emblemY + 2.3, { align: 'center' });
+      doc.text('៛ / $', centerX, emblemY + 4.2, { align: 'center' });
 
-      y += qrSize + 3;
+      y += qrSize + 2.5;
     } catch {
-      y += 10;
+      y += 8;
     }
 
-    // --- 7. DEMO PAYMENT WARNING BANNER ---
+    // --- DEMO PAYMENT WARNING BANNER ---
     doc.setFillColor(254, 242, 242); // Rose tint
     doc.setDrawColor(248, 113, 113); // Rose border
     doc.setLineWidth(0.2);
     const warnBoxWidth = contentWidth;
     const warnBoxX = margin;
-    doc.rect(warnBoxX, y, warnBoxWidth, 7, 'FD');
+    doc.rect(warnBoxX, y, warnBoxWidth, 6.5, 'FD');
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.5);
+    doc.setFontSize(6);
     doc.setTextColor(185, 28, 28); // Dark red
-    doc.text('DEMO QR — NO REAL PAYMENT', centerX, y + 3, { align: 'center' });
+    doc.text('DEMO QR — NO REAL PAYMENT', centerX, y + 2.8, { align: 'center' });
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(5);
+    doc.setFontSize(4.8);
     doc.setTextColor(153, 27, 27);
     doc.text(
       'Demonstration code only. No financial transaction or bank connection.',
       centerX,
-      y + 5.5,
+      y + 5.2,
       {
         align: 'center',
       },
     );
 
-    y += 9.5;
+    y += 8.5;
+    drawDashedDivider(doc, margin, y, rightX);
+    y += 3.5;
   }
-  drawDashedDivider(doc, margin, y, rightX);
-  y += 4;
 
   // --- 8. FOOTER ---
   doc.setFont('helvetica', 'bold');
@@ -339,17 +399,26 @@ export function downloadReceiptPdf(order: Order, paymentStatus = 'PENDING'): voi
   doc.setTextColor(87, 83, 78);
   doc.text('Thank you for visiting Brew & Boba Café!', centerX, y, { align: 'center' });
 
-  y += 3;
+  y += 2.8;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(5.5);
   doc.setTextColor(120, 113, 108);
   doc.text('WiFi: BrewAndBoba_Guest  |  Pass: barista2026', centerX, y, { align: 'center' });
 
-  y += 2.8;
+  y += 2.6;
   doc.text(`Present Order #${order.order_number} to collect your drinks.`, centerX, y, {
     align: 'center',
   });
 
+  return doc;
+}
+
+/**
+ * Generates and downloads a clean, professional PDF café receipt on the client side.
+ * Runs 100% offline in the browser without uploading any customer data or contacting servers.
+ */
+export function downloadReceiptPdf(order: Order, paymentStatus = 'PENDING'): void {
+  const doc = generateReceiptPdfDoc(order, paymentStatus);
   // Save PDF locally to user's browser download
   doc.save(`Receipt-${order.order_number}.pdf`);
 }

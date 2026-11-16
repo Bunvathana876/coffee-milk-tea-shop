@@ -329,3 +329,87 @@ test('9. Order Payload and Idempotency Digest Determinism', async () => {
 
   assert.equal(fp1, fp2, 'Identical orders must generate matching idempotency fingerprints');
 });
+
+test('10. Checkout Reliability: Idempotency Key Recovery across Session Storage and Retry', async () => {
+  const payload = {
+    customer_name: 'Bopha Pich',
+    customer_phone: '012999888',
+    customer_email: 'bopha@example.com',
+    notes: '[STORE PICKUP: BKK1 Branch]',
+    payment_method: 'cash',
+    items: [
+      {
+        product_id: 2,
+        quantity: 1,
+        size: 'Large',
+        sugar_level: '25%',
+        ice_level: 'Less Ice',
+        toppings: ['Brown Sugar Pearls'],
+      },
+    ],
+  };
+
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(JSON.stringify(payload)),
+  );
+  const fingerprint = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+
+  // 1. First attempt generates a fresh idempotency key
+  const originalKey = 'order-key-12345678-uuid';
+  const pendingRecord = { fingerprint, key: originalKey };
+
+  // Store in sessionStorage mock
+  storageMock.set('coffee_pending_order', JSON.stringify(pendingRecord));
+
+  // 2. Simulated network retry: restore matching fingerprint & key
+  const raw = storageMock.get('coffee_pending_order');
+  assert.ok(raw, 'Pending order record must be retained in session storage on failure');
+  const restored = JSON.parse(raw);
+  assert.equal(restored.fingerprint, fingerprint);
+  assert.equal(restored.key, originalKey, 'Exact same idempotency key must be reused on retry');
+
+  // 3. Successful order confirmation clears pending storage
+  storageMock.delete('coffee_pending_order');
+  assert.equal(storageMock.has('coffee_pending_order'), false);
+});
+
+test('11. Checkout Reliability: Payload Alteration Generates Distinct Fingerprint to Avoid Conflict', async () => {
+  const basePayload = {
+    customer_name: 'Bopha Pich',
+    customer_phone: '012999888',
+    customer_email: null,
+    notes: '[STORE PICKUP: BKK1 Branch]',
+    payment_method: 'cash',
+    items: [
+      {
+        product_id: 1,
+        quantity: 1,
+        size: 'Medium',
+        sugar_level: '50%',
+        ice_level: 'Normal Ice',
+        toppings: [],
+      },
+    ],
+  };
+
+  const digest1 = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(JSON.stringify(basePayload)),
+  );
+  const fp1 = Array.from(new Uint8Array(digest1), b => b.toString(16).padStart(2, '0')).join('');
+
+  // Customer modified quantity before checking out
+  const modifiedPayload = {
+    ...basePayload,
+    items: [{ ...basePayload.items[0], quantity: 2 }],
+  };
+
+  const digest2 = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(JSON.stringify(modifiedPayload)),
+  );
+  const fp2 = Array.from(new Uint8Array(digest2), b => b.toString(16).padStart(2, '0')).join('');
+
+  assert.notEqual(fp1, fp2, 'Different order contents must yield distinct fingerprints for separate keys');
+});

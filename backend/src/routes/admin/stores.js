@@ -15,12 +15,13 @@ const STORE_CODE_REGEX = /^[A-Z0-9-]{2,50}$/;
 router.get('/', async (req, res, next) => {
   try {
     const status = req.query.status ? String(req.query.status).trim().toLowerCase() : 'all';
+    const isActiveParam = req.query.is_active !== undefined ? String(req.query.is_active).trim().toLowerCase() : undefined;
     const whereClauses = [];
     const params = [];
 
-    if (status === 'active') {
+    if (status === 'active' || isActiveParam === 'true') {
       whereClauses.push('s.is_active = TRUE');
-    } else if (status === 'inactive') {
+    } else if (status === 'inactive' || isActiveParam === 'false') {
       whereClauses.push('s.is_active = FALSE');
     }
 
@@ -415,6 +416,7 @@ router.delete('/:id', async (req, res, next) => {
     res.json({
       id,
       deleted: true,
+      success: true,
       message: 'Store deleted successfully.',
     });
   } catch (err) {

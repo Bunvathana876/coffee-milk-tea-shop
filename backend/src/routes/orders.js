@@ -61,6 +61,11 @@ router.post(['/', ''], async (req, res, next) => {
     const order = validateOrderPayload(req.body);
     const idempotencyKey = readIdempotencyKey(req.get('Idempotency-Key'));
     const requestHash = idempotencyKey ? hashOrderPayload(order) : null;
+    if (!idempotencyKey) {
+      console.warn(
+        `[orders] Notice: Order placed without Idempotency-Key by customer ${req.customer.id}. Client retry risk present.`,
+      );
+    }
 
     const result = await withTransaction(async query => {
       if (idempotencyKey) {

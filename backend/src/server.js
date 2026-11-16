@@ -29,6 +29,12 @@ app.disable('x-powered-by');
 app.set('trust proxy', isProductionOrStaging() ? 1 : false);
 
 app.use((req, res, next) => {
+  if (process.env.DEBUG_HTTP === 'true') {
+    console.log(`[HTTP IN] ${req.method} ${req.originalUrl} (Host: ${req.headers.host})`);
+    res.on('finish', () => {
+      console.log(`[HTTP OUT] ${req.method} ${req.originalUrl} -> ${res.statusCode}`);
+    });
+  }
   res.set({
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
@@ -106,10 +112,11 @@ export async function startServer(port = config.port, { readOnlyDatabase = false
   await getDatabase({ readOnly: readOnlyDatabase });
   return new Promise((resolve, reject) => {
     const server = app.listen(port, '0.0.0.0', () => {
+      const boundPort = server.address()?.port ?? port;
       console.log(
-        `☕ Coffee & Milk Tea Shop Node.js Backend is running on http://localhost:${port}`,
+        `☕ Coffee & Milk Tea Shop Node.js Backend is running on http://localhost:${boundPort}`,
       );
-      console.log(`👉 Health check: http://localhost:${port}/api/health`);
+      console.log(`👉 Health check: http://localhost:${boundPort}/api/health`);
       resolve(server);
     });
     server.once('error', reject);

@@ -7,6 +7,9 @@ export {
   createOrder,
   getOrderById,
   getOrderByReference,
+  getMyOrders,
+  getOrdersByPhone,
+  setApiBaseUrl,
   type ProductFilters,
   API_BASE_URL,
 } from './api';

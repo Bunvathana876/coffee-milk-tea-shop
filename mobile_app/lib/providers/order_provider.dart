@@ -261,7 +261,7 @@ class OrderProvider extends ChangeNotifier {
     if (_activeOrder == null) return;
 
     final status = _activeOrder!.orderStatus.toLowerCase();
-    if (status == 'pending' || status == 'preparing') {
+    if (status == 'pending' || status == 'preparing' || status == 'ready') {
       _pollingTimer = Timer.periodic(const Duration(seconds: 4), (_) {
         refreshActiveOrder();
       });

@@ -107,16 +107,57 @@ body {
   }
 }
 
-/* Print Styles for Receipt */
+/* ==========================================================================
+   Print Styles for 80mm POS Thermal Receipt & Digital Orders
+   ========================================================================== */
 @media print {
   @page {
-    margin: 1cm;
-    size: auto;
+    size: 80mm auto;
+    margin: 2mm 3mm;
   }
+
+  *,
+  *::before,
+  *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  html,
   body {
-    background: white !important;
-    color: black !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Isolate printable receipt for authentic 80mm POS thermal printing */
+  body:has(#printable-receipt) {
+    background: #ffffff !important;
+  }
+
+  body:has(#printable-receipt) > * {
+    visibility: hidden;
+  }
+
+  body:has(#printable-receipt) #printable-receipt,
+  body:has(#printable-receipt) #printable-receipt * {
+    visibility: visible;
+  }
+
+  body:has(#printable-receipt) #printable-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: 80mm !important;
+    margin: 0 auto !important;
+    padding: 2mm 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    box-sizing: border-box;
   }
 }

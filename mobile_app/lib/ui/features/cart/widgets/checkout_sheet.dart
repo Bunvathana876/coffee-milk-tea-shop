@@ -53,7 +53,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
   }
 
   Future<void> _handlePlaceOrder() async {
-    if (_submitting) return;
+    if (_submitting || context.read<OrderProvider>().isPlacingOrder) return;
     if (!_formKey.currentState!.validate()) return;
 
     final cart = context.read<CartProvider>();
@@ -71,7 +71,9 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
       return;
     }
     if (cart.items.isEmpty) return;
-    _submitting = true;
+    setState(() {
+      _submitting = true;
+    });
     orderProvider.resetForSession(user.authToken);
 
     OrderModel? placedOrder;
@@ -100,7 +102,11 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
       }
       return;
     } finally {
-      _submitting = false;
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+        });
+      }
     }
 
     final confirmedOrder = placedOrder;
@@ -240,6 +246,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _nameController,
+                      enabled: !_submitting && !orderProvider.isPlacingOrder,
                       decoration: const InputDecoration(
                         hintText: 'e.g. Sokha Chhay',
                         prefixIcon: Icon(
@@ -264,6 +271,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _phoneController,
+                      enabled: !_submitting && !orderProvider.isPlacingOrder,
                       keyboardType: TextInputType.phone,
                       decoration: const InputDecoration(
                         hintText: 'e.g. 012 345 678',
@@ -290,8 +298,10 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                       color: Colors.transparent,
                       child: CheckboxListTile(
                         value: _rememberMe,
-                        onChanged: (val) =>
-                            setState(() => _rememberMe = val ?? true),
+                        onChanged: (_submitting || orderProvider.isPlacingOrder)
+                            ? null
+                            : (val) =>
+                                setState(() => _rememberMe = val ?? true),
                         contentPadding: EdgeInsets.zero,
                         controlAffinity: ListTileControlAffinity.leading,
                         dense: true,
@@ -322,6 +332,8 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                             label: 'Pay at Counter',
                             sublabel: 'Cash on pickup',
                             icon: Icons.payments_outlined,
+                            isLocked:
+                                _submitting || orderProvider.isPlacingOrder,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -331,6 +343,8 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                             label: 'KHQR · DEMO ONLY',
                             sublabel: 'No bank payment. Status stays unpaid.',
                             icon: Icons.qr_code_scanner_rounded,
+                            isLocked:
+                                _submitting || orderProvider.isPlacingOrder,
                           ),
                         ),
                       ],
@@ -460,14 +474,56 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                   horizontal: 20,
                   vertical: 8,
                 ),
-                child: Text(
-                  orderProvider.submissionState == OrderSubmissionState.pending
-                      ? 'Waiting for server confirmation…'
-                      : orderProvider.errorMessage ??
-                            'Order was not confirmed. Your cart is saved.',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: orderProvider.submissionState ==
+                            OrderSubmissionState.pending
+                        ? AppColors.surfaceMuted
+                        : AppColors.statusCancelled.withAlpha(16),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: orderProvider.submissionState ==
+                              OrderSubmissionState.pending
+                          ? AppColors.surfaceBorder
+                          : AppColors.statusCancelled.withAlpha(60),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        orderProvider.submissionState ==
+                                OrderSubmissionState.pending
+                            ? Icons.hourglass_top_rounded
+                            : Icons.wifi_off_rounded,
+                        size: 16,
+                        color: orderProvider.submissionState ==
+                                OrderSubmissionState.pending
+                            ? AppColors.textSecondary
+                            : AppColors.statusCancelled,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          orderProvider.submissionState ==
+                                  OrderSubmissionState.pending
+                              ? 'Waiting for server confirmation…'
+                              : orderProvider.errorMessage ??
+                                    'Order was not confirmed. Your cart is saved.',
+                          style: TextStyle(
+                            color: orderProvider.submissionState ==
+                                    OrderSubmissionState.pending
+                                ? AppColors.textSecondary
+                                : AppColors.statusCancelled,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -480,8 +536,10 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
               ),
               child: CustomButton(
                 text: 'Confirm & Place Order',
-                isLoading: orderProvider.isPlacingOrder,
-                onPressed: _handlePlaceOrder,
+                isLoading: _submitting || orderProvider.isPlacingOrder,
+                onPressed: (_submitting || orderProvider.isPlacingOrder)
+                    ? null
+                    : _handlePlaceOrder,
               ),
             ),
           ],
@@ -495,10 +553,11 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
     required String label,
     required String sublabel,
     required IconData icon,
+    bool isLocked = false,
   }) {
     final isSelected = _paymentMethod == id;
     return InkWell(
-      onTap: () => setState(() => _paymentMethod = id),
+      onTap: isLocked ? null : () => setState(() => _paymentMethod = id),
       borderRadius: BorderRadius.circular(14),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -548,7 +607,15 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: AppTypography.bodyMedium),
+        Expanded(
+          child: Text(
+            label,
+            style: AppTypography.bodyMedium,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
         Text(
           value,
           style: const TextStyle(

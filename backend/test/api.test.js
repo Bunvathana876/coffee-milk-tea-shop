@@ -1222,3 +1222,52 @@ test('browser preflight permits the order idempotency header', async () => {
   assert.equal(response.status, 204);
   assert.match(response.headers.get('access-control-allow-headers') || '', /Idempotency-Key/i);
 });
+
+test('checkout reliability: multiple rapid concurrent requests collapse to single order and retry preserves order identity', async () => {
+  const { headers, payload, phone } = await orderFixture();
+  const key = `rapid-tap-${randomUUID()}`;
+
+  // 1. Simulate 5 rapid concurrent customer taps with identical idempotency key
+  const responses = await Promise.all(
+    Array.from({ length: 5 }, () =>
+      apiRequest('/api/orders', {
+        method: 'POST',
+        headers: { ...headers, 'Idempotency-Key': key },
+        body: JSON.stringify(payload),
+      }),
+    ),
+  );
+
+  // Exactly one creates the order (201), the other 4 return 200 replay
+  assert.deepEqual(responses.map(r => r.status).sort(), [200, 200, 200, 200, 201]);
+
+  // All 5 responses return the exact same order ID and order number
+  const firstId = responses[0].data.id;
+  const firstOrderNumber = responses[0].data.order_number;
+  for (const res of responses) {
+    assert.equal(res.data.id, firstId);
+    assert.equal(res.data.order_number, firstOrderNumber);
+  }
+
+  // Exactly one order exists in customer order history
+  const lookup = await apiRequest(`/api/orders/lookup/phone?phone=${phone}`, { headers });
+  assert.equal(lookup.data.filter(order => order.id === firstId).length, 1);
+
+  // Exactly one loyalty stamp credited
+  const profile = await apiRequest('/api/auth/me', { headers });
+  assert.equal(profile.data.loyalty_stamps, 1);
+
+  // 2. Simulated network retry: customer re-submits after network drop with same key
+  const retried = await apiRequest('/api/orders', {
+    method: 'POST',
+    headers: { ...headers, 'Idempotency-Key': key },
+    body: JSON.stringify(payload),
+  });
+  assert.equal(retried.status, 200);
+  assert.equal(retried.data.id, firstId);
+  assert.equal(retried.data.order_number, firstOrderNumber);
+
+  // Loyalty stamps remain unchanged (1, not incremented again)
+  const profileAfterRetry = await apiRequest('/api/auth/me', { headers });
+  assert.equal(profileAfterRetry.data.loyalty_stamps, 1);
+});

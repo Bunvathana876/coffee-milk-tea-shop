@@ -6253,3 +6253,87 @@ td strong {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   80mm Thermal Receipt Printing (POS / Kitchen Production Ticket)
+   ========================================================================== */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 80mm !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide portal layout, navigation, sidebar, topbar, and background chrome */
+  .portal-shell,
+  .portal-sidebar,
+  .topbar,
+  .command-palette-backdrop,
+  .toast-container,
+  .mobile-menu-backdrop {
+    display: none !important;
+  }
+
+  body > * {
+    visibility: hidden;
+  }
+
+  .confirm-dialog-overlay {
+    position: static !important;
+    inset: auto !important;
+    padding: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    display: block !important;
+  }
+
+  .confirm-dialog-card {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    max-width: 80mm !important;
+    width: 80mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  .kitchen-ticket-printable,
+  .kitchen-ticket-printable * {
+    visibility: visible !important;
+  }
+
+  .kitchen-ticket-printable {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+    max-width: 80mm !important;
+    margin: 0 !important;
+    padding: 3mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-sizing: border-box !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+  }
+}
+

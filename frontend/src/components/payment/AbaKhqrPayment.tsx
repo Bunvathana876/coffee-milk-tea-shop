@@ -90,64 +90,64 @@ export const AbaKhqrPayment: React.FC<AbaKhqrPaymentProps> = ({
       data-testid="aba-khqr-payment"
     >
       {/* KHQR Card Wrapper with authentic red/navy header styling */}
-      <div className="relative rounded-2xl bg-gradient-to-b from-[#004f71] to-[#003750] text-white p-5 sm:p-6 shadow-md overflow-hidden">
+      <div className="relative rounded-2xl bg-gradient-to-b from-[#004f71] to-[#003750] text-white p-5 sm:p-6 shadow-md overflow-hidden print:bg-none print:bg-white print:text-black print:border print:border-black print:shadow-none">
         {/* Subtle decorative background watermarks */}
-        <div className="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/5 pointer-events-none" />
-        <div className="absolute -left-6 -top-6 w-24 h-24 rounded-full bg-white/5 pointer-events-none" />
+        <div className="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/5 pointer-events-none print:hidden" />
+        <div className="absolute -left-6 -top-6 w-24 h-24 rounded-full bg-white/5 pointer-events-none print:hidden" />
 
         {/* Top Header: Authentic KHQR Red Badge & ABA Brand */}
-        <div className="flex items-center justify-between pb-4 border-b border-white/15">
+        <div className="flex items-center justify-between pb-4 border-b border-white/15 print:border-black">
           <div className="flex items-center gap-2">
             {/* Cambodian KHQR Badge */}
-            <div className="bg-[#e1251b] text-white px-2.5 py-1 rounded-lg font-black tracking-wider text-xs shadow-xs flex items-center gap-1">
+            <div className="bg-[#e1251b] text-white px-2.5 py-1 rounded-lg font-black tracking-wider text-xs shadow-xs flex items-center gap-1 print:border print:border-black">
               <span>KHQR</span>
             </div>
-            <span className="font-bold text-sm tracking-wide text-white/95">ABA KHQR</span>
+            <span className="font-bold text-sm tracking-wide text-white/95 print:text-black">ABA KHQR</span>
           </div>
 
           {/* Individual Order Reference Badge */}
-          <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-md bg-white/10 text-white/90">
+          <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-md bg-white/10 text-white/90 print:bg-transparent print:border print:border-black print:text-black">
             {orderNumber}
           </span>
         </div>
 
         {/* Merchant & Customer Info */}
         <div className="pt-3 pb-2 text-center space-y-0.5">
-          <p className="text-[11px] uppercase tracking-wider text-white/70 font-semibold">
+          <p className="text-[11px] uppercase tracking-wider text-white/70 print:text-black font-semibold">
             Merchant
           </p>
-          <h3 className="font-extrabold text-base sm:text-lg text-white tracking-tight">
+          <h3 className="font-extrabold text-base sm:text-lg text-white print:text-black tracking-tight">
             {merchantName}
           </h3>
           {customerName && (
-            <p className="text-[11px] text-white/80">
-              Customer: <span className="font-medium text-white">{customerName}</span>
+            <p className="text-[11px] text-white/80 print:text-black">
+              Customer: <span className="font-medium text-white print:text-black">{customerName}</span>
             </p>
           )}
         </div>
 
         {/* Dual Currency Amount Display */}
-        <div className="my-3 py-2.5 px-4 rounded-xl bg-white/10 backdrop-blur-xs border border-white/15 text-center space-y-0.5">
+        <div className="my-3 py-2.5 px-4 rounded-xl bg-white/10 backdrop-blur-xs border border-white/15 text-center space-y-0.5 print:bg-transparent print:border print:border-black">
           <div className="flex items-baseline justify-center gap-1.5">
-            <span className="text-xs uppercase tracking-wider text-white/75 font-bold">
+            <span className="text-xs uppercase tracking-wider text-white/75 print:text-black font-bold">
               Amount:
             </span>
-            <span className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <span className="text-2xl sm:text-3xl font-black text-white print:text-black tracking-tight">
               {formatUsd(amountUsd)}
             </span>
           </div>
-          <div className="text-xs sm:text-sm font-bold text-amber-300">
+          <div className="text-xs sm:text-sm font-bold text-amber-300 print:text-black">
             KHR: {formatKhr(amountUsd)}
           </div>
         </div>
 
         {/* QR Code Presentation Box */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 my-3 shadow-inner text-stone-900 flex flex-col items-center relative">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 my-3 shadow-inner text-stone-900 flex flex-col items-center relative print:border print:border-black print:shadow-none">
           {/* Scanner Corner Alignment Guides */}
-          <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-[#004f71] rounded-tl-sm pointer-events-none" />
-          <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-[#004f71] rounded-tr-sm pointer-events-none" />
-          <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-[#004f71] rounded-bl-sm pointer-events-none" />
-          <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-[#004f71] rounded-br-sm pointer-events-none" />
+          <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-[#004f71] print:border-black rounded-tl-sm pointer-events-none" />
+          <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-[#004f71] print:border-black rounded-tr-sm pointer-events-none" />
+          <div className="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-[#004f71] print:border-black rounded-bl-sm pointer-events-none" />
+          <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-[#004f71] print:border-black rounded-br-sm pointer-events-none" />
 
           {/* Crisp Scalable Vector QR Code with Safe Demo Payload */}
           <div
@@ -176,30 +176,30 @@ export const AbaKhqrPayment: React.FC<AbaKhqrPaymentProps> = ({
           </div>
 
           {/* Prominent High-Visibility Warning Banner */}
-          <div className="mt-3 w-full py-1.5 px-3 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-center">
+          <div className="mt-3 w-full py-1.5 px-3 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-center print:border-black print:text-black">
             <div className="flex items-center justify-center gap-1.5 font-black text-[11px] sm:text-xs tracking-wider uppercase">
-              <ShieldAlert className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+              <ShieldAlert className="w-3.5 h-3.5 text-rose-600 print:text-black shrink-0" />
               <span>DEMO QR — NO REAL PAYMENT</span>
             </div>
           </div>
         </div>
 
         {/* Initial Payment Status: Clearly displayed as PENDING */}
-        <div className="pt-2 flex items-center justify-between text-xs border-t border-white/15">
-          <span className="text-white/70 font-medium">Payment Status:</span>
+        <div className="pt-2 flex items-center justify-between text-xs border-t border-white/15 print:border-black">
+          <span className="text-white/70 print:text-black font-medium">Payment Status:</span>
           {isPending ? (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/20 text-amber-300 font-extrabold uppercase tracking-wider text-[11px] border border-amber-300/30">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-400/20 text-amber-300 font-extrabold uppercase tracking-wider text-[11px] border border-amber-300/30 print:border-black print:text-black">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse print:hidden" />
               <Clock className="w-3 h-3" />
               {paymentStatus.toUpperCase()}
             </span>
           ) : isPaid ? (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold uppercase tracking-wider text-[11px] border border-emerald-400/30">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold uppercase tracking-wider text-[11px] border border-emerald-400/30 print:border-black print:text-black">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
               PAID (SERVER RECORD)
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold uppercase tracking-wider text-[11px]">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold uppercase tracking-wider text-[11px] print:border-black print:text-black">
               {paymentStatus}
             </span>
           )}

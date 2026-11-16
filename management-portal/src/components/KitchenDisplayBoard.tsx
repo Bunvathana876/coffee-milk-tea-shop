@@ -40,15 +40,24 @@ export const KitchenDisplayBoard: React.FC<KitchenDisplayBoardProps> = ({
   busy,
 }) => {
   const pendingOrders = useMemo(
-    () => orders.filter(o => o.order_status === 'pending'),
+    () =>
+      [...orders.filter(o => o.order_status === 'pending')].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      ),
     [orders],
   );
   const preparingOrders = useMemo(
-    () => orders.filter(o => o.order_status === 'preparing'),
+    () =>
+      [...orders.filter(o => o.order_status === 'preparing')].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      ),
     [orders],
   );
   const readyOrders = useMemo(
-    () => orders.filter(o => o.order_status === 'ready'),
+    () =>
+      [...orders.filter(o => o.order_status === 'ready')].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      ),
     [orders],
   );
 
@@ -231,6 +240,8 @@ export const KitchenDisplayBoard: React.FC<KitchenDisplayBoardProps> = ({
 
                       <button
                         type="button"
+                        data-testid={`advance-${order.id}`}
+                        aria-label={`${col.actionLabel} for #${order.order_number}`}
                         disabled={busy}
                         onClick={() => onAdvanceStatus(order.id, col.nextStatus)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all active:scale-95 cursor-pointer disabled:opacity-50 ${col.btnClass}`}

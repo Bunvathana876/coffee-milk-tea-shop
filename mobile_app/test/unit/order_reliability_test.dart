@@ -8,7 +8,9 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_app/core/config/app_config.dart';
+import 'package:mobile_app/core/widgets/custom_button.dart';
 import 'package:mobile_app/data/models/cart_item_model.dart';
+import 'package:mobile_app/data/models/order_model.dart';
 import 'package:mobile_app/data/models/product_model.dart';
 import 'package:mobile_app/data/repositories/order_repository.dart';
 import 'package:mobile_app/data/services/api_service.dart';
@@ -21,7 +23,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const reference = 'ORD-20261106-ABCDEFGHJK';
 
-Map<String, dynamic> serverOrder({String orderNumber = reference}) => {
+Map<String, dynamic> serverOrder({
+  String orderNumber = reference,
+  String orderStatus = 'pending',
+}) => {
   'id': 42,
   'order_number': orderNumber,
   'customer_name': 'Test Customer',
@@ -30,7 +35,7 @@ Map<String, dynamic> serverOrder({String orderNumber = reference}) => {
   'total_usd': 2.30,
   'total_khr': 9430,
   'payment_status': 'unpaid',
-  'order_status': 'pending',
+  'order_status': orderStatus,
   'created_at': '2026-11-06T10:00:00Z',
   'items': [
     {
@@ -540,6 +545,241 @@ void main() {
       expect(orders.submissionState, OrderSubmissionState.preview);
       expect(orders.activeOrder, isNull);
       expect(find.text('Live Order Tracker'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'multiple rapid taps on checkout sheet disable the button and dispatch only one network request',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'customer_name': 'Rapid Tap Tester',
+        'customer_phone': '012345678',
+        'customer_auth_token': 'server-token',
+        'server_account_phone': '012345678',
+      });
+      final local = await LocalStorageService.init();
+      var postCount = 0;
+      final completer = Completer<http.Response>();
+      final api = ApiService(
+        baseUrl: 'http://example.test',
+        client: MockClient((request) async {
+          if (request.url.path == '/api/orders') {
+            postCount++;
+            return completer.future;
+          }
+          if (request.url.path == '/api/auth/me') {
+            return http.Response('{"phone":"012345678","loyalty_stamps":1}', 200);
+          }
+          return http.Response('{}', 200);
+        }),
+      );
+      final cart = CartProvider(localStorageService: local)..addItem(drink());
+      final orders = OrderProvider(
+        orderRepository: OrderRepository(
+          apiService: api,
+          localStorageService: local,
+        ),
+      );
+      final user = UserProvider(localStorageService: local, apiService: api);
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: cart),
+            ChangeNotifierProvider.value(value: orders),
+            ChangeNotifierProvider.value(value: user),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () => CheckoutSheet.show(context),
+                  child: const Text('Open checkout'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open checkout'));
+      await tester.pumpAndSettle();
+
+      // Tap Confirm & Place Order first time
+      await tester.tap(find.text('Confirm & Place Order'));
+      await tester.pump(); // pump frame to let _submitting state update
+
+      // Button is now in loading state with CircularProgressIndicator
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      // Attempt 3 rapid taps while in-flight
+      for (var i = 0; i < 3; i++) {
+        await tester.tap(find.byType(CustomButton));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      // Exactly 1 network request was initiated
+      expect(postCount, 1);
+
+      // Now complete the response
+      completer.complete(http.Response(jsonEncode(serverOrder()), 201));
+      await tester.pumpAndSettle();
+
+      // Exactly 1 order confirmed, cart cleared, confirmation screen shown
+      expect(postCount, 1);
+      expect(cart.items, isEmpty);
+      expect(orders.submissionState, OrderSubmissionState.confirmed);
+      expect(find.text('Order received'), findsOneWidget);
+
+      orders.dispose();
+      cart.dispose();
+      user.dispose();
+    },
+  );
+
+  testWidgets(
+    'retrying checkout after network failure reuses the same idempotency key and confirms the order',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'customer_name': 'Retry Tester',
+        'customer_phone': '012345678',
+        'customer_auth_token': 'server-token',
+        'server_account_phone': '012345678',
+      });
+      final local = await LocalStorageService.init();
+      final capturedKeys = <String?>[];
+      var attempts = 0;
+      final api = ApiService(
+        baseUrl: 'http://example.test',
+        client: MockClient((request) async {
+          if (request.url.path == '/api/orders') {
+            attempts++;
+            capturedKeys.add(request.headers['idempotency-key']);
+            if (attempts == 1) {
+              throw const SocketException('Simulated network drop');
+            }
+            return http.Response(jsonEncode(serverOrder()), 200);
+          }
+          if (request.url.path == '/api/auth/me') {
+            return http.Response('{"phone":"012345678","loyalty_stamps":1}', 200);
+          }
+          return http.Response('{}', 200);
+        }),
+      );
+      final cart = CartProvider(localStorageService: local)..addItem(drink());
+      final orders = OrderProvider(
+        orderRepository: OrderRepository(
+          apiService: api,
+          localStorageService: local,
+        ),
+      );
+      final user = UserProvider(localStorageService: local, apiService: api);
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: cart),
+            ChangeNotifierProvider.value(value: orders),
+            ChangeNotifierProvider.value(value: user),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () => CheckoutSheet.show(context),
+                  child: const Text('Open checkout'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open checkout'));
+      await tester.pumpAndSettle();
+
+      // First tap - fails with network drop
+      await tester.tap(find.text('Confirm & Place Order'));
+      await tester.pumpAndSettle();
+
+      // Cart retained, preview state, retry prompt shown
+      expect(attempts, 1);
+      expect(cart.items, hasLength(1));
+      expect(orders.submissionState, OrderSubmissionState.preview);
+      expect(orders.activeOrder, isNull);
+      expect(find.text('Order received'), findsNothing);
+
+      // Verify that the pending retry key is persisted in storage
+      expect(local.getPendingOrder(), isNotNull);
+      final savedPendingKey = local.getPendingOrder()!['key'];
+
+      // Second tap - user retries
+      await tester.tap(find.text('Confirm & Place Order'));
+      await tester.pumpAndSettle();
+
+      // Total attempts = 2
+      expect(attempts, 2);
+      expect(capturedKeys.length, 2);
+      expect(capturedKeys[0], isNotNull);
+      // Both requests MUST have used the exact same idempotency key
+      expect(capturedKeys[0], capturedKeys[1]);
+      expect(capturedKeys[1], savedPendingKey);
+
+      // Order successfully confirmed, cart cleared, pending key cleared
+      expect(cart.items, isEmpty);
+      expect(orders.submissionState, OrderSubmissionState.confirmed);
+      expect(local.getPendingOrder(), isNull);
+      expect(find.text('Order received'), findsOneWidget);
+
+      orders.dispose();
+      cart.dispose();
+      user.dispose();
+    },
+  );
+
+  test(
+    'live order status polling transitions through Pending -> Preparing -> Ready -> Completed',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final local = await LocalStorageService.init();
+      var currentStatus = 'pending';
+      final api = ApiService(
+        baseUrl: 'http://example.test',
+        client: MockClient((request) async {
+          if (request.url.path.contains('/api/orders/ref/')) {
+            return http.Response(
+              jsonEncode(serverOrder(orderStatus: currentStatus)),
+              200,
+            );
+          }
+          return http.Response('{}', 200);
+        }),
+      );
+      final repo = OrderRepository(
+        apiService: api,
+        localStorageService: local,
+      );
+      final orders = OrderProvider(orderRepository: repo);
+      orders.resetForSession('test-token');
+
+      // Start with pending order
+      orders.setActiveOrder(OrderModel.fromJson(serverOrder(orderStatus: 'pending')));
+      expect(orders.activeOrder?.orderStatus, 'pending');
+
+      // Advance to preparing and refresh
+      currentStatus = 'preparing';
+      await orders.refreshActiveOrder();
+      expect(orders.activeOrder?.orderStatus, 'preparing');
+
+      // Advance to ready and refresh (must still keep polling active)
+      currentStatus = 'ready';
+      await orders.refreshActiveOrder();
+      expect(orders.activeOrder?.orderStatus, 'ready');
+
+      // Advance to completed and refresh
+      currentStatus = 'completed';
+      await orders.refreshActiveOrder();
+      expect(orders.activeOrder?.orderStatus, 'completed');
+
+      orders.dispose();
     },
   );
 }
