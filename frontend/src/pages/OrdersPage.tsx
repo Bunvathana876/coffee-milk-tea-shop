@@ -8,6 +8,73 @@ import { ErrorState } from '../components/common/ErrorState';
 import { getStatusBadge, getPaymentBadge } from '../utils/orderStatusBadge';
 import type { Order } from '../types';
 
+function OrderBrewTimeline({ status }: { status: string }) {
+  if (status === 'cancelled') {
+    return (
+      <div className="py-1.5 px-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-1.5 mt-2">
+        <span>Order was cancelled</span>
+      </div>
+    );
+  }
+
+  const steps = [
+    { key: 'pending', label: '1. Received' },
+    { key: 'preparing', label: '2. Brewing' },
+    { key: 'ready', label: '3. Ready' },
+    { key: 'completed', label: '4. Enjoyed' },
+  ];
+
+  const currentIdx =
+    status === 'completed'
+      ? 3
+      : status === 'ready'
+      ? 2
+      : status === 'preparing'
+      ? 1
+      : 0;
+
+  return (
+    <div className="pt-2.5 pb-1 max-w-md">
+      <div className="flex items-center justify-between text-[11px] font-bold text-ink-soft mb-1.5">
+        <span>Kitchen Status</span>
+        <span className="text-cobalt font-black capitalize">
+          {status === 'preparing'
+            ? '☕ Barista Crafting'
+            : status === 'ready'
+            ? '🎉 Ready for Pickup'
+            : status}
+        </span>
+      </div>
+      <div className="grid grid-cols-4 gap-1.5">
+        {steps.map((s, idx) => {
+          const isDone = idx < currentIdx;
+          const isCurrent = idx === currentIdx;
+          return (
+            <div key={s.key} className="space-y-1">
+              <div
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  isDone
+                    ? 'bg-cobalt'
+                    : isCurrent
+                    ? 'bg-butter ring-2 ring-cobalt/40 animate-pulse'
+                    : 'bg-cream-deep'
+                }`}
+              />
+              <span
+                className={`block text-[10px] text-center font-bold truncate ${
+                  isCurrent ? 'text-cobalt' : isDone ? 'text-ink' : 'text-ink-muted/70'
+                }`}
+              >
+                {s.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function OrderHistory({ phone }: { phone: string }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,6 +203,9 @@ function OrderHistory({ phone }: { phone: string }) {
                     <span className="font-semibold text-ink">Instructions:</span> {order.notes}
                   </p>
                 )}
+
+                {/* Live Brewing Progress Stepper */}
+                <OrderBrewTimeline status={order.order_status} />
               </div>
 
               <div className="order-history-total flex flex-col sm:flex-row md:flex-col items-start sm:items-center md:items-end justify-between gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-line shrink-0">

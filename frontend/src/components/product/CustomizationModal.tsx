@@ -10,6 +10,7 @@ import {
 } from '../../features/products/customization';
 import { formatUsd, formatKhr } from '../../config/currency';
 import { productThumbnailUrl } from '../../utils/productImage';
+import { DrinkVisualizer } from './DrinkVisualizer';
 
 export interface CustomizationModalProps {
   product: Product | null;
@@ -169,6 +170,16 @@ const CustomizationModalContent: React.FC<ModalContentProps> = ({
             className="w-5.5 h-5.5 object-contain shrink-0"
           />
         </div>
+
+        {/* Live Visual Drink Cup Preview */}
+        <DrinkVisualizer
+          productName={product.name}
+          categoryName={product.category_name ?? undefined}
+          size={selectedSize}
+          sugarLevel={selectedSugar}
+          iceLevel={selectedIce}
+          toppings={selectedToppings}
+        />
 
         {/* Validation Warning if any */}
         {validationError && (

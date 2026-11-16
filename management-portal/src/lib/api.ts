@@ -75,6 +75,7 @@ export interface AdminOrder {
   payment_method: string;
   payment_status: string;
   order_status: OrderStatus;
+  notes?: string | null;
   created_at: string;
   items: OrderItem[];
 }

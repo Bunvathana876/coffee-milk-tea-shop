@@ -12,6 +12,7 @@ import '../widgets/product_card.dart';
 import '../widgets/product_detail_sheet.dart';
 import '../widgets/brand_banner_carousel.dart';
 import '../widgets/brand_category_icon.dart';
+import '../widgets/barista_surprise_sheet.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({
@@ -197,6 +198,79 @@ class _MenuScreenState extends State<MenuScreen> {
                             key: const Key('home-banner-carousel'),
                             isActive: widget.isActive,
                             onBannerTap: (index) => openBanner(index, shop),
+                          ),
+                          const SizedBox(height: 14),
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              key: const Key('home-surprise-barista-card'),
+                              onTap: () => BaristaSurpriseSheet.show(
+                                context,
+                                shop,
+                                cart,
+                              ),
+                              borderRadius: BorderRadius.circular(18),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.secondaryLight,
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Text(
+                                        '🎲',
+                                        style: TextStyle(fontSize: 14),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "Barista's Mystery Sip",
+                                            style: AppTypography.bodyMedium
+                                                .copyWith(
+                                                  fontWeight: FontWeight.w800,
+                                                  color: AppColors.bobaPearl,
+                                                ),
+                                          ),
+                                          Text(
+                                            "Can't decide? Let our house recipe surprise you!",
+                                            style: AppTypography.bodySmall
+                                                .copyWith(
+                                                  fontSize: 11,
+                                                  color: AppColors.primary,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.arrow_forward_ios_rounded,
+                                      size: 14,
+                                      color: AppColors.primary,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 16),
                           section('Categories', () => openCatalog()),

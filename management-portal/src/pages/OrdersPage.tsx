@@ -7,12 +7,16 @@ import {
   RotateCcw,
   Search,
   ShoppingBag,
+  Printer,
+  LayoutList,
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/authContext';
 import { ConfirmAction } from '../components/ConfirmAction';
 import { Drawer } from '../components/Drawer';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
+import { KitchenTicketModal } from '../components/KitchenTicketModal';
+import { KitchenDisplayBoard } from '../components/KitchenDisplayBoard';
 import {
   getOrder,
   getOrders,
@@ -129,6 +133,33 @@ export function OrdersPage() {
     };
   }, [token, status, offset, revision]);
 
+  // View mode: standard table or live kitchen Kanban board (KDS)
+  const [viewMode, setViewMode] = useState<'table' | 'kds'>('table');
+  const [ticketOrder, setTicketOrder] = useState<AdminOrder | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+
+  // Auto-refresh interval (every 15s) for live kitchen board
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = setInterval(() => {
+      setRevision(value => value + 1);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
+
+  async function handleAdvanceStatus(orderId: number, nextStatus: OrderStatus) {
+    if (!token || busy) return;
+    setBusy(true);
+    try {
+      await updateOrderStatus(token, orderId, nextStatus);
+      reload();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not update order status.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function reload() {
     setError('');
     setLoading(true);
@@ -228,16 +259,65 @@ export function OrdersPage() {
           </h1>
           <p>Track and manage café orders in one place.</p>
         </div>
-        <button
-          type="button"
-          className="button-secondary"
-          onClick={reload}
-          disabled={loading}
-          aria-label="Refresh orders"
-        >
-          <RotateCcw size={16} aria-hidden="true" />
-          <span>Refresh</span>
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* View Toggle */}
+          <div className="flex rounded-lg border border-slate-300 bg-white p-0.5 shadow-2xs">
+            <button
+              type="button"
+              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              onClick={() => setViewMode('table')}
+              aria-label="Table view"
+            >
+              <LayoutList size={14} />
+              <span>Table View</span>
+            </button>
+            <button
+              type="button"
+              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                viewMode === 'kds'
+                  ? 'bg-amber-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+              onClick={() => setViewMode('kds')}
+              aria-label="Kitchen Board KDS view"
+            >
+              <Coffee size={14} />
+              <span>☕ Kitchen Board (KDS)</span>
+            </button>
+          </div>
+
+          {/* Auto Refresh Toggle */}
+          <button
+            type="button"
+            className={`button-secondary text-xs flex items-center gap-1.5 ${
+              autoRefresh ? 'bg-amber-50 border-amber-300 text-amber-900 font-bold' : ''
+            }`}
+            onClick={() => setAutoRefresh(v => !v)}
+            title="Auto-refresh order queue every 15 seconds"
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                autoRefresh ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'
+              }`}
+            />
+            <span>Auto-Refresh: {autoRefresh ? 'ON' : 'OFF'}</span>
+          </button>
+
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={reload}
+            disabled={loading}
+            aria-label="Refresh orders"
+          >
+            <RotateCcw size={16} aria-hidden="true" />
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       {/* Real Server Order Count Statistics */}
@@ -337,6 +417,15 @@ export function OrdersPage() {
           <LoadingState label="Loading orders queue…" />
         ) : error ? (
           <ErrorState message={error} retry={reload} />
+        ) : viewMode === 'kds' ? (
+          <KitchenDisplayBoard
+            orders={visibleItems}
+            loading={loading}
+            onAdvanceStatus={handleAdvanceStatus}
+            onOpenDetails={openOrder}
+            onPrintTicket={setTicketOrder}
+            busy={busy}
+          />
         ) : !list || list.items.length === 0 ? (
           <EmptyState title="No orders found" detail="No server orders match this status." />
         ) : visibleItems.length === 0 ? (
@@ -480,6 +569,14 @@ export function OrdersPage() {
                 </strong>
               </div>
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="button-secondary flex items-center gap-1.5"
+                  onClick={() => setTicketOrder(selected)}
+                >
+                  <Printer size={15} />
+                  <span>Print Ticket</span>
+                </button>
                 <button type="button" className="button-secondary" onClick={closeDetails}>
                   Close
                 </button>
@@ -641,6 +738,12 @@ export function OrdersPage() {
           onConfirm={executeCashSettlement}
         />
       )}
+      {/* Kitchen Ticket Modal */}
+      <KitchenTicketModal
+        order={ticketOrder}
+        isOpen={Boolean(ticketOrder)}
+        onClose={() => setTicketOrder(null)}
+      />
     </div>
   );
 }

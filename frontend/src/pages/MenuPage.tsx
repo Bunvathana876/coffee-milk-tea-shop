@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, X, CheckCircle2, RotateCcw, Heart, ArrowUpDown } from 'lucide-react';
+import { Search, X, CheckCircle2, RotateCcw, Heart, ArrowUpDown, Sparkles } from 'lucide-react';
 import { useCategories } from '../hooks/useCategories';
 import { useProducts } from '../hooks/useProducts';
 import { ProductCard } from '../components/product/ProductCard';
 import { CustomizationModal } from '../components/product/CustomizationModal';
+import { FlavorFinderModal } from '../components/menu/FlavorFinderModal';
 import { ProductGridSkeleton } from '../components/common/Skeleton';
 import { ErrorState } from '../components/common/ErrorState';
 import { Button } from '../components/common/Button';
@@ -30,6 +31,7 @@ export const MenuPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<SortKey>('featured');
   const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [quizOpen, setQuizOpen] = useState(false);
 
   const { addItem } = useCart();
   const { categories, loading: catLoading } = useCategories();
@@ -145,7 +147,7 @@ export const MenuPage: React.FC = () => {
               Specialty espresso, slow-cooked brown sugar boba, velvety matcha, and sparkling fruit
               teas. Customized to your size, sweetness, and ice for every single cup.
             </p>
-            <div className="menu-hero-meta">
+            <div className="menu-hero-meta flex flex-wrap items-center gap-3">
               <span className="menu-hero-count">
                 <img
                   src="/brand/menu-drinks-icon.png"
@@ -160,6 +162,16 @@ export const MenuPage: React.FC = () => {
                   {displayedProducts.length === 1 ? 'handcrafted drink' : 'handcrafted drinks'}
                 </span>
               </span>
+
+              <button
+                type="button"
+                onClick={() => setQuizOpen(true)}
+                className="px-3.5 py-1.5 rounded-full bg-butter hover:bg-butter-deep text-cobalt text-xs font-bold flex items-center gap-1.5 border border-cobalt/20 shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                aria-label="Open Taste Matcher Quiz"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-cobalt" />
+                <span>Taste Matcher Quiz</span>
+              </button>
             </div>
           </div>
           <div className="menu-hero-badge-col" aria-hidden="true">
@@ -391,6 +403,16 @@ export const MenuPage: React.FC = () => {
         isOpen={!!customizingProduct}
         onClose={() => setCustomizingProduct(null)}
         onAddToCart={handleAddToCart}
+      />
+
+      {/* Flavor Finder / Taste Matcher Quiz */}
+      <FlavorFinderModal
+        isOpen={quizOpen}
+        onClose={() => setQuizOpen(false)}
+        products={products}
+        onCustomize={product => {
+          setCustomizingProduct(product);
+        }}
       />
     </div>
   );
