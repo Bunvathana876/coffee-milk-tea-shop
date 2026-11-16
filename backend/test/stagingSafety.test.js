@@ -576,7 +576,7 @@ test('migration verification rejects missing migration records', async () => {
       return { rows: [{ 1: 1 }], rowCount: 2 };
     },
   };
-  await assert.rejects(verifyMigrations(mockDb), /Database migrations are missing or have changed/);
+  await assert.rejects(verifyMigrations(mockDb), { code: 'DB_MIGRATION_MISSING' });
 });
 
 test('migration verification rejects missing or disabled payment audit triggers', async () => {

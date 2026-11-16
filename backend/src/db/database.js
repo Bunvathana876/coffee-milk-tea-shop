@@ -1,6 +1,7 @@
 import pg from 'pg';
 import { config, isProductionOrStaging } from '../config.js';
 import { verifyMigrations } from './verifyMigrations.js';
+import { databaseFailure, formatDatabaseFailure } from './diagnostics.js';
 
 const { Pool } = pg;
 
@@ -1105,15 +1106,17 @@ export async function getDatabase({ readOnly = false } = {}) {
   nextPool.on('error', err => {
     console.error(
       'Unexpected idle PostgreSQL client error:',
-      err.code || err.name || 'UnknownError',
+      formatDatabaseFailure(err, 'connection'),
     );
   });
 
+  let phase = 'connection';
   try {
     const client = await nextPool.connect();
     client.release();
     isConnectedToPostgres = true;
     console.log('🐘 Connected to PostgreSQL.');
+    phase = 'schema verification';
     if (readOnly) {
       const mode = await nextPool.query('SHOW default_transaction_read_only');
       if (mode.rows[0]?.default_transaction_read_only !== 'on') {
@@ -1121,6 +1124,7 @@ export async function getDatabase({ readOnly = false } = {}) {
       }
     } else if (isProductionOrStaging()) {
       await verifyMigrations(nextPool);
+      console.log('Database migration verification passed.');
     } else {
       await initSchema(nextPool);
     }
@@ -1135,11 +1139,9 @@ export async function getDatabase({ readOnly = false } = {}) {
       console.warn('PostgreSQL unavailable; using isolated in-memory database for tests only.');
       return memoryDb;
     }
-    const reason = err.code || err.name || 'UnknownError';
-    console.error(`PostgreSQL connection failed [${reason}].`);
-    throw new Error(
-      'PostgreSQL initialization failed; server was not started. Check database configuration and availability.',
-    );
+    const diagnostic = databaseFailure(err, phase);
+    console.error(`PostgreSQL ${phase} failed: ${formatDatabaseFailure(diagnostic)}`);
+    throw diagnostic;
   }
 }
 
@@ -1148,7 +1150,7 @@ export async function dbQuery(sql, params = []) {
     try {
       return await pool.query(sql, params);
     } catch (err) {
-      console.error('PostgreSQL query error:', err.code || err.name || 'UnknownError');
+      console.error('PostgreSQL query error:', formatDatabaseFailure(err));
       throw err;
     }
   }

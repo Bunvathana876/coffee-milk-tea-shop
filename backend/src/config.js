@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { AUTHORIZED_TARGETS } from './db/targets.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -145,6 +146,10 @@ export function validateProductionConfig(env = process.env) {
       }
       if (!['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname) && parsed.searchParams.get('sslmode') !== 'verify-full') {
         errors.push('Remote DATABASE_URL must use sslmode=verify-full');
+      }
+      if ((env.ENVIRONMENT || env.NODE_ENV || '').toLowerCase() === 'staging' &&
+          parsed.hostname.split('.')[0].replace(/-pooler$/, '') === AUTHORIZED_TARGETS.productionEndpointId) {
+        errors.push('Staging DATABASE_URL points to the production endpoint; use the approved staging database');
       }
     } catch {
       errors.push('DATABASE_URL must be a valid PostgreSQL connection URL');

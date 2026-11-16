@@ -66,7 +66,7 @@ async function http(base, endpoint, { method = 'GET', token, body, key } = {}) {
   return { status: response.status, data: await response.json() };
 }
 
-function productionProbe(databaseUrl, expectedSuccess) {
+function productionProbe(databaseUrl, expectedSuccess, expectedCode) {
   const code = `
     import { startServer } from './src/server.js';
     import { closeDatabase } from './src/db/database.js';
@@ -91,6 +91,10 @@ function productionProbe(databaseUrl, expectedSuccess) {
     if (error instanceof assert.AssertionError) throw error;
     assert.equal(expectedSuccess, false, 'Production startup unexpectedly failed.');
     assert.equal(error.status, 23, 'Production probe failed for an unrelated reason.');
+    assert.ok(String(error.stdout).includes('Connected to PostgreSQL.'));
+    assert.ok(String(error.stderr).includes(`[${expectedCode}]`));
+    assert.ok(!String(error.stderr).includes('PostgreSQL connection failed'));
+    assert.ok(!String(error.stderr).includes(databasePassword));
   }
 }
 
@@ -190,7 +194,7 @@ try {
   pass('fresh development schema has no demo seed or versioned migration tables');
 
   stage = 'production fail-closed preflight';
-  productionProbe(databaseUrl, false);
+  productionProbe(databaseUrl, false, 'DB_MIGRATION_TABLE_MISSING');
   pass('production startup fails closed before migrations');
 
   stage = 'versioned migrations';
@@ -227,7 +231,8 @@ try {
   const originalChecksum = ledger.rows.find(row => row.version === '003').checksum;
   await verificationPool.query('UPDATE schema_migrations SET checksum=$1 WHERE version=$2', ['0'.repeat(64), '003']);
   await assert.rejects(applyDisposableMigrations(databaseUrl, 'true'), /changed/);
-  await assert.rejects(verifyMigrations(verificationPool), /missing or have changed/);
+  await assert.rejects(verifyMigrations(verificationPool), { code: 'DB_MIGRATION_CHECKSUM_MISMATCH' });
+  productionProbe(databaseUrl, false, 'DB_MIGRATION_CHECKSUM_MISMATCH');
   assert.equal((await verificationPool.query('SELECT COUNT(*)::int AS count FROM schema_migrations')).rows[0].count, 3);
   await verificationPool.query('UPDATE schema_migrations SET checksum=$1 WHERE version=$2', [originalChecksum, '003']);
   await verifyMigrations(verificationPool);

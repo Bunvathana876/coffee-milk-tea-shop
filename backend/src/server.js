@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { config, validateProductionConfig, isProductionOrStaging } from './config.js';
 import { getDatabase, closeDatabase } from './db/database.js';
+import { DatabaseDiagnosticError, formatDatabaseFailure } from './db/diagnostics.js';
 
 import healthRouter from './routes/health.js';
 import categoriesRouter from './routes/categories.js';
@@ -147,9 +148,11 @@ if (process.argv[1] && process.argv[1].endsWith('server.js')) {
       process.on('SIGTERM', shutdown);
       process.on('SIGINT', shutdown);
     })
-    .catch(() => {
+    .catch(error => {
       console.error(
-        'Server startup failed. Check configuration, database readiness and migration state.',
+        error instanceof DatabaseDiagnosticError
+          ? `Server startup failed: ${formatDatabaseFailure(error)}`
+          : 'Server startup failed. Check configuration and HTTP listener availability.',
       );
       process.exit(1);
     });

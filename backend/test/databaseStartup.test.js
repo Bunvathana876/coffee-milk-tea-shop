@@ -12,7 +12,8 @@ const { startServer } = await import('../src/server.js');
 const { dbQuery } = await import('../src/db/database.js');
 
 test('database startup fails without PostgreSQL outside explicit test mode', async () => {
-  await assert.rejects(startServer(0), /PostgreSQL initialization failed/);
+  await assert.rejects(startServer(0), error =>
+    error.code === 'DB_CONNECTION_FAILED' && error.cause?.code === 'ECONNREFUSED');
   await assert.rejects(dbQuery('SELECT 1'), /PostgreSQL is not initialized/);
 });
 
