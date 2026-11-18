@@ -1,35 +1,134 @@
-# Dependencies & Package Managers
+# ============================================================================
+# Brew & Boba Café - Root .gitignore
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# 1. Dependencies & Package Managers
+# ----------------------------------------------------------------------------
+node_modules/
 **/node_modules/
+.pnp
+.pnp.js
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
 
-# Build Outputs & Bundles
+# ----------------------------------------------------------------------------
+# 2. Build Outputs & Compilers
+# ----------------------------------------------------------------------------
+dist/
 **/dist/
-**/build/
 dist-ssr/
+build/
+**/build/
 *.tsbuildinfo
+.eslintcache
+.parcel-cache
+.turbo/
+.next/
+.nuxt/
+.output/
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
 
-# Environment Variables & Secrets
+# ----------------------------------------------------------------------------
+# 3. Environment Variables & Secrets (CRITICAL)
+# ----------------------------------------------------------------------------
+# Ignore all environment variable files
 .env
 .env.*
+.env*.local
+*.env
+**/.env
+**/.env.*
+**/.env*.local
+
+# EXCEPTION: Never ignore .env.example templates
 !.env.example
 !**/.env.example
 
-# Knowledge Graph
-graphify-out/
+# Private Keys, Certificates & Credentials
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+*.keystore
+*.jks
+id_rsa*
+id_ed25519*
+secrets.json
+credentials.json
 
-# Database Backups & Dumps
+# ----------------------------------------------------------------------------
+# 4. Flutter & Dart (Mobile App)
+# ----------------------------------------------------------------------------
+.dart_tool/
+**/.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+**/doc/api/
+coverage/
+**/coverage/
+*.lcov
+app.*.symbols
+app.*.map.json
+
+# Android build outputs & local config
+mobile_app/android/.gradle/
+mobile_app/android/local.properties
+mobile_app/android/key.properties
+mobile_app/android/app/debug/
+mobile_app/android/app/profile/
+mobile_app/android/app/release/
+mobile_app/android/captures/
+mobile_app/android/.cxx/
+mobile_app/android/GeneratedPluginRegistrant.java
+
+# iOS / macOS build outputs & ephemeral files
+mobile_app/ios/Pods/
+mobile_app/ios/.symlinks/
+mobile_app/ios/Flutter/ephemeral/
+mobile_app/ios/Flutter/Flutter.framework
+mobile_app/ios/Flutter/Flutter.podspec
+mobile_app/ios/Flutter/Generated.xcconfig
+mobile_app/ios/Flutter/flutter_export_environment.sh
+mobile_app/ios/Flutter/app.flx
+mobile_app/ios/Flutter/app.zip
+mobile_app/ios/Flutter/flutter_assets/
+mobile_app/ios/Runner/GeneratedPluginRegistrant.*
+mobile_app/macos/Flutter/ephemeral/
+mobile_app/linux/flutter/ephemeral/
+mobile_app/windows/flutter/ephemeral/
+**/DerivedData/
+xcuserdata/
+
+# ----------------------------------------------------------------------------
+# 5. Database Backups, Dumps & Local Data
+# ----------------------------------------------------------------------------
 backups/
+**/backups/
 *.dump
 *.backup
 *.db
 *.sqlite
 *.sqlite3
+*.sql.gz
+postgres_data/
 
-# Python & Virtual Environments
+# ----------------------------------------------------------------------------
+# 6. Python & Virtual Environments
+# ----------------------------------------------------------------------------
 venv/
 **/venv/
+.venv/
+**/.venv/
 __pycache__/
 /**/__pycache__/
 *.py[cod]
@@ -38,22 +137,51 @@ __pycache__/
 .coverage
 htmlcov/
 
-# Operating System & IDE Files
+# ----------------------------------------------------------------------------
+# 7. Operating System & Editor Files
+# ----------------------------------------------------------------------------
+# macOS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
 Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# IDEs & Editors
+.idea/
+**/.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
 **/.vscode/*
 !**/.vscode/extensions.json
 !**/.vscode/launch.json
-.idea/
-.codex/
 *.swp
 *.swo
+.project
+.classpath
+.settings/
 
-# Local archives
+# ----------------------------------------------------------------------------
+# 8. Local Tooling, Knowledge Graphs & Backups
+# ----------------------------------------------------------------------------
+graphify-out/
+.codex/
 archive/
-
-# Neon local workspace metadata
 .neon
+.neon/
 .vercel
-.env*
+.vercel/
 *.standalone-backup/
