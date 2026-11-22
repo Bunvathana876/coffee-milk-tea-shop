@@ -858,6 +858,16 @@ class MemoryPgDb {
       } else if (/order_status = \$1/i.test(cleanSql)) {
         rows = rows.filter(r => r.order_status === String(params[0]));
       }
+      const fromMatch = cleanSql.match(/created_at >= \$(\d+)/i);
+      if (fromMatch) {
+        const fromTs = new Date(params[Number(fromMatch[1]) - 1]).getTime();
+        rows = rows.filter(r => new Date(r.created_at).getTime() >= fromTs);
+      }
+      const toMatch = cleanSql.match(/created_at <= \$(\d+)/i);
+      if (toMatch) {
+        const toTs = new Date(params[Number(toMatch[1]) - 1]).getTime();
+        rows = rows.filter(r => new Date(r.created_at).getTime() <= toTs);
+      }
       // Sort DESC
       rows.sort((a, b) => b.id - a.id);
       if (/LIMIT \$\d+/i.test(cleanSql)) {

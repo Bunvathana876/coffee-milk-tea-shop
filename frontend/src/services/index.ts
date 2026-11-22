@@ -1,4 +1,5 @@
 export {
+  ApiError,
   getCategories,
   getProducts,
   getProductById,
@@ -10,6 +11,9 @@ export {
   getMyOrders,
   getOrdersByPhone,
   setApiBaseUrl,
+  type ApiErrorCode,
+  type ApiRequestOptions,
   type ProductFilters,
+  type RetryInfo,
   API_BASE_URL,
 } from './api';

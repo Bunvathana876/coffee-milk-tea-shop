@@ -15,12 +15,12 @@ import { useProducts } from '../hooks/useProducts';
 import { useCategories } from '../hooks/useCategories';
 import { ProductCard } from '../components/product/ProductCard';
 import { CustomizationModal } from '../components/product/CustomizationModal';
-import { ProductGridSkeleton } from '../components/common/Skeleton';
+import { CatalogWakeupNotice, ProductGridSkeleton } from '../components/common/Skeleton';
 import { ErrorState } from '../components/common/ErrorState';
 import { Reveal } from '../components/common/Reveal';
 import { MobileAppSection } from '../components/home/MobileAppSection';
 import { useCart } from '../features/cart/useCart';
-import { useAuth } from '../features/auth/AuthContext';
+import { useAuth } from '../features/auth/useAuth';
 import type { Product, DrinkCustomization } from '../types';
 
 const FAQS = [
@@ -49,13 +49,35 @@ const FAQS = [
 export function HomePage() {
   const { addItem } = useCart();
   const { user, isAuthenticated, openAuthModal } = useAuth();
-  const { products, loading, error, refetch } = useProducts();
+  const {
+    products,
+    loading,
+    isSlowLoading,
+    retryAttempt,
+    error,
+    refetch,
+  } = useProducts();
   const {
     categories,
     loading: categoriesLoading,
+    isSlowLoading: categoriesSlowLoading,
     error: categoriesError,
     refetch: retryCategories,
   } = useCategories();
+
+  const handleRetryCatalog = () => {
+    void refetch();
+    if (categoriesError || categories.length === 0) {
+      void retryCategories();
+    }
+  };
+
+  const handleRetryCategories = () => {
+    void retryCategories();
+    if (error || products.length === 0) {
+      void refetch();
+    }
+  };
   const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
@@ -303,9 +325,16 @@ export function HomePage() {
           ))}
         </div>
         {loading ? (
-          <ProductGridSkeleton count={4} />
+          <>
+            <CatalogWakeupNotice
+              visible={isSlowLoading}
+              retryAttempt={retryAttempt}
+              itemLabel="menu"
+            />
+            <ProductGridSkeleton count={4} />
+          </>
         ) : error ? (
-          <ErrorState message={error} onRetry={refetch} />
+          <ErrorState message={error} onRetry={handleRetryCatalog} />
         ) : featured.length ? (
           <div className="drink-grid">
             {featured.map(product => (
@@ -408,10 +437,16 @@ export function HomePage() {
         </Reveal>
         {categoriesLoading ? (
           <p role="status" className="cafe-empty">
-            Pouring the categories…
+            {categoriesSlowLoading
+              ? 'Waking up the café server to pour the categories…'
+              : 'Pouring the categories…'}
           </p>
         ) : categoriesError ? (
-          <ErrorState message={categoriesError} onRetry={retryCategories} />
+          <ErrorState
+            title="Unable to Load Categories"
+            message={categoriesError}
+            onRetry={handleRetryCategories}
+          />
         ) : categories.length ? (
           <div className="category-index">
             {categories.map((category, index) => (

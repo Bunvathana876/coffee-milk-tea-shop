@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { X, User, Phone, Mail, LogOut, Award, ShoppingBag } from 'lucide-react';
-import { useAuth } from '../../features/auth/AuthContext';
+import { useAuth } from '../../features/auth/useAuth';
 import { LoyaltyCard } from './LoyaltyCard';
 
 interface ProfileModalProps {

@@ -18,7 +18,7 @@ import {
   Info,
 } from 'lucide-react';
 import { useCart } from '../features/cart/useCart';
-import { useAuth } from '../features/auth/AuthContext';
+import { useAuth } from '../features/auth/useAuth';
 import { formatUsd, formatKhr } from '../config/currency';
 import { createOrder } from '../services/orderService';
 import { Button } from '../components/common/Button';

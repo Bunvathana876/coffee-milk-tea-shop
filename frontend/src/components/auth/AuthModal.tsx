@@ -12,7 +12,7 @@ import {
   Sparkles,
   ArrowRight,
 } from 'lucide-react';
-import { useAuth } from '../../features/auth/AuthContext';
+import { useAuth } from '../../features/auth/useAuth';
 
 interface AuthModalProps {
   isOpen: boolean;

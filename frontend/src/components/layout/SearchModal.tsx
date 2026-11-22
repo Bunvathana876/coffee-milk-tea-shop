@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, X, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
-import { getProducts } from '../../services/api';
+import { Search, X, Sparkles, ArrowRight, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { ApiError, getProducts } from '../../services/api';
+import {
+  buildProductsCacheKey,
+  readCachedCatalog,
+  writeCachedCatalog,
+} from '../../services/catalogCache';
 import { formatUsd, formatKhr } from '../../config/currency';
 import type { Product } from '../../types';
 
@@ -19,10 +24,19 @@ const POPULAR_SEARCHES = [
   'Cold Brew',
 ];
 
-export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, onSelectProduct }) => {
+const SearchModalDialog: React.FC<Omit<SearchModalProps, 'isOpen'>> = ({
+  onClose,
+  onSelectProduct,
+}) => {
+  const cacheKey = buildProductsCacheKey({ isAvailable: true });
+  const initialCache = readCachedCatalog<Product[]>(cacheKey, true);
+
   const [query, setQuery] = useState('');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [hadInitialCache] = useState(() => Boolean(initialCache));
+  const [products, setProducts] = useState<Product[]>(() => initialCache?.data ?? []);
+  const [loading, setLoading] = useState<boolean>(() => !initialCache);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleClose = () => {
@@ -31,32 +45,45 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, onSel
   };
 
   useEffect(() => {
-    if (!isOpen) return;
-
-    let isMounted = true;
-    getProducts({ isAvailable: true })
-      .then(data => {
-        if (isMounted) {
-          setProducts(data);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setProducts([]);
-          setLoading(false);
-        }
-      });
-
     const timer = setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
 
+    const currentCache = readCachedCatalog<Product[]>(cacheKey, true);
+    if (currentCache?.isFresh && retryCount === 0) {
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+
+    const controller = new AbortController();
+    let isMounted = true;
+
+    getProducts({ isAvailable: true }, { signal: controller.signal })
+      .then(data => {
+        if (isMounted) {
+          writeCachedCatalog(cacheKey, data, true);
+          setProducts(data);
+          setLoading(false);
+          setError(null);
+        }
+      })
+      .catch(err => {
+        if (!isMounted) return;
+        if (err instanceof ApiError && err.code === 'ABORTED') return;
+        setLoading(false);
+        if (!hadInitialCache || retryCount > 0) {
+          setProducts([]);
+          setError(err instanceof Error ? err.message : 'Unable to load menu drinks.');
+        }
+      });
+
     return () => {
       isMounted = false;
       clearTimeout(timer);
+      controller.abort();
     };
-  }, [isOpen]);
+  }, [cacheKey, hadInitialCache, retryCount]);
 
   const filteredProducts = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -68,8 +95,6 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, onSel
         (p.category_name && p.category_name.toLowerCase().includes(q)),
     );
   }, [products, query]);
-
-  if (!isOpen) return null;
 
   return (
     <div
@@ -131,6 +156,31 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, onSel
             <div className="py-12 text-center text-ink-soft flex flex-col items-center gap-2">
               <Loader2 className="w-6 h-6 animate-spin text-cobalt" />
               <p className="text-xs font-medium">Brewing drink results...</p>
+            </div>
+          ) : error ? (
+            <div role="alert" className="py-10 text-center space-y-3 text-ink-soft">
+              <div
+                aria-hidden="true"
+                className="w-11 h-11 rounded-2xl bg-cream-deep text-rose-600 flex items-center justify-center mx-auto border border-line"
+              >
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1 max-w-sm mx-auto">
+                <p className="text-sm font-bold text-ink">Unable to Load Menu</p>
+                <p className="text-xs text-ink-soft">{error}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setLoading(true);
+                  setError(null);
+                  setRetryCount(c => c + 1);
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-cream-deep hover:bg-butter text-ink font-bold text-xs border border-line cursor-pointer transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Try Again</span>
+              </button>
             </div>
           ) : query.trim() === '' ? (
             <div className="py-10 text-center space-y-2 text-ink-soft">
@@ -235,4 +285,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, onSel
       </div>
     </div>
   );
+};
+
+export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, onSelectProduct }) => {
+  if (!isOpen) return null;
+  return <SearchModalDialog onClose={onClose} onSelectProduct={onSelectProduct} />;
 };

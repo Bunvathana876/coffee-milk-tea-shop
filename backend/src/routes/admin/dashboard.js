@@ -47,20 +47,53 @@ router.get('/summary', requireAdmin, async (req, res, next) => {
   }
 });
 
+const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseDateBound(raw, boundary) {
+  if (raw === undefined || raw === null) return null;
+  const value = (Array.isArray(raw) ? String(raw[0]) : String(raw)).trim();
+  if (!value) return null;
+
+  if (DATE_ONLY_REGEX.test(value)) {
+    const iso = boundary === 'start' ? `${value}T00:00:00.000Z` : `${value}T23:59:59.999Z`;
+    const parsed = new Date(iso);
+    if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+      return { invalid: true };
+    }
+    return { raw: value, iso };
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return { invalid: true };
+  }
+  return { raw: value, iso: parsed.toISOString() };
+}
+
 // GET /api/admin/reports/sales
 router.get('/reports/sales', requireAdmin, async (req, res, next) => {
   try {
-    const { date_from, date_to } = req.query;
+    const fromBound = parseDateBound(req.query.date_from, 'start');
+    if (fromBound?.invalid) {
+      return res.status(400).json({ detail: 'Invalid date_from parameter.' });
+    }
+    const toBound = parseDateBound(req.query.date_to, 'end');
+    if (toBound?.invalid) {
+      return res.status(400).json({ detail: 'Invalid date_to parameter.' });
+    }
+    if (fromBound && toBound && new Date(fromBound.iso) > new Date(toBound.iso)) {
+      return res.status(400).json({ detail: 'date_from must be on or before date_to.' });
+    }
 
     let query = 'SELECT * FROM orders WHERE 1=1';
     const params = [];
 
-    if (date_from) {
-      params.push(date_from);
+    if (fromBound) {
+      params.push(fromBound.iso);
       query += ` AND created_at >= $${params.length}`;
     }
-    if (date_to) {
-      params.push(date_to);
+    if (toBound) {
+      params.push(toBound.iso);
       query += ` AND created_at <= $${params.length}`;
     }
 
@@ -90,8 +123,8 @@ router.get('/reports/sales', requireAdmin, async (req, res, next) => {
     }
 
     res.json({
-      date_from: date_from || 'all_time',
-      date_to: date_to || new Date().toISOString(),
+      date_from: fromBound ? fromBound.raw : 'all_time',
+      date_to: toBound ? toBound.raw : new Date().toISOString(),
       total_revenue_usd: revenue.usd,
       total_revenue_khr: revenue.khr,
       total_orders: orders.length,

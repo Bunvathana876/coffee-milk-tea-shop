@@ -1,37 +1,21 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
+  ApiError,
   type CustomerUser,
   loginCustomer,
   registerCustomer,
   getCustomerProfile,
 } from '../../services/api';
+import { AuthContext, type AuthModalOptions } from './useAuth';
+
+export type { AuthModalOptions };
 
 const TOKEN_KEY = 'coffee_customer_token';
 const USER_KEY = 'coffee_customer_user';
 
-export interface AuthModalOptions {
-  mode?: 'login' | 'register';
-  redirectTo?: string;
+function isUnauthorizedError(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 401 || error.status === 403);
 }
-
-interface AuthContextType {
-  user: CustomerUser | null;
-  token: string | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  authModalOpen: boolean;
-  authModalOptions: AuthModalOptions;
-  openAuthModal: () => void;
-  /** Open the modal in a specific mode and optionally navigate somewhere after success. */
-  openAuthModalWith: (options: AuthModalOptions) => void;
-  closeAuthModal: () => void;
-  login: (identifier: string, password: string) => Promise<void>;
-  register: (fullName: string, phone: string, password: string, email?: string) => Promise<void>;
-  logout: () => void;
-  refreshProfile: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(() => {
@@ -67,12 +51,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const profile = await getCustomerProfile(token);
       setUser(profile);
       localStorage.setItem(USER_KEY, JSON.stringify(profile));
-    } catch {
-      // If token expired, clear auth
-      setToken(null);
-      setUser(null);
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
+    } catch (err) {
+      // Only clear session when the backend explicitly rejects the token (401/403).
+      // Cold-start timeouts or transient network failures keep the cached session intact.
+      if (isUnauthorizedError(err)) {
+        setToken(null);
+        setUser(null);
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+      }
     }
   }, [token]);
 
@@ -86,8 +73,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           localStorage.setItem(USER_KEY, JSON.stringify(profile));
         }
       })
-      .catch(() => {
-        if (!cancelled) {
+      .catch(err => {
+        if (!cancelled && isUnauthorizedError(err)) {
           setToken(null);
           setUser(null);
           localStorage.removeItem(TOKEN_KEY);
@@ -159,11 +146,3 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     </AuthContext.Provider>
   );
 };
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}

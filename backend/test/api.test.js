@@ -1271,3 +1271,50 @@ test('checkout reliability: multiple rapid concurrent requests collapse to singl
   const profileAfterRetry = await apiRequest('/api/auth/me', { headers });
   assert.equal(profileAfterRetry.data.loyalty_stamps, 1);
 });
+
+test('admin sales report validates date parameters and filters by YYYY-MM-DD bounds', async () => {
+  const memory = await getDatabase();
+  const admin = memory.tables.staff_users.find(row => row.role === 'admin' && row.is_active);
+  const headers = { Authorization: `Bearer ${createToken({ sub: admin.id, role: 'admin' })}` };
+
+  const badFrom = await apiRequest('/api/admin/reports/sales?date_from=not-a-date', { headers });
+  assert.equal(badFrom.status, 400);
+
+  const impossibleDate = await apiRequest('/api/admin/reports/sales?date_to=2026-02-31', { headers });
+  assert.equal(impossibleDate.status, 400);
+
+  const invertedRange = await apiRequest(
+    '/api/admin/reports/sales?date_from=2026-11-25&date_to=2026-11-20',
+    { headers },
+  );
+  assert.equal(invertedRange.status, 400);
+
+  const futureRange = await apiRequest(
+    '/api/admin/reports/sales?date_from=2099-01-01&date_to=2099-01-02',
+    { headers },
+  );
+  assert.equal(futureRange.status, 200);
+  assert.equal(futureRange.data.total_orders, 0);
+  assert.equal(futureRange.data.date_from, '2099-01-01');
+  assert.equal(futureRange.data.date_to, '2099-01-02');
+});
+
+test('public catalog endpoints allow stale-while-revalidate caching while private endpoints stay no-store', async () => {
+  const productsRes = await fetch(`${baseUrl}/api/products`);
+  assert.equal(productsRes.status, 200);
+  const productsCache = productsRes.headers.get('cache-control') || '';
+  assert.match(productsCache, /\bpublic\b/);
+  assert.match(productsCache, /stale-while-revalidate=/);
+
+  const categoriesRes = await fetch(`${baseUrl}/api/categories`);
+  assert.equal(categoriesRes.status, 200);
+  const categoriesCache = categoriesRes.headers.get('cache-control') || '';
+  assert.match(categoriesCache, /\bpublic\b/);
+  assert.match(categoriesCache, /stale-while-revalidate=/);
+
+  const authMeRes = await fetch(`${baseUrl}/api/auth/me`);
+  assert.equal(authMeRes.headers.get('cache-control'), 'no-store');
+
+  const ordersRes = await fetch(`${baseUrl}/api/orders`);
+  assert.equal(ordersRes.headers.get('cache-control'), 'no-store');
+});

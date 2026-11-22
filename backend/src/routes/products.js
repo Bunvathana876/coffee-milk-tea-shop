@@ -66,6 +66,7 @@ router.get('/', async (req, res, next) => {
       },
     }));
 
+    res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=300');
     res.json(products);
   } catch (err) {
     next(err);
@@ -98,6 +99,7 @@ router.get('/:id', async (req, res, next) => {
       return res.status(404).json({ detail: 'Product not found' });
     }
 
+    res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=300');
     res.json({
       id: product.id,
       category_id: product.category_id,

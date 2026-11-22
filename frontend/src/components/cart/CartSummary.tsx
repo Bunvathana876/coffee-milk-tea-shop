@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, QrCode, Trash2, ShoppingBag, ShieldCheck } from 'lucide-react';
 import { formatUsd, formatKhr } from '../../config/currency';
 import { Button } from '../common/Button';
-import { useAuth } from '../../features/auth/AuthContext';
+import { useAuth } from '../../features/auth/useAuth';
 
 export interface CartSummaryProps {
   totalQuantity: number;

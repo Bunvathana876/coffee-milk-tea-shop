@@ -1,4 +1,5 @@
 import React from 'react';
+import { Coffee } from 'lucide-react';
 
 export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
@@ -68,6 +69,45 @@ export const ProductGridSkeleton: React.FC<{ count?: number }> = ({ count = 8 })
       {Array.from({ length: count }).map((_, idx) => (
         <ProductCardSkeleton key={idx} />
       ))}
+    </div>
+  );
+};
+
+export interface CatalogWakeupNoticeProps {
+  visible: boolean;
+  retryAttempt?: number;
+  itemLabel?: string;
+}
+
+/**
+ * Reassuring cold-start banner shown only when initial catalog loading takes longer than 4s
+ */
+export const CatalogWakeupNotice: React.FC<CatalogWakeupNoticeProps> = ({
+  visible,
+  retryAttempt = 0,
+  itemLabel = 'menu',
+}) => {
+  if (!visible) return null;
+
+  const message =
+    retryAttempt >= 2
+      ? `Still connecting to our café server (attempt ${retryAttempt} of 3)… Hang tight, your ${itemLabel} will appear automatically.`
+      : `Waking up the café server… First visits can take 20–40 seconds and your ${itemLabel} will load automatically.`;
+
+  return (
+    <div className="mb-5 rounded-3xl border border-line bg-cream-card px-5 py-4 shadow-xs flex flex-col sm:flex-row sm:items-center gap-3.5">
+      <div
+        className="w-10 h-10 rounded-2xl bg-cream-deep text-cobalt border border-line flex items-center justify-center shrink-0"
+        aria-hidden="true"
+      >
+        <Coffee className="w-5 h-5" />
+      </div>
+      <div className="flex-1 min-w-0 space-y-2">
+        <div role="status" aria-live="polite" className="text-xs sm:text-sm font-semibold text-ink">
+          {message}
+        </div>
+        <progress aria-label="Connecting to café server" className="cafe-wakeup-progress" />
+      </div>
     </div>
   );
 };

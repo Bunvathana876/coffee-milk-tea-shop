@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingBag, User, Search, Menu, ArrowUpRight } from 'lucide-react';
 import { useCart } from '../../features/cart/useCart';
-import { useAuth } from '../../features/auth/AuthContext';
+import { useAuth } from '../../features/auth/useAuth';
 import { AuthModal } from '../auth/AuthModal';
 import { ProfileModal } from '../auth/ProfileModal';
 import { StoreSelectorModal } from './StoreSelectorModal';

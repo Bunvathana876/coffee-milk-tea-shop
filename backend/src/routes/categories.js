@@ -36,6 +36,7 @@ router.get('/', async (req, res, next) => {
       product_count: Number(cat.product_count || 0),
     }));
 
+    res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=300');
     res.json(categories);
   } catch (err) {
     next(err);
@@ -84,6 +85,7 @@ router.get('/:id', async (req, res, next) => {
       base_price_usd: Number(p.base_price_usd),
     }));
 
+    res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=300');
     res.json({
       ...category,
       is_active: Boolean(category.is_active),

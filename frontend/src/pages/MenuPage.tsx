@@ -6,7 +6,7 @@ import { useProducts } from '../hooks/useProducts';
 import { ProductCard } from '../components/product/ProductCard';
 import { CustomizationModal } from '../components/product/CustomizationModal';
 import { FlavorFinderModal } from '../components/menu/FlavorFinderModal';
-import { ProductGridSkeleton } from '../components/common/Skeleton';
+import { CatalogWakeupNotice, ProductGridSkeleton } from '../components/common/Skeleton';
 import { ErrorState } from '../components/common/ErrorState';
 import { Button } from '../components/common/Button';
 import { useCart } from '../features/cart/useCart';
@@ -34,7 +34,12 @@ export const MenuPage: React.FC = () => {
   const [quizOpen, setQuizOpen] = useState(false);
 
   const { addItem } = useCart();
-  const { categories, loading: catLoading } = useCategories();
+  const {
+    categories,
+    loading: catLoading,
+    error: catError,
+    refetch: refetchCategories,
+  } = useCategories();
   const { isFavorite, favoriteIds } = useFavorites();
 
   const isFavFilter = selectedCategory === 'Favorites';
@@ -42,6 +47,8 @@ export const MenuPage: React.FC = () => {
   const {
     products,
     loading: prodLoading,
+    isSlowLoading,
+    retryAttempt,
     error,
     refetch,
   } = useProducts({
@@ -49,6 +56,13 @@ export const MenuPage: React.FC = () => {
     search: searchQuery || undefined,
     isAvailable: true,
   });
+
+  const handleRetryMenu = () => {
+    void refetch();
+    if (catError || categories.length === 0) {
+      void refetchCategories();
+    }
+  };
 
   // Live search: update the URL shortly after the user stops typing
   useEffect(() => {
@@ -350,9 +364,16 @@ export const MenuPage: React.FC = () => {
 
       {/* Product List Content */}
       {prodLoading ? (
-        <ProductGridSkeleton count={8} />
+        <>
+          <CatalogWakeupNotice
+            visible={isSlowLoading}
+            retryAttempt={retryAttempt}
+            itemLabel="menu"
+          />
+          <ProductGridSkeleton count={8} />
+        </>
       ) : error ? (
-        <ErrorState message={error} onRetry={refetch} />
+        <ErrorState message={error} onRetry={handleRetryMenu} />
       ) : displayedProducts.length === 0 ? (
         <div className="py-16 text-center space-y-4 max-w-sm mx-auto bg-cream-card rounded-3xl border border-line p-8 shadow-xs">
           <div className="w-16 h-16 rounded-full bg-butter/60 border border-butter-deep text-cobalt flex items-center justify-center mx-auto shadow-xs">

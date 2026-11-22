@@ -20,7 +20,7 @@ import {
   Loader2,
   ShoppingBag,
 } from 'lucide-react';
-import { useAuth } from '../features/auth/AuthContext';
+import { useAuth } from '../features/auth/useAuth';
 import { LoyaltyCard } from '../components/auth/LoyaltyCard';
 import { useFavorites } from '../features/favorites/useFavorites';
 import { updateCustomerProfile } from '../services/api';

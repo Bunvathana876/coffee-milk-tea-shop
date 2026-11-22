@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, RefreshCw, ShoppingBag, Clock, ShieldCheck } from 'lucide-react';
-import { useAuth } from '../features/auth/AuthContext';
+import { useAuth } from '../features/auth/useAuth';
 import { getOrdersByPhone } from '../services/api';
 import { formatUsd } from '../config/currency';
 import { ErrorState } from '../components/common/ErrorState';
@@ -85,7 +85,7 @@ function OrderHistory({ phone }: { phone: string }) {
           <p className="text-xs text-ink-soft">Fetching your latest barista orders</p>
         </div>
       ) : error ? (
-        <ErrorState message={error} onRetry={reload} />
+        <ErrorState title="Unable to Load Orders" message={error} onRetry={reload} />
       ) : orders.length === 0 ? (
         <div className="cafe-empty account-card p-10 sm:p-14 text-center space-y-4">
           <div className="w-20 h-20 rounded-3xl bg-cream-deep border border-line flex items-center justify-center mx-auto shadow-2xs">

@@ -9,7 +9,7 @@ import {
   ChevronRight,
   Info,
 } from 'lucide-react';
-import { useAuth } from '../features/auth/AuthContext';
+import { useAuth } from '../features/auth/useAuth';
 import { LoyaltyCard } from '../components/auth/LoyaltyCard';
 
 interface RewardPerk {
