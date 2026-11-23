@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthProvider';
 import { ThemeProvider } from './components/ThemeContext';
+import { ToastProvider } from './components/ToastContext';
 import App from './App';
 import './styles.css';
 
@@ -11,7 +12,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <AuthProvider>
         <ThemeProvider>
-          <App />
+          <ToastProvider>
+            <App />
+          </ToastProvider>
         </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>

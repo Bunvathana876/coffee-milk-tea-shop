@@ -1,29 +1,43 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import {
   AlertCircle,
   Building2,
   CheckCircle2,
   ExternalLink,
+  Eye,
+  EyeOff,
+  KeyRound,
   Lock,
   Mail,
+  Pencil,
+  Plus,
   RotateCcw,
   Search,
   ShieldAlert,
   ShieldCheck,
   Store,
+  Trash2,
   UserCheck,
   Users,
   XCircle,
 } from 'lucide-react';
 import { useAuth } from '../auth/authContext';
 import { ConfirmAction } from '../components/ConfirmAction';
+import { Drawer } from '../components/Drawer';
 import { ErrorState } from '../components/States';
+import { useToast } from '../components/ToastContext';
 import {
+  createStaff,
+  createStore,
+  deleteStore,
   getSellers,
   getStaff,
   getStores,
   updateSellerStatus,
+  updateStaff,
+  updateStore,
+  updateStoreStatus,
   type Seller,
   type SellerMetrics,
   type StaffUser,
@@ -179,7 +193,8 @@ export function getPermissionBadge(scope: PermissionScope) {
 }
 
 export function RoleControllerPage() {
-  const { token } = useAuth();
+  const { token, user: currentUser } = useAuth();
+  const { notify } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
@@ -196,11 +211,38 @@ export function RoleControllerPage() {
   const [sellerStatusFilter, setSellerStatusFilter] = useState<'all' | 'active' | 'inactive'>(
     'all',
   );
+  const [staffSearch, setStaffSearch] = useState('');
 
-  // Action states
+  // Seller action states
   const [statusConfirmSeller, setStatusConfirmSeller] = useState<Seller | null>(null);
   const [statusBusy, setStatusBusy] = useState(false);
-  const [feedbackMessage, setFeedbackMessage] = useState('');
+
+  // Staff / Admin drawer & modal states
+  const [staffDrawerOpen, setStaffDrawerOpen] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<StaffUser | null>(null);
+  const [staffName, setStaffName] = useState('');
+  const [staffEmail, setStaffEmail] = useState('');
+  const [staffPassword, setStaffPassword] = useState('');
+  const [showStaffPassword, setShowStaffPassword] = useState(false);
+  const [staffRole, setStaffRole] = useState<'admin' | 'staff'>('staff');
+  const [staffActive, setStaffActive] = useState(true);
+  const [staffBusy, setStaffBusy] = useState(false);
+  const [staffFormError, setStaffFormError] = useState('');
+  const [confirmStaffToggle, setConfirmStaffToggle] = useState<StaffUser | null>(null);
+
+  // Store Registry drawer & modal states
+  const [storeDrawerOpen, setStoreDrawerOpen] = useState(false);
+  const [editingStore, setEditingStore] = useState<StoreType | null>(null);
+  const [storeName, setStoreName] = useState('');
+  const [storeCode, setStoreCode] = useState('');
+  const [storeAddress, setStoreAddress] = useState('');
+  const [storeActive, setStoreActive] = useState(true);
+  const [storeBusy, setStoreBusy] = useState(false);
+  const [storeFormError, setStoreFormError] = useState('');
+  const [confirmStoreAction, setConfirmStoreAction] = useState<{
+    store: StoreType;
+    action: 'toggle' | 'delete';
+  } | null>(null);
 
   const reload = useCallback(() => {
     setRevision(r => r + 1);
@@ -281,6 +323,16 @@ export function RoleControllerPage() {
     });
   }, [sellers, sellerStatusFilter, sellerSearch]);
 
+  const adminAndStaffAccounts = useMemo(() => {
+    if (!staffUsers) return [];
+    const accounts = staffUsers.filter(u => u.role === 'admin' || u.role === 'staff');
+    const q = staffSearch.trim().toLowerCase();
+    if (!q) return accounts;
+    return accounts.filter(
+      u => u.full_name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
+    );
+  }, [staffUsers, staffSearch]);
+
   // Toggle seller status handler
   async function handleConfirmStatusChange() {
     if (!token || !statusConfirmSeller) return;
@@ -288,43 +340,243 @@ export function RoleControllerPage() {
     try {
       const nextActive = !statusConfirmSeller.is_active;
       await updateSellerStatus(token, statusConfirmSeller.id, nextActive);
+      const sellerName = statusConfirmSeller.full_name;
       setStatusConfirmSeller(null);
-      setFeedbackMessage(
-        nextActive
-          ? `Seller ${statusConfirmSeller.full_name} activated successfully.`
-          : `Seller ${statusConfirmSeller.full_name} deactivated successfully.`,
-      );
-      setTimeout(() => setFeedbackMessage(''), 4000);
+      notify({
+        tone: 'success',
+        message: nextActive
+          ? `Seller ${sellerName} activated successfully.`
+          : `Seller ${sellerName} deactivated successfully.`,
+      });
       reload();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update seller status.');
+      notify({
+        tone: 'error',
+        message: err instanceof Error ? err.message : 'Failed to update seller status.',
+      });
+      setStatusConfirmSeller(null);
     } finally {
       setStatusBusy(false);
     }
   }
 
+  function openCreateStaffDrawer() {
+    setEditingStaff(null);
+    setStaffName('');
+    setStaffEmail('');
+    setStaffPassword('');
+    setShowStaffPassword(false);
+    setStaffRole('staff');
+    setStaffActive(true);
+    setStaffFormError('');
+    setStaffDrawerOpen(true);
+  }
+
+  function openEditStaffDrawer(member: StaffUser) {
+    setEditingStaff(member);
+    setStaffName(member.full_name);
+    setStaffEmail(member.email);
+    setStaffPassword('');
+    setShowStaffPassword(false);
+    setStaffRole(member.role === 'admin' ? 'admin' : 'staff');
+    setStaffActive(member.is_active);
+    setStaffFormError('');
+    setStaffDrawerOpen(true);
+  }
+
+  function closeStaffDrawer(force = false) {
+    if (staffBusy && !force) return;
+    setStaffDrawerOpen(false);
+    setEditingStaff(null);
+    setStaffFormError('');
+    setStaffPassword('');
+  }
+
+  async function handleStaffSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!token) return;
+
+    const cleanName = staffName.trim();
+    const cleanEmail = staffEmail.trim().toLowerCase();
+    if (cleanName.length < 2 || cleanName.length > 255) {
+      setStaffFormError('Full name must be between 2 and 255 characters.');
+      return;
+    }
+
+    if (!editingStaff) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+        setStaffFormError('Enter a valid work email address.');
+        return;
+      }
+      if (!staffPassword || staffPassword.length < 6) {
+        setStaffFormError('Initial password must be at least 6 characters.');
+        return;
+      }
+    } else if (staffPassword && staffPassword.length < 6) {
+      setStaffFormError('New password must be at least 6 characters.');
+      return;
+    }
+
+    setStaffBusy(true);
+    setStaffFormError('');
+    try {
+      if (editingStaff) {
+        await updateStaff(token, editingStaff.id, {
+          full_name: cleanName,
+          role: staffRole,
+          is_active: staffActive,
+          ...(staffPassword ? { password: staffPassword } : {}),
+        });
+        notify({ tone: 'success', message: `Account "${cleanName}" updated.` });
+      } else {
+        await createStaff(token, {
+          email: cleanEmail,
+          full_name: cleanName,
+          password: staffPassword,
+          role: staffRole,
+        });
+        notify({
+          tone: 'success',
+          message: `${staffRole === 'admin' ? 'Administrator' : 'Staff'} account "${cleanName}" created.`,
+        });
+      }
+      closeStaffDrawer(true);
+      reload();
+    } catch (err) {
+      setStaffFormError(err instanceof Error ? err.message : 'Failed to save staff account.');
+    } finally {
+      setStaffBusy(false);
+    }
+  }
+
+  async function executeStaffToggle() {
+    if (!token || !confirmStaffToggle) return;
+    setStaffBusy(true);
+    try {
+      const nextActive = !confirmStaffToggle.is_active;
+      await updateStaff(token, confirmStaffToggle.id, { is_active: nextActive });
+      notify({
+        tone: 'success',
+        message: nextActive
+          ? `${confirmStaffToggle.full_name} activated.`
+          : `${confirmStaffToggle.full_name} deactivated.`,
+      });
+      setConfirmStaffToggle(null);
+      reload();
+    } catch (err) {
+      notify({
+        tone: 'error',
+        message: err instanceof Error ? err.message : 'Failed to update staff status.',
+      });
+      setConfirmStaffToggle(null);
+    } finally {
+      setStaffBusy(false);
+    }
+  }
+
+  function openCreateStoreDrawer() {
+    setEditingStore(null);
+    setStoreName('');
+    setStoreCode('');
+    setStoreAddress('');
+    setStoreActive(true);
+    setStoreFormError('');
+    setStoreDrawerOpen(true);
+  }
+
+  function openEditStoreDrawer(store: StoreType) {
+    setEditingStore(store);
+    setStoreName(store.name);
+    setStoreCode(store.code);
+    setStoreAddress(store.address ?? '');
+    setStoreActive(store.is_active);
+    setStoreFormError('');
+    setStoreDrawerOpen(true);
+  }
+
+  function closeStoreDrawer(force = false) {
+    if (storeBusy && !force) return;
+    setStoreDrawerOpen(false);
+    setEditingStore(null);
+    setStoreFormError('');
+  }
+
+  async function handleStoreSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!token) return;
+
+    const cleanName = storeName.trim();
+    const cleanCode = storeCode.trim().toUpperCase();
+    const cleanAddress = storeAddress.trim() || null;
+
+    if (cleanName.length < 2) {
+      setStoreFormError('Store name must be at least 2 characters.');
+      return;
+    }
+    if (!/^[A-Z0-9-]{2,50}$/.test(cleanCode)) {
+      setStoreFormError('Store code must be 2–50 uppercase letters, numbers, or hyphens.');
+      return;
+    }
+
+    setStoreBusy(true);
+    setStoreFormError('');
+    try {
+      if (editingStore) {
+        await updateStore(token, editingStore.id, {
+          name: cleanName,
+          code: cleanCode,
+          address: cleanAddress,
+        });
+        notify({ tone: 'success', message: `Store "${cleanName}" updated.` });
+      } else {
+        await createStore(token, {
+          name: cleanName,
+          code: cleanCode,
+          address: cleanAddress,
+          is_active: storeActive,
+        });
+        notify({ tone: 'success', message: `Store "${cleanName}" created.` });
+      }
+      closeStoreDrawer(true);
+      reload();
+    } catch (err) {
+      setStoreFormError(err instanceof Error ? err.message : 'Failed to save store.');
+    } finally {
+      setStoreBusy(false);
+    }
+  }
+
+  async function executeStoreConfirmAction() {
+    if (!token || !confirmStoreAction) return;
+    const { store, action } = confirmStoreAction;
+    setStoreBusy(true);
+    try {
+      if (action === 'delete') {
+        await deleteStore(token, store.id);
+        notify({ tone: 'success', message: `Store "${store.name}" deleted.` });
+      } else {
+        const nextActive = !store.is_active;
+        await updateStoreStatus(token, store.id, nextActive);
+        notify({
+          tone: 'success',
+          message: nextActive ? `Store "${store.name}" activated.` : `Store "${store.name}" deactivated.`,
+        });
+      }
+      setConfirmStoreAction(null);
+      reload();
+    } catch (err) {
+      notify({
+        tone: 'error',
+        message: err instanceof Error ? err.message : 'Failed to update store.',
+      });
+      setConfirmStoreAction(null);
+    } finally {
+      setStoreBusy(false);
+    }
+  }
+
   return (
     <div className="page-stack role-controller-enter">
-      {/* Toast Feedback */}
-      {feedbackMessage && (
-        <div className="rounded-xl border border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/60 p-4 text-emerald-900 dark:text-emerald-100 text-sm flex items-center justify-between shadow-sm animate-in fade-in">
-          <div className="flex items-center gap-2">
-            <CheckCircle2
-              size={16}
-              className="text-emerald-700 dark:text-emerald-400 shrink-0"
-              aria-hidden="true"
-            />
-            <span className="font-medium">{feedbackMessage}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setFeedbackMessage('')}
-            className="text-xs text-emerald-800 dark:text-emerald-200 font-semibold underline ml-4 hover:opacity-80"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
 
       {/* Page Heading */}
       <div className="page-heading">
@@ -566,6 +818,151 @@ export function RoleControllerPage() {
         </div>
       </section>
 
+      {/* SECTION 2B: STAFF & ADMINISTRATOR ACCOUNTS */}
+      <section aria-labelledby="staff-accounts-heading" className="panel p-6 flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
+          <div>
+            <div className="eyebrow text-cobalt mb-1">TEAM &amp; ACCESS ACCOUNTS</div>
+            <h2
+              id="staff-accounts-heading"
+              className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2"
+            >
+              <UserCheck size={18} className="text-blue-600 shrink-0" aria-hidden="true" />
+              <span>Staff &amp; Administrator Accounts</span>
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-700 mt-1 font-medium">
+              Create, update, and manage administrator and café staff accounts with last-admin protection.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="button-primary text-xs font-semibold flex items-center gap-1.5 self-start sm:self-auto"
+            onClick={openCreateStaffDrawer}
+          >
+            <Plus size={14} aria-hidden="true" />
+            <span>Add Staff / Admin</span>
+          </button>
+        </div>
+
+        <search className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="seller-search-wrapper w-full sm:w-72">
+            <input
+              id="staff-account-search"
+              name="staff_search"
+              type="search"
+              className="text-input seller-search-input text-xs text-slate-900 font-semibold placeholder:text-slate-500 placeholder:font-normal"
+              placeholder="Search staff or admins…"
+              aria-label="Search staff or administrator accounts"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              value={staffSearch}
+              onChange={e => setStaffSearch(e.target.value)}
+            />
+            <Search size={14} className="seller-search-icon" aria-hidden="true" />
+          </div>
+          <span className="text-xs font-semibold text-slate-600">
+            {adminAndStaffAccounts.length}{' '}
+            {adminAndStaffAccounts.length === 1 ? 'account' : 'accounts'}
+          </span>
+        </search>
+
+        {staffUsers === null ? (
+          <div className="p-6 text-center text-xs text-slate-600 font-medium">
+            {loading ? 'Loading staff and administrator accounts…' : 'Staff account directory unavailable.'}
+          </div>
+        ) : adminAndStaffAccounts.length === 0 ? (
+          <div className="p-6 text-center text-xs text-slate-600 font-medium border border-dashed border-slate-300 rounded-xl">
+            No matching staff or administrator accounts found.
+          </div>
+        ) : (
+          <div
+            className="table-scroll"
+            tabIndex={0}
+            role="region"
+            aria-label="Staff and Administrator Accounts"
+          >
+            <table className="sellers-table">
+              <thead>
+                <tr>
+                  <th scope="col">Account</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Role</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="numeric">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {adminAndStaffAccounts.map(member => (
+                  <tr key={member.id}>
+                    <td>
+                      <div className="flex items-center gap-2.5">
+                        <div className="seller-avatar" aria-hidden="true">
+                          <span>{member.full_name?.slice(0, 2).toUpperCase() || 'ST'}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <strong className="text-xs sm:text-sm font-bold text-slate-900">
+                            {member.full_name}
+                            {currentUser?.id === member.id ? ' (You)' : ''}
+                          </strong>
+                          <span className="text-xs font-mono text-slate-600">
+                            #STAFF-{member.id}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="text-xs text-slate-800 font-semibold">{member.email}</span>
+                    </td>
+                    <td>
+                      <span
+                        className={`status-badge ${
+                          member.role === 'admin' ? 'status-preparing' : 'status-pending'
+                        }`}
+                      >
+                        {member.role === 'admin' ? 'Administrator' : 'Staff'}
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        className={
+                          member.is_active
+                            ? 'status-badge status-completed'
+                            : 'status-badge status-cancelled'
+                        }
+                      >
+                        {member.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="numeric">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          className="button-secondary seller-action-button text-xs font-bold"
+                          onClick={() => openEditStaffDrawer(member)}
+                        >
+                          <Pencil size={12} aria-hidden="true" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="button-secondary seller-action-button text-xs font-bold"
+                          onClick={() => setConfirmStaffToggle(member)}
+                        >
+                          {member.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
       {/* SECTION 3: SELLER ACCESS MANAGEMENT */}
       <section aria-labelledby="seller-access-heading" className="panel p-6 flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-zinc-800 pb-4">
@@ -794,13 +1191,24 @@ export function RoleControllerPage() {
             </p>
           </div>
 
-          <Link
-            to="/admin/sellers"
-            className="button-secondary text-xs font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-1.5 self-start sm:self-auto"
-          >
-            <Store size={13} aria-hidden="true" />
-            <span>Manage Store Assignments</span>
-          </Link>
+          <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+            <button
+              type="button"
+              className="button-primary text-xs font-semibold flex items-center gap-1.5"
+              onClick={openCreateStoreDrawer}
+              disabled={stores === null}
+            >
+              <Plus size={14} aria-hidden="true" />
+              <span>Add Store</span>
+            </button>
+            <Link
+              to="/admin/sellers"
+              className="button-secondary text-xs font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-1.5"
+            >
+              <Store size={13} aria-hidden="true" />
+              <span>Manage Store Assignments</span>
+            </Link>
+          </div>
         </div>
 
         {stores === null ? (
@@ -816,57 +1224,95 @@ export function RoleControllerPage() {
             </p>
           </div>
         ) : stores.length === 0 ? (
-          <div className="p-6 text-center rounded-xl border border-dashed border-slate-300 dark:border-zinc-700 text-slate-800 dark:text-zinc-200 text-xs font-semibold">
-            No stores registered in the database registry yet.
+          <div className="p-6 text-center rounded-xl border border-dashed border-slate-300 dark:border-zinc-700 text-slate-800 dark:text-zinc-200 text-xs font-semibold flex flex-col items-center gap-3">
+            <span>No stores registered in the database registry yet.</span>
+            <button
+              type="button"
+              className="button-primary text-xs font-semibold"
+              onClick={openCreateStoreDrawer}
+            >
+              <Plus size={14} aria-hidden="true" />
+              <span>Create First Store</span>
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {stores.map(st => (
-              <article
-                key={st.id}
-                className="p-4 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col justify-between shadow-sm hover:border-slate-300 dark:hover:border-zinc-700 transition-colors"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-slate-200 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 border border-slate-300 dark:border-zinc-700 font-extrabold">
-                      {st.code}
-                    </span>
-                    <span
-                      className={
-                        st.is_active
-                          ? 'status-badge status-completed text-xs'
-                          : 'status-badge status-cancelled text-xs'
-                      }
-                    >
-                      {st.is_active ? 'Active Store' : 'Inactive'}
-                    </span>
+            {stores.map(st => {
+              const sellerCountForStore =
+                st.assigned_sellers_count ?? st.assigned_sellers?.length ?? 0;
+              const orderCountForStore = st.total_orders_count ?? st.total_orders ?? 0;
+              return (
+                <article
+                  key={st.id}
+                  className="p-4 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col justify-between shadow-sm hover:border-slate-300 dark:hover:border-zinc-700 transition-colors"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-slate-200 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 border border-slate-300 dark:border-zinc-700 font-extrabold">
+                        {st.code}
+                      </span>
+                      <span
+                        className={
+                          st.is_active
+                            ? 'status-badge status-completed text-xs'
+                            : 'status-badge status-cancelled text-xs'
+                        }
+                      >
+                        {st.is_active ? 'Active Store' : 'Inactive'}
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-zinc-50">
+                      {st.name}
+                    </h3>
+                    {st.address && (
+                      <p className="text-xs text-slate-800 dark:text-zinc-200 mt-1.5 line-clamp-2 leading-relaxed font-medium">
+                        {st.address}
+                      </p>
+                    )}
                   </div>
-                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-zinc-50">
-                    {st.name}
-                  </h3>
-                  {st.address && (
-                    <p className="text-xs text-slate-800 dark:text-zinc-200 mt-1.5 line-clamp-2 leading-relaxed font-medium">
-                      {st.address}
-                    </p>
-                  )}
-                </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-200 dark:border-zinc-800/80 flex items-center justify-between text-xs">
-                  <span className="text-slate-800 dark:text-zinc-200 font-bold">
-                    {st.assigned_sellers
-                      ? `${st.assigned_sellers.length} assigned`
-                      : 'Store registered'}
-                  </span>
-                  <Link
-                    to="/admin/sellers"
-                    className="text-blue-800 dark:text-blue-300 font-extrabold hover:underline flex items-center gap-1"
-                  >
-                    <span>Assign</span>
-                    <ExternalLink size={12} aria-hidden="true" />
-                  </Link>
-                </div>
-              </article>
-            ))}
+                  <div className="mt-4 pt-3 border-t border-slate-200 dark:border-zinc-800/80 flex flex-col gap-2.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-800 dark:text-zinc-200 font-bold">
+                        {sellerCountForStore} assigned · {orderCountForStore} orders
+                      </span>
+                      <Link
+                        to="/admin/sellers"
+                        className="text-blue-800 dark:text-blue-300 font-extrabold hover:underline flex items-center gap-1"
+                      >
+                        <span>Assign</span>
+                        <ExternalLink size={12} aria-hidden="true" />
+                      </Link>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        type="button"
+                        className="button-secondary seller-action-button text-xs font-bold"
+                        onClick={() => openEditStoreDrawer(st)}
+                      >
+                        <Pencil size={12} aria-hidden="true" />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="button-secondary seller-action-button text-xs font-bold"
+                        onClick={() => setConfirmStoreAction({ store: st, action: 'toggle' })}
+                      >
+                        {st.is_active ? 'Deactivate' : 'Activate'}
+                      </button>
+                      <button
+                        type="button"
+                        className="button-secondary seller-action-button text-xs font-bold text-rose-700"
+                        onClick={() => setConfirmStoreAction({ store: st, action: 'delete' })}
+                      >
+                        <Trash2 size={12} aria-hidden="true" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
@@ -909,10 +1355,336 @@ export function RoleControllerPage() {
               : `Are you sure you want to activate ${statusConfirmSeller.full_name}? They will be permitted to log in with their credentials.`
           }
           busy={statusBusy}
+          confirmLabel={statusConfirmSeller.is_active ? 'Deactivate' : 'Activate'}
           onCancel={() => setStatusConfirmSeller(null)}
           onConfirm={handleConfirmStatusChange}
         />
       )}
+
+      {/* Confirm Staff / Admin Status Toggle */}
+      {confirmStaffToggle && (
+        <ConfirmAction
+          title={
+            confirmStaffToggle.is_active
+              ? `Deactivate ${confirmStaffToggle.full_name}?`
+              : `Activate ${confirmStaffToggle.full_name}?`
+          }
+          detail={
+            confirmStaffToggle.is_active
+              ? 'This immediately blocks login for this account. The last active administrator cannot be deactivated.'
+              : 'This restores login eligibility for this account.'
+          }
+          busy={staffBusy}
+          confirmLabel={confirmStaffToggle.is_active ? 'Deactivate' : 'Activate'}
+          onCancel={() => setConfirmStaffToggle(null)}
+          onConfirm={executeStaffToggle}
+        />
+      )}
+
+      {/* Confirm Store Action */}
+      {confirmStoreAction && (
+        <ConfirmAction
+          title={
+            confirmStoreAction.action === 'delete'
+              ? `Delete store ${confirmStoreAction.store.name}?`
+              : confirmStoreAction.store.is_active
+                ? `Deactivate store ${confirmStoreAction.store.name}?`
+                : `Activate store ${confirmStoreAction.store.name}?`
+          }
+          detail={
+            confirmStoreAction.action === 'delete'
+              ? 'Stores with historical order records cannot be deleted and must be deactivated instead.'
+              : confirmStoreAction.store.is_active
+                ? 'Assigned sellers immediately lose access to orders for an inactive store.'
+                : 'Assigned sellers will regain read access for this active store.'
+          }
+          busy={storeBusy}
+          confirmLabel={
+            confirmStoreAction.action === 'delete'
+              ? 'Delete Store'
+              : confirmStoreAction.store.is_active
+                ? 'Deactivate'
+                : 'Activate'
+          }
+          tone={confirmStoreAction.action === 'delete' ? 'danger' : 'primary'}
+          onCancel={() => setConfirmStoreAction(null)}
+          onConfirm={executeStoreConfirmAction}
+        />
+      )}
+
+      {/* Staff / Admin Editor Drawer */}
+      <Drawer
+        isOpen={staffDrawerOpen}
+        onClose={() => closeStaffDrawer(false)}
+        eyebrow="STAFF & ADMIN ACCESS"
+        title={editingStaff ? `Edit ${editingStaff.full_name}` : 'Add Staff or Administrator'}
+        description={
+          editingStaff
+            ? `${editingStaff.email} · Update role, active status, or reset password.`
+            : 'Provision a new staff operator or administrator account.'
+        }
+        width="md"
+        footer={
+          <>
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={() => closeStaffDrawer(false)}
+              disabled={staffBusy}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="staff-account-form"
+              className="button-primary"
+              disabled={staffBusy}
+            >
+              {staffBusy ? 'Saving…' : editingStaff ? 'Save Account' : 'Create Account'}
+            </button>
+          </>
+        }
+      >
+        <form id="staff-account-form" onSubmit={handleStaffSubmit} className="flex flex-col gap-4">
+          {staffFormError && (
+            <div className="form-error" role="alert">
+              <AlertCircle size={16} aria-hidden="true" className="shrink-0" />
+              <span>{staffFormError}</span>
+            </div>
+          )}
+
+          <label className="flex flex-col gap-1.5 font-bold text-xs text-slate-800">
+            Full name
+            <input
+              name="full_name"
+              type="text"
+              className="text-input"
+              required
+              minLength={2}
+              maxLength={255}
+              autoComplete="name"
+              placeholder="e.g. Dara Sok"
+              value={staffName}
+              onChange={e => setStaffName(e.target.value)}
+              disabled={staffBusy}
+            />
+          </label>
+
+          {!editingStaff && (
+            <label className="flex flex-col gap-1.5 font-bold text-xs text-slate-800">
+              Work email address
+              <input
+                name="email"
+                type="email"
+                className="text-input"
+                required
+                maxLength={255}
+                autoComplete="email"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                placeholder="staff@brewboba.com"
+                value={staffEmail}
+                onChange={e => setStaffEmail(e.target.value)}
+                disabled={staffBusy}
+              />
+            </label>
+          )}
+
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="staff-password-input"
+              className="font-bold text-xs text-slate-800 flex items-center gap-1.5"
+            >
+              <KeyRound size={12} aria-hidden="true" />
+              <span>
+                {editingStaff
+                  ? 'Reset password (optional, 6+ characters)'
+                  : 'Initial password (6+ characters)'}
+              </span>
+            </label>
+            <div className="password-wrap">
+              <input
+                id="staff-password-input"
+                name="password"
+                type={showStaffPassword ? 'text' : 'password'}
+                className="text-input"
+                required={!editingStaff}
+                minLength={6}
+                maxLength={72}
+                autoComplete="new-password"
+                placeholder={editingStaff ? 'Leave blank to keep current password' : 'Minimum 6 characters'}
+                value={staffPassword}
+                onChange={e => setStaffPassword(e.target.value)}
+                disabled={staffBusy}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                aria-pressed={showStaffPassword}
+                aria-label={showStaffPassword ? 'Hide password' : 'Show password'}
+                onClick={() => setShowStaffPassword(v => !v)}
+              >
+                {showStaffPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          <fieldset className="staff-role-fieldset">
+            <legend className="font-bold text-xs text-slate-800 mb-2">Account role</legend>
+            <div className="staff-role-radios">
+              <label className="staff-role-option">
+                <input
+                  type="radio"
+                  name="staff_role"
+                  value="staff"
+                  checked={staffRole === 'staff'}
+                  onChange={() => setStaffRole('staff')}
+                  disabled={staffBusy}
+                />
+                <span>
+                  <strong>Staff</strong>
+                  <small>In-store barista &amp; cashier operations</small>
+                </span>
+              </label>
+              <label className="staff-role-option">
+                <input
+                  type="radio"
+                  name="staff_role"
+                  value="admin"
+                  checked={staffRole === 'admin'}
+                  onChange={() => setStaffRole('admin')}
+                  disabled={staffBusy}
+                />
+                <span>
+                  <strong>Administrator</strong>
+                  <small>Full management portal &amp; security access</small>
+                </span>
+              </label>
+            </div>
+          </fieldset>
+
+          {editingStaff && (
+            <label className="check-field flex items-center gap-2 cursor-pointer font-bold text-xs text-slate-800">
+              <input
+                name="is_active"
+                type="checkbox"
+                checked={staffActive}
+                onChange={e => setStaffActive(e.target.checked)}
+                disabled={staffBusy}
+              />
+              <span>Account is active (allowed to sign in)</span>
+            </label>
+          )}
+        </form>
+      </Drawer>
+
+      {/* Store Editor Drawer */}
+      <Drawer
+        isOpen={storeDrawerOpen}
+        onClose={() => closeStoreDrawer(false)}
+        eyebrow="STORE REGISTRY"
+        title={editingStore ? `Edit ${editingStore.name}` : 'Add Café Store'}
+        description={
+          editingStore
+            ? `Store code ${editingStore.code} · Update branch name, code, or address.`
+            : 'Register a physical café branch or partner kiosk.'
+        }
+        width="md"
+        footer={
+          <>
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={() => closeStoreDrawer(false)}
+              disabled={storeBusy}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="store-registry-form"
+              className="button-primary"
+              disabled={storeBusy}
+            >
+              {storeBusy ? 'Saving…' : editingStore ? 'Save Store' : 'Create Store'}
+            </button>
+          </>
+        }
+      >
+        <form id="store-registry-form" onSubmit={handleStoreSubmit} className="flex flex-col gap-4">
+          {storeFormError && (
+            <div className="form-error" role="alert">
+              <AlertCircle size={16} aria-hidden="true" className="shrink-0" />
+              <span>{storeFormError}</span>
+            </div>
+          )}
+
+          <label className="flex flex-col gap-1.5 font-bold text-xs text-slate-800">
+            Store name
+            <input
+              name="store_name"
+              type="text"
+              className="text-input"
+              required
+              minLength={2}
+              maxLength={120}
+              placeholder="e.g. Brew & Boba BKK1 Flagship"
+              value={storeName}
+              onChange={e => setStoreName(e.target.value)}
+              disabled={storeBusy}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5 font-bold text-xs text-slate-800">
+            Store code (2–50 uppercase alphanumeric or hyphens)
+            <input
+              name="store_code"
+              type="text"
+              className="text-input font-mono uppercase"
+              required
+              minLength={2}
+              maxLength={50}
+              pattern="[A-Za-z0-9-]{2,50}"
+              autoCorrect="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              placeholder="e.g. BKK1-01"
+              value={storeCode}
+              onChange={e => setStoreCode(e.target.value.toUpperCase())}
+              disabled={storeBusy}
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5 font-bold text-xs text-slate-800">
+            Street address (Optional)
+            <textarea
+              name="store_address"
+              className="text-input"
+              style={{ minHeight: '80px', padding: '10px 14px' }}
+              autoComplete="street-address"
+              maxLength={300}
+              placeholder="e.g. Street 214, Boeung Keng Kang 1, Phnom Penh"
+              value={storeAddress}
+              onChange={e => setStoreAddress(e.target.value)}
+              disabled={storeBusy}
+            />
+          </label>
+
+          {!editingStore && (
+            <label className="check-field flex items-center gap-2 cursor-pointer font-bold text-xs text-slate-800">
+              <input
+                name="store_is_active"
+                type="checkbox"
+                checked={storeActive}
+                onChange={e => setStoreActive(e.target.checked)}
+                disabled={storeBusy}
+              />
+              <span>Store is active immediately</span>
+            </label>
+          )}
+        </form>
+      </Drawer>
     </div>
   );
 }

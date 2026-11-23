@@ -4,10 +4,12 @@ import {
   ApiError,
   createCategory,
   createProduct,
+  createStaff,
   getApiBaseUrl,
   getCategories,
   getDashboardSummary,
   getOrder,
+  getOrderPaymentAudit,
   getOrders,
   getProducts,
   getSalesReport,
@@ -15,6 +17,7 @@ import {
   loginStaff,
   resolveApiUrl,
   updateOrderStatus,
+  updateStaff,
 } from './api';
 
 function jsonResponse(body: object, status = 200): Response {
@@ -323,5 +326,53 @@ test('secondary /api/admin/auth/me revalidation request uses resolved target', a
     globalThis.fetch = original;
     if (originalEnvUrl !== undefined) process.env.VITE_API_URL = originalEnvUrl;
     else delete process.env.VITE_API_URL;
+  }
+});
+
+test('URL resolver supports explicit same-origin production opt-in for Docker/nginx', () => {
+  assert.equal(getApiBaseUrl({ isProd: true, envUrl: '/' }), '');
+  assert.equal(getApiBaseUrl({ isProd: true, envUrl: 'same-origin' }), '');
+  assert.equal(
+    resolveApiUrl('/api/admin/orders', { isProd: true, envUrl: '/' }),
+    '/api/admin/orders',
+  );
+  assert.equal(
+    resolveApiUrl('/api/admin/staff', { isProd: true, envUrl: 'same-origin' }),
+    '/api/admin/staff',
+  );
+});
+
+test('sales report date params, payment audit, and staff CRUD endpoints align with backend routes', async () => {
+  const original = globalThis.fetch;
+  const calls: { url: string; method: string; body: string }[] = [];
+  globalThis.fetch = async (input, init) => {
+    calls.push({
+      url: String(input),
+      method: init?.method || 'GET',
+      body: String(init?.body || ''),
+    });
+    return jsonResponse({});
+  };
+  try {
+    await getSalesReport('token', { date_from: '2026-11-01', date_to: '2026-11-21' });
+    await getOrderPaymentAudit('token', 42);
+    await createStaff('token', {
+      email: 'barista@brewboba.com',
+      full_name: 'Sokha Barista',
+      password: 'password123',
+      role: 'staff',
+    });
+    await updateStaff('token', 7, { role: 'admin', is_active: true });
+
+    assert.equal(calls[0].url, '/api/admin/reports/sales?date_from=2026-11-01&date_to=2026-11-21');
+    assert.equal(calls[1].url, '/api/admin/orders/42/payment-audit');
+    assert.equal(calls[2].url, '/api/admin/staff');
+    assert.equal(calls[2].method, 'POST');
+    assert.equal(JSON.parse(calls[2].body).role, 'staff');
+    assert.equal(calls[3].url, '/api/admin/staff/7');
+    assert.equal(calls[3].method, 'PATCH');
+    assert.equal(JSON.parse(calls[3].body).role, 'admin');
+  } finally {
+    globalThis.fetch = original;
   }
 });

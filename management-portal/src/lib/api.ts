@@ -151,21 +151,24 @@ export function getApiBaseUrl(options?: ApiResolverInput): string {
           ? process.env?.NODE_ENV === 'production'
           : false;
 
-  const clean =
-    typeof envUrl === 'string'
-      ? envUrl
-          .trim()
-          .replace(/^["']|["']$/g, '')
-          .replace(/\/+$/, '')
-      : '';
+  const rawClean =
+    typeof envUrl === 'string' ? envUrl.trim().replace(/^["']|["']$/g, '') : '';
 
   if (isProd) {
-    if (!clean) {
+    if (!rawClean) {
       throw new ApiError(
         'Configuration error: VITE_API_URL must be configured in production builds.',
         0,
       );
     }
+    if (rawClean === '/' || rawClean.toLowerCase() === 'same-origin') {
+      return '';
+    }
+  }
+
+  const clean = rawClean.replace(/\/+$/, '');
+
+  if (isProd) {
     try {
       const parsed = new URL(clean);
       if (
@@ -343,22 +346,44 @@ export const updateProduct = (
 export const deleteProduct = (token: string, id: number) =>
   request<{ message: string }>(`/api/admin/products/${id}`, { method: 'DELETE' }, token);
 
-export const getOrders = (token: string, status: OrderStatus | 'all', offset = 0) =>
+export interface PaymentSettlementAudit {
+  id: number;
+  order_id: number;
+  staff_id: number;
+  method: string;
+  reference: string;
+  amount_usd: number;
+  recorded_at: string;
+}
+
+export interface SalesReportParams {
+  date_from?: string;
+  date_to?: string;
+}
+
+export const getOrders = (token: string, status: OrderStatus | 'all', offset = 0, limit = 50) =>
   request<OrderList>(
-    `/api/admin/orders?${new URLSearchParams({ ...(status === 'all' ? {} : { status }), limit: '50', offset: String(offset) })}`,
+    `/api/admin/orders?${new URLSearchParams({ ...(status === 'all' ? {} : { status }), limit: String(limit), offset: String(offset) })}`,
     {},
     token,
   );
 export const getOrder = (token: string, id: number) =>
   request<AdminOrder>(`/api/admin/orders/${id}`, {}, token);
+export const getOrderPaymentAudit = (token: string, id: number) =>
+  request<PaymentSettlementAudit[]>(`/api/admin/orders/${id}/payment-audit`, {}, token);
 export const updateOrderStatus = (token: string, id: number, order_status: OrderStatus) =>
   request<AdminOrder>(
     `/api/admin/orders/${id}/status`,
     { method: 'PATCH', body: JSON.stringify({ order_status }) },
     token,
   );
-export const getSalesReport = (token: string) =>
-  request<SalesReport>('/api/admin/reports/sales', {}, token);
+export const getSalesReport = (token: string, params: SalesReportParams = {}) => {
+  const query = new URLSearchParams();
+  if (params.date_from) query.set('date_from', params.date_from);
+  if (params.date_to) query.set('date_to', params.date_to);
+  const qs = query.toString();
+  return request<SalesReport>(`/api/admin/reports/sales${qs ? `?${qs}` : ''}`, {}, token);
+};
 export const settleCash = (token: string, id: number, reference: string) =>
   request<{ id: number; recorded_at: string }>(
     `/api/admin/orders/${id}/cash-settlement`,
@@ -431,7 +456,41 @@ export interface StaffUser {
   last_login_at: string | null;
 }
 
+export interface CreateStaffInput {
+  email: string;
+  full_name: string;
+  password: string;
+  role: 'admin' | 'staff';
+}
+
+export interface UpdateStaffInput {
+  full_name?: string;
+  role?: 'admin' | 'staff';
+  is_active?: boolean;
+  password?: string;
+}
+
 export const getStaff = (token: string) => request<StaffUser[]>('/api/admin/staff', {}, token);
+
+export const createStaff = (token: string, input: CreateStaffInput) =>
+  request<StaffUser>(
+    '/api/admin/staff',
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+    token,
+  );
+
+export const updateStaff = (token: string, id: number, input: UpdateStaffInput) =>
+  request<StaffUser>(
+    `/api/admin/staff/${id}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    },
+    token,
+  );
 
 export interface Seller {
   id: number;
@@ -491,6 +550,7 @@ export interface CreateSellerInput {
   full_name: string;
   password: string;
   is_active?: boolean;
+  store_id?: number | null;
 }
 
 export const createSeller = (token: string, input: CreateSellerInput) =>
@@ -559,8 +619,13 @@ export interface Store {
     id: number;
     email: string;
     full_name: string;
+    is_active?: boolean;
     assigned_at: string;
   }[];
+  assigned_sellers_count?: number;
+  total_orders_count?: number;
+  total_orders?: number;
+  revenue_usd?: number;
   order_count?: number;
 }
 

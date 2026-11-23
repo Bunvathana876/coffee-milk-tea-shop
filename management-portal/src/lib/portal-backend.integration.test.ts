@@ -15,6 +15,7 @@ const { seedDatabase } = await import('../../../backend/src/db/seed.js');
 const { closeDatabase } = await import('../../../backend/src/db/database.js');
 
 import {
+  ApiError,
   setPortalApiBaseUrl,
   loginStaff,
   getStaffProfile,
@@ -29,11 +30,15 @@ import {
   deleteProduct,
   getOrders,
   getOrder,
+  getOrderPaymentAudit,
   updateOrderStatus,
+  settleCash,
   getSalesReport,
   getCustomers,
   getCustomer,
   getStaff,
+  createStaff,
+  updateStaff,
   createSeller,
   getSellers,
   getSeller,
@@ -54,12 +59,13 @@ import {
 } from './api';
 
 let server: any;
+let baseUrl: string;
 let adminToken: string;
 
 test.before(async () => {
   server = await startServer(0);
   const port = server.address().port;
-  const baseUrl = `http://localhost:${port}`;
+  baseUrl = `http://localhost:${port}`;
   setPortalApiBaseUrl(baseUrl);
   await seedDatabase();
 
@@ -294,4 +300,109 @@ test('7. Management Portal Integration: Sellers, Stores, Store Assignment & Sell
   // Delete store (verifying success: true)
   const deleteStoreRes = await deleteStore(adminToken, store.id);
   assert.equal(deleteStoreRes.success, true);
+});
+
+test('8. Management Portal Integration: Staff/Admin CRUD, Cash Settlement Audit, and Date-Filtered Sales Report', async () => {
+  const stamp = Date.now();
+  const staffEmail = `staff_${stamp}@example.com`;
+  const createdStaff = await createStaff(adminToken, {
+    email: staffEmail,
+    full_name: 'Barista Staff One',
+    password: 'StaffPassword123!',
+    role: 'staff',
+  });
+  assert.equal(createdStaff.email, staffEmail);
+  assert.equal(createdStaff.role, 'staff');
+  assert.equal(createdStaff.is_active, true);
+
+  const promotedStaff = await updateStaff(adminToken, createdStaff.id, {
+    full_name: 'Lead Barista',
+    role: 'admin',
+  });
+  assert.equal(promotedStaff.full_name, 'Lead Barista');
+  assert.equal(promotedStaff.role, 'admin');
+
+  const deactivatedStaff = await updateStaff(adminToken, createdStaff.id, {
+    is_active: false,
+  });
+  assert.equal(deactivatedStaff.is_active, false);
+
+  // Verify last-admin protection rejects deactivating the sole remaining admin
+  const allStaff = await getStaff(adminToken);
+  const activeAdmin = allStaff.find(u => u.role === 'admin' && u.is_active);
+  assert.ok(activeAdmin);
+  await assert.rejects(
+    updateStaff(adminToken, activeAdmin.id, { is_active: false }),
+    err => err instanceof ApiError && err.status === 400,
+  );
+
+  // Place a real customer cash order and settle + complete it end-to-end
+  const phone = `019${String(stamp).slice(-7)}`;
+  const regRes = await fetch(`${baseUrl}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      full_name: 'Portal Test Customer',
+      phone,
+      email: `cust_${stamp}@example.com`,
+      password: 'CustomerPass123!',
+    }),
+  });
+  assert.equal(regRes.status, 201);
+  const regData = (await regRes.json()) as { access_token: string };
+
+  const products = await getProducts(adminToken);
+  const availableProduct = products.find(p => p.is_available);
+  assert.ok(availableProduct);
+
+  const orderRes = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${regData.access_token}`,
+      'Idempotency-Key': `portal-int-${stamp}`,
+    },
+    body: JSON.stringify({
+      customer_name: 'Portal Test Customer',
+      customer_phone: phone,
+      payment_method: 'cash',
+      notes: 'Less ice, extra pearls',
+      items: [
+        {
+          product_id: availableProduct.id,
+          quantity: 1,
+          size: 'Medium',
+          sugar_level: '50%',
+          ice_level: 'Less Ice',
+          toppings: [],
+        },
+      ],
+    }),
+  });
+  assert.equal(orderRes.status, 201);
+  const placedOrder = (await orderRes.json()) as { id: number; total_usd: number };
+
+  await updateOrderStatus(adminToken, placedOrder.id, 'preparing');
+  await updateOrderStatus(adminToken, placedOrder.id, 'ready');
+  const settlement = await settleCash(adminToken, placedOrder.id, `POS-REG-${stamp}`);
+  assert.ok(settlement.id > 0);
+
+  const auditEntries = await getOrderPaymentAudit(adminToken, placedOrder.id);
+  assert.equal(auditEntries.length, 1);
+  assert.equal(auditEntries[0].reference, `POS-REG-${stamp}`);
+
+  await updateOrderStatus(adminToken, placedOrder.id, 'completed');
+
+  const todayYmd = new Date().toISOString().slice(0, 10);
+  const todayReport = await getSalesReport(adminToken, {
+    date_from: todayYmd,
+    date_to: todayYmd,
+  });
+  assert.ok(todayReport.total_orders >= 1);
+  assert.ok(todayReport.total_revenue_usd >= placedOrder.total_usd);
+
+  await assert.rejects(
+    getSalesReport(adminToken, { date_from: '2026-12-31', date_to: '2026-01-01' }),
+    err => err instanceof ApiError && err.status === 400,
+  );
 });

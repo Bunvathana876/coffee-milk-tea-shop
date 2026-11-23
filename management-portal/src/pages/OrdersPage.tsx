@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import {
+  AlertCircle,
   Banknote,
   CheckCircle2,
   Clock,
   Coffee,
   RotateCcw,
   Search,
+  ShieldCheck,
   ShoppingBag,
   Printer,
   LayoutList,
@@ -17,14 +19,17 @@ import { Drawer } from '../components/Drawer';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { KitchenTicketModal } from '../components/KitchenTicketModal';
 import { KitchenDisplayBoard } from '../components/KitchenDisplayBoard';
+import { useToast } from '../components/ToastContext';
 import {
   getOrder,
+  getOrderPaymentAudit,
   getOrders,
   settleCash,
   updateOrderStatus,
   type AdminOrder,
   type OrderList,
   type OrderStatus,
+  type PaymentSettlementAudit,
 } from '../lib/api';
 
 const statuses: (OrderStatus | 'all')[] = [
@@ -53,24 +58,43 @@ export { getOrderStatusBadge, getPaymentStatusBadge };
 
 export function OrdersPage() {
   const { token } = useAuth();
+  const { notify } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const statusParam = searchParams.get('status')?.toLowerCase();
+  const viewParam = searchParams.get('view')?.toLowerCase();
+  const orderIdParam = searchParams.get('orderId');
+
   const initialStatus: OrderStatus | 'all' =
     statusParam && statuses.includes(statusParam as OrderStatus | 'all')
       ? (statusParam as OrderStatus | 'all')
       : 'all';
+  const initialView: 'table' | 'kds' = viewParam === 'kds' ? 'kds' : 'table';
 
   const [status, setStatus] = useState<OrderStatus | 'all'>(initialStatus);
   const [offset, setOffset] = useState(0);
   const [revision, setRevision] = useState(0);
   const [list, setList] = useState<OrderList | null>(null);
+  const [kdsOrders, setKdsOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [error, setError] = useState('');
   const [kdsActionError, setKdsActionError] = useState('');
 
-  // Sync state when URL search parameter changes
+  // View mode: standard table or live kitchen Kanban board (KDS)
+  const [viewMode, setViewMode] = useState<'table' | 'kds'>(initialView);
+  const [ticketOrder, setTicketOrder] = useState<AdminOrder | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(initialView === 'kds');
+  const hasLoadedRef = useRef(false);
+
+  // Sync state when URL search parameters change
   useEffect(() => {
     const param = searchParams.get('status')?.toLowerCase();
+    const nextViewParam = searchParams.get('view')?.toLowerCase();
+    if (nextViewParam === 'kds' && viewMode !== 'kds') {
+      setViewMode('kds');
+      setAutoRefresh(true);
+    }
     if (param && statuses.includes(param as OrderStatus | 'all')) {
       if (param !== status) {
         setStatus(param as OrderStatus | 'all');
@@ -95,22 +119,30 @@ export function OrdersPage() {
     if (viewMode === 'kds' && value !== 'all') {
       setViewMode('table');
     }
+    const nextParams = new URLSearchParams(searchParams);
     if (value === 'all') {
-      setSearchParams({}, { replace: true });
+      nextParams.delete('status');
     } else {
-      setSearchParams({ status: value }, { replace: true });
+      nextParams.set('status', value);
+      nextParams.delete('view');
     }
+    setSearchParams(nextParams, { replace: true });
   }
 
   function handleSelectViewMode(mode: 'table' | 'kds') {
     setViewMode(mode);
     setKdsActionError('');
+    const nextParams = new URLSearchParams(searchParams);
     if (mode === 'kds') {
       setAutoRefresh(true);
-      if (status !== 'all') {
-        handleSelectStatus('all');
-      }
+      setStatus('all');
+      setOffset(0);
+      nextParams.set('view', 'kds');
+      nextParams.delete('status');
+    } else {
+      nextParams.delete('view');
     }
+    setSearchParams(nextParams, { replace: true });
   }
 
   // Search on currently loaded page
@@ -119,8 +151,10 @@ export function OrdersPage() {
   // Selected order details drawer
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selected, setSelected] = useState<AdminOrder | null>(null);
+  const [paymentAudit, setPaymentAudit] = useState<PaymentSettlementAudit[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
+  const [detailActionError, setDetailActionError] = useState('');
 
   // Consequential action confirmation
   const [confirmStatus, setConfirmStatus] = useState<OrderStatus | null>(null);
@@ -131,30 +165,55 @@ export function OrdersPage() {
   useEffect(() => {
     if (!token) return;
     let active = true;
-    getOrders(token, status, offset)
-      .then(data => {
-        if (active) {
-          setList(data);
-          setLoading(false);
-        }
+
+    if (!hasLoadedRef.current) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
+
+    const fetchPromise =
+      viewMode === 'kds'
+        ? Promise.all([
+            getOrders(token, 'pending', 0, 200),
+            getOrders(token, 'preparing', 0, 200),
+            getOrders(token, 'ready', 0, 200),
+          ]).then(([pendingList, preparingList, readyList]) => {
+            if (!active) return;
+            const merged = [...pendingList.items, ...preparingList.items, ...readyList.items];
+            setKdsOrders(merged);
+            setList({
+              ...pendingList,
+              items: merged,
+            });
+          })
+        : getOrders(token, status, offset, 50).then(data => {
+            if (!active) return;
+            setList(data);
+          });
+
+    fetchPromise
+      .then(() => {
+        if (!active) return;
+        hasLoadedRef.current = true;
+        setError('');
+        setLastRefreshed(new Date());
+        setLoading(false);
+        setRefreshing(false);
       })
       .catch(cause => {
-        if (active) {
-          setError(cause instanceof Error ? cause.message : 'Orders are unavailable.');
-          setLoading(false);
-        }
+        if (!active) return;
+        setError(cause instanceof Error ? cause.message : 'Orders are unavailable.');
+        setLoading(false);
+        setRefreshing(false);
       });
+
     return () => {
       active = false;
     };
-  }, [token, status, offset, revision]);
+  }, [token, status, offset, viewMode, revision]);
 
-  // View mode: standard table or live kitchen Kanban board (KDS)
-  const [viewMode, setViewMode] = useState<'table' | 'kds'>('table');
-  const [ticketOrder, setTicketOrder] = useState<AdminOrder | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(false);
-
-  // Auto-refresh interval (every 15s) for live kitchen board
+  // Auto-refresh interval (every 15s) for live kitchen board or active queue
   useEffect(() => {
     if (!autoRefresh) return;
     const interval = setInterval(() => {
@@ -163,63 +222,106 @@ export function OrdersPage() {
     return () => clearInterval(interval);
   }, [autoRefresh]);
 
+  const reload = useCallback((silent = false) => {
+    setError('');
+    setKdsActionError('');
+    if (!silent || !hasLoadedRef.current) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
+    setRevision(value => value + 1);
+  }, []);
+
+  const openOrder = useCallback(
+    async (id: number) => {
+      if (!token) return;
+      setSelectedId(id);
+      setDetailLoading(true);
+      setDetailError('');
+      setDetailActionError('');
+      setSelected(null);
+      setPaymentAudit([]);
+      setReceiptReference('');
+      try {
+        const [order, audit] = await Promise.all([
+          getOrder(token, id),
+          getOrderPaymentAudit(token, id).catch(() => [] as PaymentSettlementAudit[]),
+        ]);
+        setSelected(order);
+        setPaymentAudit(Array.isArray(audit) ? audit : []);
+      } catch (cause) {
+        setDetailError(cause instanceof Error ? cause.message : 'Order details are unavailable.');
+      } finally {
+        setDetailLoading(false);
+      }
+    },
+    [token],
+  );
+
+  // Open specific order drawer when ?orderId=<id> is provided in URL
+  const handledOrderIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!orderIdParam || !token) return;
+    if (handledOrderIdRef.current === orderIdParam) return;
+    const parsedId = Number(orderIdParam);
+    if (Number.isInteger(parsedId) && parsedId > 0) {
+      handledOrderIdRef.current = orderIdParam;
+      void openOrder(parsedId);
+    }
+  }, [orderIdParam, token, openOrder]);
+
+  function closeDetails() {
+    setSelectedId(null);
+    setSelected(null);
+    setPaymentAudit([]);
+    setDetailError('');
+    setDetailActionError('');
+    setConfirmStatus(null);
+    setConfirmCash(false);
+    if (searchParams.has('orderId')) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('orderId');
+      setSearchParams(nextParams, { replace: true });
+    }
+  }
+
   async function handleAdvanceStatus(orderId: number, nextStatus: OrderStatus) {
     if (!token || busy) return;
     setBusy(true);
     setKdsActionError('');
     try {
-      await updateOrderStatus(token, orderId, nextStatus);
-      reload();
+      const updated = await updateOrderStatus(token, orderId, nextStatus);
+      notify({
+        tone: 'success',
+        message: `Order ${updated.order_number} moved to ${nextStatus}.`,
+      });
+      reload(true);
     } catch (cause) {
-      setKdsActionError(cause instanceof Error ? cause.message : 'Could not update order status.');
+      const msg = cause instanceof Error ? cause.message : 'Could not update order status.';
+      setKdsActionError(msg);
+      notify({ tone: 'error', message: msg });
     } finally {
       setBusy(false);
     }
   }
 
-  function reload() {
-    setError('');
-    setKdsActionError('');
-    setLoading(true);
-    setRevision(value => value + 1);
-  }
-
-  async function openOrder(id: number) {
-    if (!token) return;
-    setSelectedId(id);
-    setDetailLoading(true);
-    setDetailError('');
-    setSelected(null);
-    setReceiptReference('');
-    try {
-      const order = await getOrder(token, id);
-      setSelected(order);
-    } catch (cause) {
-      setDetailError(cause instanceof Error ? cause.message : 'Order details are unavailable.');
-    } finally {
-      setDetailLoading(false);
-    }
-  }
-
-  function closeDetails() {
-    setSelectedId(null);
-    setSelected(null);
-    setDetailError('');
-    setConfirmStatus(null);
-    setConfirmCash(false);
-  }
-
   async function handleStatusChange() {
     if (!token || !selected || !confirmStatus) return;
     setBusy(true);
-    setDetailError('');
+    setDetailActionError('');
     try {
       const updated = await updateOrderStatus(token, selected.id, confirmStatus);
       setSelected(updated);
       setConfirmStatus(null);
-      reload();
+      notify({
+        tone: 'success',
+        message: `Order ${updated.order_number} updated to ${updated.order_status}.`,
+      });
+      reload(true);
     } catch (cause) {
-      setDetailError(cause instanceof Error ? cause.message : 'Could not update order status.');
+      const msg = cause instanceof Error ? cause.message : 'Could not update order status.';
+      setDetailActionError(msg);
       setConfirmStatus(null);
     } finally {
       setBusy(false);
@@ -228,22 +330,37 @@ export function OrdersPage() {
 
   async function handleRecordCashSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!token || !selected || busy || !receiptReference.trim()) return;
+    if (!token || !selected || busy) return;
+    const cleanRef = receiptReference.trim();
+    if (cleanRef.length < 3 || cleanRef.length > 160) {
+      setDetailActionError('Cash receipt reference must be between 3 and 160 characters.');
+      return;
+    }
+    setDetailActionError('');
     setConfirmCash(true);
   }
 
   async function executeCashSettlement() {
     if (!token || !selected || busy || !receiptReference.trim()) return;
     setBusy(true);
+    setDetailActionError('');
     try {
       await settleCash(token, selected.id, receiptReference.trim());
-      const refreshed = await getOrder(token, selected.id);
+      const [refreshed, audit] = await Promise.all([
+        getOrder(token, selected.id),
+        getOrderPaymentAudit(token, selected.id).catch(() => [] as PaymentSettlementAudit[]),
+      ]);
       setSelected(refreshed);
+      setPaymentAudit(Array.isArray(audit) ? audit : []);
       setReceiptReference('');
       setConfirmCash(false);
-      reload();
+      notify({
+        tone: 'success',
+        message: `Cash settlement recorded for ${refreshed.order_number}.`,
+      });
+      reload(true);
     } catch (cause) {
-      setDetailError(
+      setDetailActionError(
         cause instanceof Error ? cause.message : 'Cash settlement could not be recorded.',
       );
       setConfirmCash(false);
@@ -252,18 +369,23 @@ export function OrdersPage() {
     }
   }
 
-  // Filter loaded items by search keyword
+  const allOrdersTotal = useMemo(() => {
+    if (!list?.counts_by_status) return list?.total ?? 0;
+    return Object.values(list.counts_by_status).reduce((sum, count) => sum + Number(count || 0), 0);
+  }, [list]);
+
+  // Filter loaded items (or active KDS items) by search keyword
   const visibleItems = useMemo(() => {
-    if (!list?.items) return [];
+    const source = viewMode === 'kds' ? kdsOrders : (list?.items ?? []);
     const q = localSearch.trim().toLowerCase();
-    if (!q) return list.items;
-    return list.items.filter(
+    if (!q) return source;
+    return source.filter(
       order =>
         order.order_number.toLowerCase().includes(q) ||
         order.customer_name.toLowerCase().includes(q) ||
         (order.customer_phone ?? '').toLowerCase().includes(q),
     );
-  }, [list?.items, localSearch]);
+  }, [viewMode, kdsOrders, list?.items, localSearch]);
 
   return (
     <div className="page-stack">
@@ -278,6 +400,11 @@ export function OrdersPage() {
           <p>Track and manage café orders in one place.</p>
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
+          {lastRefreshed && !loading && (
+            <span className="text-xs font-semibold text-slate-500">
+              Updated {lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
           {/* View Toggle */}
           <div className="flex rounded-lg border border-slate-300 bg-white p-0.5 shadow-2xs">
             <button
@@ -328,11 +455,11 @@ export function OrdersPage() {
           <button
             type="button"
             className="button-secondary"
-            onClick={reload}
-            disabled={loading}
+            onClick={() => reload(true)}
+            disabled={loading || refreshing}
             aria-label="Refresh orders"
           >
-            <RotateCcw size={16} aria-hidden="true" />
+            <RotateCcw size={16} className={refreshing ? 'animate-spin' : ''} aria-hidden="true" />
             <span>Refresh</span>
           </button>
         </div>
@@ -347,7 +474,7 @@ export function OrdersPage() {
             </span>
             <div className="quick-stat-info">
               <span>Total Orders</span>
-              <strong>{list.total}</strong>
+              <strong>{allOrdersTotal}</strong>
             </div>
           </div>
           <div className="quick-stat-card">
@@ -384,12 +511,12 @@ export function OrdersPage() {
 
       {/* Main Order Queue Section */}
       <section className="panel">
-        <div className="page-toolbar orders-toolbar">
+        <search className="page-toolbar orders-toolbar">
           <div className="status-tabs" role="tablist" aria-label="Filter orders by status">
             {statuses.map(value => {
               const count =
                 value === 'all'
-                  ? list?.total
+                  ? allOrdersTotal
                   : (list?.counts_by_status?.[value as OrderStatus] ?? 0);
               const label =
                 value === 'all' ? 'All Orders' : value[0].toUpperCase() + value.slice(1);
@@ -403,7 +530,7 @@ export function OrdersPage() {
                   onClick={() => handleSelectStatus(value)}
                 >
                   <span>{label}</span>
-                  {typeof count === 'number' && <span className="status-tab-count">{count}</span>}
+                  {list && <span className="status-tab-count">{count}</span>}
                 </button>
               );
             })}
@@ -416,10 +543,15 @@ export function OrdersPage() {
             <div className="orders-search-wrapper">
               <input
                 id="order-page-search"
+                name="order_search"
+                type="search"
                 className="text-input search-input orders-search"
                 aria-label="Search orders"
                 aria-describedby="order-search-helper"
                 placeholder="Search orders…"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
                 value={localSearch}
                 onChange={event => setLocalSearch(event.target.value)}
               />
@@ -429,12 +561,12 @@ export function OrdersPage() {
               Filters loaded page records
             </span>
           </div>
-        </div>
+        </search>
 
         {loading ? (
           <LoadingState label="Loading orders queue…" />
         ) : error ? (
-          <ErrorState message={error} retry={reload} />
+          <ErrorState message={error} retry={() => reload(false)} />
         ) : viewMode === 'kds' ? (
           <>
             {kdsActionError && (
@@ -470,7 +602,12 @@ export function OrdersPage() {
           />
         ) : (
           <>
-            <div className="table-scroll">
+            <div
+              className="table-scroll"
+              tabIndex={0}
+              role="region"
+              aria-label="Live Café Orders List"
+            >
               <table>
                 <caption className="sr-only">Live Café Orders List</caption>
                 <thead>
@@ -593,7 +730,7 @@ export function OrdersPage() {
         width="lg"
         footer={
           selected ? (
-            <div className="flex items-center justify-between w-full">
+            <div className="flex items-center justify-between w-full gap-2 flex-wrap">
               <div className="flex flex-col">
                 <span className="text-xs text-slate-500 font-semibold uppercase">Total Due</span>
                 <strong className="text-lg text-slate-900">
@@ -603,7 +740,7 @@ export function OrdersPage() {
                   </span>
                 </strong>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
                   className="button-secondary flex items-center gap-1.5"
@@ -642,6 +779,13 @@ export function OrdersPage() {
           <ErrorState message={detailError} retry={() => selectedId && openOrder(selectedId)} />
         ) : selected ? (
           <div className="flex flex-col gap-5">
+            {detailActionError && (
+              <div className="form-error" role="alert">
+                <AlertCircle size={16} aria-hidden="true" className="shrink-0" />
+                <span>{detailActionError}</span>
+              </div>
+            )}
+
             {/* Customer & Status Cards */}
             <div className="detail-grid">
               <p>
@@ -652,6 +796,12 @@ export function OrdersPage() {
                 <span>Contact Phone</span>
                 <strong>{selected.customer_phone || 'None provided'}</strong>
               </p>
+              {selected.customer_email && (
+                <p>
+                  <span>Email</span>
+                  <strong>{selected.customer_email}</strong>
+                </p>
+              )}
               <p>
                 <span>Order Status</span>
                 <strong>
@@ -671,9 +821,18 @@ export function OrdersPage() {
               </p>
             </div>
 
+            {selected.notes && selected.notes.trim() && (
+              <div className="p-3 rounded-xl border border-amber-200 bg-amber-50/70 text-amber-950 text-xs">
+                <strong className="uppercase tracking-wide block mb-1 text-[11px] text-amber-800">
+                  Customer Order Note
+                </strong>
+                <span>{selected.notes}</span>
+              </div>
+            )}
+
             {/* Policy Note */}
             <div className="policy-note">
-              KHQR is a demo choice. Cash settlement records the administrator's observation,
+              KHQR is a demo choice. Cash settlement records the administrator&apos;s observation,
               without verifying a bank transfer. Revenue requires paid and completed status.
             </div>
 
@@ -688,17 +847,28 @@ export function OrdersPage() {
                   <div className="flex items-center gap-2 text-amber-900 font-bold text-xs uppercase tracking-wide">
                     <Banknote size={16} /> Record Cash Settlement
                   </div>
-                  <label className="flex flex-col gap-1 text-xs text-amber-950 font-semibold">
+                  <label
+                    htmlFor="cash-receipt-ref"
+                    className="flex flex-col gap-1 text-xs text-amber-950 font-semibold"
+                  >
                     Cash receipt reference
                     <input
+                      id="cash-receipt-ref"
+                      name="receipt_reference"
                       className="text-input"
                       required
                       minLength={3}
                       maxLength={160}
                       pattern="[A-Za-z0-9 ._:/-]+"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck={false}
                       placeholder="e.g. CASH-REGISTER-01-REC-948"
                       value={receiptReference}
-                      onChange={event => setReceiptReference(event.target.value)}
+                      onChange={event => {
+                        setReceiptReference(event.target.value);
+                        if (detailActionError) setDetailActionError('');
+                      }}
                     />
                   </label>
                   <div className="flex justify-end">
@@ -713,10 +883,41 @@ export function OrdersPage() {
                 </form>
               )}
 
+            {/* Cash Settlement Audit Trail */}
+            {paymentAudit.length > 0 && (
+              <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/60 flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs uppercase tracking-wide">
+                  <ShieldCheck size={16} aria-hidden="true" />
+                  <span>Cash Settlement Audit Trail (Immutable)</span>
+                </div>
+                {paymentAudit.map(entry => (
+                  <div
+                    key={entry.id}
+                    className="text-xs text-emerald-950 flex flex-col gap-0.5 border-t border-emerald-200/70 pt-2 first:border-t-0 first:pt-0"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <strong>Reference: {entry.reference}</strong>
+                      <span className="font-mono font-bold">
+                        {money.format(Number(entry.amount_usd))}
+                      </span>
+                    </div>
+                    <span className="text-emerald-800">
+                      Recorded {new Date(entry.recorded_at).toLocaleString()} · Staff #{entry.staff_id}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Line Items Table */}
             <div>
               <div className="eyebrow mb-2">ORDER ITEMS ({selected.items.length})</div>
-              <div className="table-scroll border border-slate-200 rounded-xl">
+              <div
+                className="table-scroll border border-slate-200 rounded-xl"
+                tabIndex={0}
+                role="region"
+                aria-label="Order Line Items"
+              >
                 <table>
                   <thead>
                     <tr>
@@ -758,6 +959,8 @@ export function OrdersPage() {
           title={`${confirmStatus === 'cancelled' ? 'Cancel' : 'Update'} ${selected.order_number}?`}
           detail={`Move this order from ${selected.order_status} to ${confirmStatus}. Payment status will not change.`}
           busy={busy}
+          confirmLabel={confirmStatus === 'cancelled' ? 'Cancel order' : 'Confirm'}
+          tone={confirmStatus === 'cancelled' ? 'danger' : 'primary'}
           onCancel={() => setConfirmStatus(null)}
           onConfirm={handleStatusChange}
         />

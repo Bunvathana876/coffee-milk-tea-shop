@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 
 export interface DrawerProps {
@@ -24,39 +24,43 @@ export function Drawer({
 }: DrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  const titleId = useId();
+  const descId = useId();
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
 
     previousActiveElement.current = document.activeElement as HTMLElement;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         event.stopPropagation();
-        onClose();
+        onCloseRef.current();
       }
     }
 
     window.addEventListener('keydown', handleKeyDown);
 
-    // Focus the drawer or first focusable element
+    // Focus the first form field inside the drawer body, falling back to the panel itself.
     const timeout = setTimeout(() => {
       if (panelRef.current) {
-        const focusable = panelRef.current.querySelector<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        const firstField = panelRef.current.querySelector<HTMLElement>(
+          '.drawer-body input:not([type="hidden"]):not(:disabled), .drawer-body select:not(:disabled), .drawer-body textarea:not(:disabled)',
         );
-        if (focusable) {
-          focusable.focus();
+        if (firstField) {
+          firstField.focus();
         } else {
           panelRef.current.focus();
         }
       }
-    }, 50);
+    }, 30);
 
     return () => {
-      document.body.style.overflow = originalOverflow;
       window.removeEventListener('keydown', handleKeyDown);
       clearTimeout(timeout);
       if (
@@ -66,7 +70,7 @@ export function Drawer({
         previousActiveElement.current.focus();
       }
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -77,7 +81,7 @@ export function Drawer({
       className="drawer-backdrop"
       role="presentation"
       onClick={event => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget) onCloseRef.current();
       }}
     >
       <div
@@ -85,16 +89,16 @@ export function Drawer({
         className={`drawer-panel ${widthClass}`}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="drawer-title"
-        aria-describedby={description ? 'drawer-desc' : undefined}
+        aria-labelledby={titleId}
+        aria-describedby={description ? descId : undefined}
         tabIndex={-1}
       >
         <header className="drawer-header">
           <div>
             {eyebrow && <div className="eyebrow">{eyebrow}</div>}
-            <h2 id="drawer-title">{title}</h2>
+            <h2 id={titleId}>{title}</h2>
             {description && (
-              <p id="drawer-desc" className="drawer-subtitle">
+              <p id={descId} className="drawer-subtitle">
                 {description}
               </p>
             )}
@@ -102,7 +106,7 @@ export function Drawer({
           <button
             type="button"
             className="icon-button drawer-close"
-            onClick={onClose}
+            onClick={() => onCloseRef.current()}
             aria-label="Close panel"
           >
             <X size={20} aria-hidden="true" />

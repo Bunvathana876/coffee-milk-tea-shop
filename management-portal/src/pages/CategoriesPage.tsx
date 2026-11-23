@@ -4,6 +4,7 @@ import { useAuth } from '../auth/authContext';
 import { ConfirmAction } from '../components/ConfirmAction';
 import { Drawer } from '../components/Drawer';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
+import { useToast } from '../components/ToastContext';
 import {
   createCategory,
   deleteCategory,
@@ -30,6 +31,7 @@ export const CATEGORY_THUMBNAIL_FALLBACK = '/brand/brew-boba-mascot-badge.png';
 
 export function CategoriesPage() {
   const { token } = useAuth();
+  const { notify } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -128,27 +130,34 @@ export function CategoriesPage() {
     setIsDrawerOpen(true);
   }
 
-  function handleCloseDrawer() {
-    if (busy) return;
+  function closeDrawer(force = false) {
+    if (busy && !force) return;
     setIsDrawerOpen(false);
     setEditingId(null);
     setForm(blankForm);
     setFormError('');
+    setImagePreviewError(false);
   }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!token) return;
 
+    const cleanName = form.name.trim();
+    const cleanImage = form.image.trim();
+    if (!cleanName || cleanName.length > 120) {
+      setFormError('Enter a category name between 1 and 120 characters.');
+      return;
+    }
+    if (form.description.length > 1000) {
+      setFormError('Description must be 1,000 characters or fewer.');
+      return;
+    }
     if (
-      !form.name.trim() ||
-      form.name.trim().length > 120 ||
-      form.description.length > 1000 ||
-      form.image.length > 2048
+      cleanImage.length > 2048 ||
+      (cleanImage !== '' && !/^https:\/\/[^\s/]+(?:\/|$)/i.test(cleanImage))
     ) {
-      setFormError(
-        'Enter a name up to 120 characters and keep the optional fields within their limits.',
-      );
+      setFormError('Image URL must start with https:// and be 2,048 characters or fewer.');
       return;
     }
 
@@ -157,19 +166,21 @@ export function CategoriesPage() {
 
     try {
       const body = {
-        name: form.name.trim(),
+        name: cleanName,
         description: form.description.trim() || null,
-        image: form.image.trim() || null,
+        image: cleanImage || null,
         is_active: form.is_active,
       };
 
       if (editingId) {
         await updateCategory(token, editingId, body);
+        notify({ tone: 'success', message: `Category "${cleanName}" updated.` });
       } else {
         await createCategory(token, body);
+        notify({ tone: 'success', message: `Category "${cleanName}" created.` });
       }
 
-      handleCloseDrawer();
+      closeDrawer(true);
       reload();
     } catch (cause) {
       setFormError(cause instanceof Error ? cause.message : 'Could not save category.');
@@ -185,16 +196,21 @@ export function CategoriesPage() {
     try {
       if (confirm.action === 'delete') {
         await deleteCategory(token, confirm.id);
+        notify({ tone: 'success', message: `Category "${confirm.name}" deleted.` });
       } else {
         await updateCategory(token, confirm.id, { is_active: false });
+        notify({ tone: 'success', message: `Category "${confirm.name}" deactivated.` });
       }
       if (editingId === confirm.id) {
-        handleCloseDrawer();
+        closeDrawer(true);
       }
       setConfirm(null);
       reload();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not change category.');
+      const msg = cause instanceof Error ? cause.message : 'Could not change category.';
+      setError(msg);
+      notify({ tone: 'error', message: msg });
+      setConfirm(null);
     } finally {
       setBusy(false);
     }
@@ -208,9 +224,12 @@ export function CategoriesPage() {
       setBusy(true);
       try {
         await updateCategory(token, category.id, { is_active: true });
+        notify({ tone: 'success', message: `Category "${category.name}" activated.` });
         reload();
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Could not activate category.');
+        const msg = cause instanceof Error ? cause.message : 'Could not activate category.';
+        setError(msg);
+        notify({ tone: 'error', message: msg });
       } finally {
         setBusy(false);
       }
@@ -275,7 +294,7 @@ export function CategoriesPage() {
 
       {/* Main Categories Panel */}
       <section className="panel">
-        <div className="page-toolbar categories-toolbar">
+        <search className="page-toolbar categories-toolbar">
           <div className="toolbar-controls">
             <label className="sr-only" htmlFor="category-search">
               Search categories
@@ -283,9 +302,14 @@ export function CategoriesPage() {
             <div className="search-input-wrapper">
               <input
                 id="category-search"
+                name="category_search"
+                type="search"
                 className="text-input search-input"
                 aria-label="Search categories"
                 placeholder="Search categories…"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
                 value={search}
                 onChange={event => setSearch(event.target.value)}
               />
@@ -297,6 +321,7 @@ export function CategoriesPage() {
             </label>
             <select
               id="category-status-filter"
+              name="category_status"
               className="text-input filter-select category-status-select"
               aria-label="Filter by status"
               value={statusFilter}
@@ -333,7 +358,7 @@ export function CategoriesPage() {
               <RotateCcw size={16} aria-hidden="true" />
             </button>
           </div>
-        </div>
+        </search>
 
         {loading ? (
           <LoadingState label="Loading categories…" />
@@ -349,7 +374,12 @@ export function CategoriesPage() {
             }
           />
         ) : (
-          <div className="table-scroll">
+          <div
+            className="table-scroll"
+            tabIndex={0}
+            role="region"
+            aria-label="Drink Categories List"
+          >
             <table>
               <caption className="sr-only">Drink Categories List</caption>
               <thead>
@@ -447,7 +477,7 @@ export function CategoriesPage() {
       {/* Category Editor Drawer */}
       <Drawer
         isOpen={isDrawerOpen}
-        onClose={handleCloseDrawer}
+        onClose={() => closeDrawer(false)}
         eyebrow="CATEGORY EDITOR"
         title={editingId ? 'Edit Category' : 'Add New Category'}
         description={
@@ -461,7 +491,7 @@ export function CategoriesPage() {
             <button
               type="button"
               className="button-secondary"
-              onClick={handleCloseDrawer}
+              onClick={() => closeDrawer(false)}
               disabled={busy}
             >
               Cancel
@@ -476,6 +506,7 @@ export function CategoriesPage() {
           <label className="flex flex-col gap-1.5 font-bold text-xs text-slate-800">
             Category name
             <input
+              name="name"
               className="text-input"
               value={form.name}
               maxLength={120}
@@ -488,6 +519,7 @@ export function CategoriesPage() {
           <label className="flex flex-col gap-1.5 font-bold text-xs text-slate-800">
             Description (Optional)
             <textarea
+              name="description"
               className="text-input"
               style={{ minHeight: '80px', padding: '10px 14px' }}
               value={form.description}
@@ -500,8 +532,13 @@ export function CategoriesPage() {
           <label className="flex flex-col gap-1.5 font-bold text-xs text-slate-800">
             Image URL (Optional)
             <input
+              name="image"
               className="text-input"
               type="url"
+              pattern="https://.*"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
               value={form.image}
               maxLength={2048}
               placeholder="https://example.com/categories/milk-tea.webp"
@@ -525,9 +562,15 @@ export function CategoriesPage() {
               />
             </div>
           )}
+          {form.image.trim() && imagePreviewError && (
+            <p className="text-xs text-rose-700" role="status">
+              Image preview unavailable. Check the HTTPS URL before saving.
+            </p>
+          )}
 
           <label className="check-field mt-2 flex items-center gap-2 cursor-pointer font-bold text-xs text-slate-800">
             <input
+              name="is_active"
               type="checkbox"
               checked={form.is_active}
               onChange={event => setForm({ ...form, is_active: event.target.checked })}
@@ -554,6 +597,8 @@ export function CategoriesPage() {
               : 'Products in this category will be hidden from new customer orders.'
           }
           busy={busy}
+          confirmLabel={confirm.action === 'delete' ? 'Delete' : 'Deactivate'}
+          tone={confirm.action === 'delete' ? 'danger' : 'primary'}
           onCancel={() => setConfirm(null)}
           onConfirm={handleConfirmAction}
         />

@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Printer, X } from 'lucide-react';
 import type { AdminOrder } from '../lib/api';
 
@@ -16,14 +17,23 @@ export const KitchenTicketModal: React.FC<KitchenTicketModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onCloseRef.current();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen || !order) return null;
 
@@ -31,13 +41,13 @@ export const KitchenTicketModal: React.FC<KitchenTicketModalProps> = ({
     window.print();
   };
 
-  return (
+  const modalContent = (
     <div
       className="confirm-dialog-overlay fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs print:p-0 print:bg-white print:static print:inset-auto print:backdrop-blur-none"
       role="dialog"
       aria-modal="true"
       aria-labelledby="ticket-modal-title"
-      onClick={onClose}
+      onClick={() => onCloseRef.current()}
     >
       <div
         className="confirm-dialog-card max-w-sm w-full bg-white rounded-2xl shadow-2xl p-0 overflow-hidden border border-slate-200 print:border-none print:shadow-none print:max-w-none print:w-full print:rounded-none"
@@ -179,7 +189,7 @@ export const KitchenTicketModal: React.FC<KitchenTicketModalProps> = ({
 
         {/* Action Controls */}
         <div className="p-4 bg-slate-50 flex items-center justify-end gap-2.5 print:hidden">
-          <button type="button" onClick={onClose} className="button-secondary">
+          <button type="button" onClick={() => onCloseRef.current()} className="button-secondary">
             Close
           </button>
           <button type="button" onClick={handlePrint} className="button-primary flex items-center gap-2">
@@ -190,4 +200,9 @@ export const KitchenTicketModal: React.FC<KitchenTicketModalProps> = ({
       </div>
     </div>
   );
+
+  if (typeof document !== 'undefined' && document.body) {
+    return createPortal(modalContent, document.body);
+  }
+  return modalContent;
 };

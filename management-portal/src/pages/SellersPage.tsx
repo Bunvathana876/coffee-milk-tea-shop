@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   AlertCircle,
   Building2,
   Calendar,
-  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Eye,
   KeyRound,
   Lock,
@@ -21,6 +23,7 @@ import {
 import { useAuth } from '../auth/authContext';
 import { ConfirmAction } from '../components/ConfirmAction';
 import { Drawer } from '../components/Drawer';
+import { useToast } from '../components/ToastContext';
 import {
   assignSellerStore,
   createSeller,
@@ -127,8 +130,10 @@ export function AddSellerDrawerForm({
         </label>
         <input
           id="add-name"
+          name="full_name"
           type="text"
           required
+          autoComplete="name"
           className="text-input mt-1 w-full"
           placeholder="e.g. Sothea Chan"
           value={name}
@@ -143,8 +148,13 @@ export function AddSellerDrawerForm({
         </label>
         <input
           id="add-email"
+          name="email"
           type="email"
           required
+          autoComplete="email"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
           className="text-input mt-1 w-full"
           placeholder="e.g. seller.boba@brewboba.com"
           value={email}
@@ -159,9 +169,11 @@ export function AddSellerDrawerForm({
         </label>
         <input
           id="add-password"
+          name="password"
           type="password"
           required
           minLength={8}
+          autoComplete="new-password"
           className="text-input mt-1 w-full"
           placeholder="••••••••••••"
           value={password}
@@ -386,6 +398,7 @@ function getSellerErrorDescription(error: string): string {
 
 export function SellersPage() {
   const { token } = useAuth();
+  const { notify } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [sellers, setSellers] = useState<Seller[]>([]);
@@ -412,7 +425,6 @@ export function SellersPage() {
   const [addActive, setAddActive] = useState(true);
   const [addBusy, setAddBusy] = useState(false);
   const [addError, setAddError] = useState('');
-  const [feedbackMessage, setFeedbackMessage] = useState('');
 
   // View / Edit Drawer state
   const [selectedSellerId, setSelectedSellerId] = useState<number | null>(null);
@@ -553,17 +565,23 @@ export function SellersPage() {
     setAddError('');
 
     try {
+      const targetStoreId = addStoreId ? Number(addStoreId) : undefined;
       const created = await createSeller(token, {
         full_name: addName.trim(),
         email: addEmail.trim().toLowerCase(),
         password: addPassword,
         is_active: addActive,
+        ...(targetStoreId ? { store_id: targetStoreId } : {}),
       });
-      if (addStoreId) {
+      let storeWarn = '';
+      if (targetStoreId && created.store_id !== targetStoreId) {
         try {
-          await assignSellerStore(token, created.id, Number(addStoreId));
-        } catch {
-          // Non-blocking: store assignment can also be performed in detail drawer
+          await assignSellerStore(token, created.id, targetStoreId);
+        } catch (assignErr) {
+          storeWarn =
+            assignErr instanceof Error
+              ? assignErr.message
+              : 'Store assignment failed; assign from seller details.';
         }
       }
       setIsAddOpen(false);
@@ -572,8 +590,12 @@ export function SellersPage() {
       setAddPassword('');
       setAddStoreId('');
       setAddActive(true);
-      setFeedbackMessage(`Seller account for ${created.full_name} created successfully.`);
-      setTimeout(() => setFeedbackMessage(''), 5000);
+      notify({
+        tone: storeWarn ? 'info' : 'success',
+        message: storeWarn
+          ? `Seller ${created.full_name} created, but store assignment needs attention: ${storeWarn}`
+          : `Seller account for ${created.full_name} created successfully.`,
+      });
       reload();
     } catch (err) {
       setAddError(err instanceof Error ? err.message : 'Failed to create seller account.');
@@ -665,45 +687,29 @@ export function SellersPage() {
       if (selectedSeller && selectedSeller.id === statusConfirmSeller.id) {
         setSelectedSeller({ ...selectedSeller, is_active: nextActive });
       }
+      const sellerName = statusConfirmSeller.full_name;
       setStatusConfirmSeller(null);
-      setFeedbackMessage(
-        nextActive
-          ? `Seller ${statusConfirmSeller.full_name} activated.`
-          : `Seller ${statusConfirmSeller.full_name} deactivated.`,
-      );
-      setTimeout(() => setFeedbackMessage(''), 4000);
+      notify({
+        tone: 'success',
+        message: nextActive ? `Seller ${sellerName} activated.` : `Seller ${sellerName} deactivated.`,
+      });
       reload();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update seller status.');
+      notify({
+        tone: 'error',
+        message: err instanceof Error ? err.message : 'Failed to update seller status.',
+      });
+      setStatusConfirmSeller(null);
     } finally {
       setStatusBusy(false);
     }
   }
 
   const isFiltered = Boolean(debouncedSearch || statusFilter !== 'all');
+  const totalPages = Math.ceil(total / limit);
 
   return (
     <div className="page-stack sellers-page-enter">
-      {/* Toast Feedback */}
-      {feedbackMessage && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/40 p-4 text-emerald-800 dark:text-emerald-200 text-sm flex items-center justify-between shadow-sm animate-in fade-in">
-          <div className="flex items-center gap-2">
-            <CheckCircle2
-              size={16}
-              className="text-emerald-600 dark:text-emerald-400 shrink-0"
-              aria-hidden="true"
-            />
-            <span>{feedbackMessage}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setFeedbackMessage('')}
-            className="text-xs text-emerald-700 dark:text-emerald-300 underline ml-4 hover:opacity-80"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
 
       {/* Page Heading (Standard Apex Layout) */}
       <div className="page-heading">
@@ -1051,6 +1057,32 @@ export function SellersPage() {
                   <strong>{Math.min((page + 1) * limit, total)}</strong> of <strong>{total}</strong>{' '}
                   sellers
                 </span>
+
+                <div className="customer-pagination-actions">
+                  <button
+                    type="button"
+                    className="button-secondary pagination-btn"
+                    disabled={page === 0}
+                    onClick={() => setPage(p => Math.max(0, p - 1))}
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft size={16} aria-hidden="true" />
+                    <span>Previous</span>
+                  </button>
+                  <span className="pagination-page-indicator">
+                    Page {page + 1} of {Math.max(1, totalPages)}
+                  </span>
+                  <button
+                    type="button"
+                    className="button-secondary pagination-btn"
+                    disabled={page + 1 >= totalPages}
+                    onClick={() => setPage(p => p + 1)}
+                    aria-label="Next page"
+                  >
+                    <span>Next</span>
+                    <ChevronRight size={16} aria-hidden="true" />
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -1283,9 +1315,16 @@ export function SellersPage() {
                     </div>
                   ))
                 ) : (
-                  <div className="p-3 text-xs text-slate-800 dark:text-zinc-200 font-medium rounded-lg border border-dashed border-slate-300 dark:border-zinc-700 text-center">
-                    No café store currently assigned. This seller cannot view store orders (fails
-                    closed).
+                  <div className="p-3 text-xs text-slate-800 dark:text-zinc-200 font-medium rounded-lg border border-dashed border-slate-300 dark:border-zinc-700 text-center flex flex-col items-center gap-2">
+                    <span>
+                      No café store currently assigned. This seller cannot view store orders (fails
+                      closed).
+                    </span>
+                    {stores.length === 0 && (
+                      <Link to="/admin/role-controller" className="text-link text-xs font-bold">
+                        Create a store in Role Controller →
+                      </Link>
+                    )}
                   </div>
                 )}
               </div>

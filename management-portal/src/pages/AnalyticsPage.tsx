@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
+  AlertCircle,
   ArrowRight,
   Banknote,
+  Calendar,
   CircleDollarSign,
+  Download,
   Info,
   Receipt,
   RotateCcw,
@@ -17,12 +20,91 @@ import {
   getSalesReport,
   type DashboardSummary,
   type SalesReport,
+  type SalesReportParams,
   type SalesReportStatusBreakdown,
 } from '../lib/api';
 
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const khr = new Intl.NumberFormat('en-US', { style: 'decimal', maximumFractionDigits: 0 });
 const number = new Intl.NumberFormat('en-US');
+
+export type DatePreset = 'all' | 'today' | '7d' | '30d' | 'custom';
+
+function toLocalYmd(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatScopeDate(raw: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const [year, month, day] = raw.split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString(undefined, { dateStyle: 'medium' });
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  return parsed.toLocaleDateString(undefined, { dateStyle: 'medium' });
+}
+
+function escapeCsvCell(value: string | number): string {
+  const str = String(value ?? '');
+  const safe = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+  if (/[",\n\r]/.test(safe)) {
+    return `"${safe.replace(/"/g, '""')}"`;
+  }
+  return safe;
+}
+
+export function buildSalesReportCsv(report: SalesReport): string {
+  const totalOrders = Math.max(0, report.total_orders ?? 0);
+  const lines: string[] = [
+    ['Section', 'Metric', 'Value'].map(escapeCsvCell).join(','),
+    ['Summary', 'Date From', report.date_from || 'all_time'].map(escapeCsvCell).join(','),
+    ['Summary', 'Date To', report.date_to || 'present'].map(escapeCsvCell).join(','),
+    ['Summary', 'Total Orders', totalOrders].map(escapeCsvCell).join(','),
+    [
+      'Summary',
+      'Recognized Revenue (USD)',
+      Number(report.total_revenue_usd || 0).toFixed(2),
+    ]
+      .map(escapeCsvCell)
+      .join(','),
+    ['Summary', 'Recognized Revenue (KHR)', Math.round(Number(report.total_revenue_khr || 0))]
+      .map(escapeCsvCell)
+      .join(','),
+    '',
+    [
+      'Status',
+      'Order Count',
+      'Share (%)',
+      'Gross Total (USD)',
+      'Gross Total (KHR)',
+      'Recognized Revenue (USD)',
+      'Recognized Revenue (KHR)',
+    ]
+      .map(escapeCsvCell)
+      .join(','),
+  ];
+
+  for (const row of report.status_breakdown ?? []) {
+    lines.push(
+      [
+        row.status,
+        Math.max(0, row.order_count),
+        calculatePercentage(row.order_count, totalOrders),
+        Number(row.total_usd || 0).toFixed(2),
+        Math.round(Number(row.total_khr || 0)),
+        Number(row.recognized_revenue_usd || 0).toFixed(2),
+        Math.round(Number(row.recognized_revenue_khr || 0)),
+      ]
+        .map(escapeCsvCell)
+        .join(','),
+    );
+  }
+
+  return `${lines.join('\n')}\n`;
+}
 
 export function formatUsd(amount: number): string {
   return money.format(Number.isFinite(amount) ? amount : 0);
@@ -71,17 +153,64 @@ export function AnalyticsPage() {
   const [revision, setRevision] = useState(0);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
 
+  const [preset, setPreset] = useState<DatePreset>('all');
+  const [appliedParams, setAppliedParams] = useState<SalesReportParams>({});
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+  const [dateError, setDateError] = useState('');
+
   const retry = useCallback(() => {
     setError('');
     setLoading(true);
     setRevision(value => value + 1);
   }, []);
 
+  const selectPreset = useCallback((nextPreset: DatePreset) => {
+    setDateError('');
+    setPreset(nextPreset);
+    if (nextPreset === 'custom') return;
+
+    const today = new Date();
+    const todayStr = toLocalYmd(today);
+    if (nextPreset === 'all') {
+      setAppliedParams({});
+    } else if (nextPreset === 'today') {
+      setAppliedParams({ date_from: todayStr, date_to: todayStr });
+    } else if (nextPreset === '7d') {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 6);
+      setAppliedParams({ date_from: toLocalYmd(start), date_to: todayStr });
+    } else if (nextPreset === '30d') {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 29);
+      setAppliedParams({ date_from: toLocalYmd(start), date_to: todayStr });
+    }
+    setLoading(true);
+  }, []);
+
+  function handleCustomSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!customFrom && !customTo) {
+      setDateError('Select a start date, end date, or both.');
+      return;
+    }
+    if (customFrom && customTo && customFrom > customTo) {
+      setDateError('Start date must be on or before end date.');
+      return;
+    }
+    setDateError('');
+    setLoading(true);
+    setAppliedParams({
+      ...(customFrom ? { date_from: customFrom } : {}),
+      ...(customTo ? { date_to: customTo } : {}),
+    });
+  }
+
   useEffect(() => {
     if (!token) return;
     let active = true;
 
-    Promise.all([getSalesReport(token), getDashboardSummary(token)])
+    Promise.all([getSalesReport(token, appliedParams), getDashboardSummary(token)])
       .then(([salesData, summaryData]) => {
         if (active) {
           setReport(salesData);
@@ -100,7 +229,7 @@ export function AnalyticsPage() {
     return () => {
       active = false;
     };
-  }, [token, revision]);
+  }, [token, appliedParams, revision]);
 
   const totalOrders = Math.max(0, report?.total_orders ?? 0);
 
@@ -128,16 +257,33 @@ export function AnalyticsPage() {
   // Clear date scope labeling
   const dateScopeLabel = useMemo(() => {
     if (!report?.date_from || report.date_from === 'all_time') {
+      if (appliedParams.date_to) {
+        return `Through ${formatScopeDate(appliedParams.date_to)}`;
+      }
       return 'All-time café records';
     }
-    const from = new Date(report.date_from).toLocaleDateString(undefined, { dateStyle: 'medium' });
-    const to = report.date_to
-      ? new Date(report.date_to).toLocaleDateString(undefined, { dateStyle: 'medium' })
-      : 'Present';
-    return `${from} – ${to}`;
-  }, [report?.date_from, report?.date_to]);
+    const from = formatScopeDate(report.date_from);
+    const to = report.date_to ? formatScopeDate(report.date_to) : 'Present';
+    return from === to ? from : `${from} – ${to}`;
+  }, [report?.date_from, report?.date_to, appliedParams.date_to]);
 
   const hasZeroRevenue = report?.total_revenue_usd === 0 && totalOrders > 0;
+  const hasDateFilter = Boolean(appliedParams.date_from || appliedParams.date_to);
+
+  function handleExportCsv() {
+    if (!report || typeof document === 'undefined') return;
+    const csv = buildSalesReportCsv(report);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const suffix = appliedParams.date_from || 'all-time';
+    link.href = url;
+    link.download = `brew-boba-sales-report-${suffix}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div className="page-stack">
@@ -152,7 +298,7 @@ export function AnalyticsPage() {
           <p>Understand your café operations with verified order and revenue data.</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="heading-pill">
             <span className="live-dot" aria-hidden="true" />
             <span>Latest available data</span>
@@ -162,6 +308,17 @@ export function AnalyticsPage() {
               </span>
             )}
           </span>
+          {report && !loading && !error && (
+            <button
+              type="button"
+              className="button-secondary text-xs flex items-center gap-1.5"
+              onClick={handleExportCsv}
+              aria-label="Export sales report as CSV"
+            >
+              <Download size={14} aria-hidden="true" />
+              <span>Export CSV</span>
+            </button>
+          )}
           <button
             type="button"
             className="icon-button"
@@ -175,15 +332,103 @@ export function AnalyticsPage() {
         </div>
       </div>
 
+      {/* Date Range Filter Toolbar */}
+      <section className="panel analytics-date-panel" aria-label="Report date range filter">
+        <div className="analytics-date-toolbar">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mr-1">
+              <Calendar size={14} aria-hidden="true" />
+              <span>Period:</span>
+            </span>
+            {(
+              [
+                { id: 'all', label: 'All Time' },
+                { id: 'today', label: 'Today' },
+                { id: '7d', label: 'Last 7 Days' },
+                { id: '30d', label: 'Last 30 Days' },
+                { id: 'custom', label: 'Custom' },
+              ] as const
+            ).map(option => (
+              <button
+                key={option.id}
+                type="button"
+                className={`status-tab ${preset === option.id ? 'active' : ''}`}
+                aria-pressed={preset === option.id}
+                onClick={() => selectPreset(option.id)}
+              >
+                <span>{option.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <span className="panel-note">{dateScopeLabel}</span>
+        </div>
+
+        {preset === 'custom' && (
+          <form onSubmit={handleCustomSubmit} className="analytics-custom-date-form">
+            <label htmlFor="analytics-date-from" className="text-xs font-bold text-slate-700">
+              From
+              <input
+                id="analytics-date-from"
+                name="date_from"
+                type="date"
+                className="text-input analytics-date-input"
+                value={customFrom}
+                onChange={e => setCustomFrom(e.target.value)}
+              />
+            </label>
+            <label htmlFor="analytics-date-to" className="text-xs font-bold text-slate-700">
+              To
+              <input
+                id="analytics-date-to"
+                name="date_to"
+                type="date"
+                className="text-input analytics-date-input"
+                value={customTo}
+                onChange={e => setCustomTo(e.target.value)}
+              />
+            </label>
+            <button type="submit" className="button-primary text-xs">
+              Apply Range
+            </button>
+            {dateError && (
+              <span role="alert" className="text-xs font-semibold text-rose-700 flex items-center gap-1">
+                <AlertCircle size={14} aria-hidden="true" />
+                {dateError}
+              </span>
+            )}
+          </form>
+        )}
+      </section>
+
       {loading ? (
         <LoadingState label="Loading café analytics and sales insights…" />
       ) : error ? (
         <ErrorState message={error} retry={retry} />
       ) : !report || report.total_orders === 0 ? (
-        <EmptyState
-          title="No orders recorded yet"
-          detail="Sales insights and status distributions will populate after server orders are recorded."
-        />
+        <div className="panel flex flex-col items-center gap-3 pb-6">
+          <EmptyState
+            title={
+              hasDateFilter
+                ? 'No orders recorded in this date range'
+                : 'No orders recorded yet'
+            }
+            detail={
+              hasDateFilter
+                ? 'Try selecting a wider period or switch back to All Time.'
+                : 'Sales insights and status distributions will populate after server orders are recorded.'
+            }
+          />
+          {hasDateFilter && (
+            <button
+              type="button"
+              className="button-secondary text-xs"
+              onClick={() => selectPreset('all')}
+            >
+              Reset to All Time
+            </button>
+          )}
+        </div>
       ) : (
         <>
           {/* Revenue & Operational KPI Grid */}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   AlertCircle,
   Coffee,
@@ -14,6 +14,7 @@ import { useAuth } from '../auth/authContext';
 import { ConfirmAction } from '../components/ConfirmAction';
 import { Drawer } from '../components/Drawer';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
+import { useToast } from '../components/ToastContext';
 import {
   createProduct,
   deleteProduct,
@@ -49,6 +50,7 @@ const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD
 
 export function ProductsPage() {
   const { token } = useAuth();
+  const { notify } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -177,12 +179,14 @@ export function ProductsPage() {
     setIsDrawerOpen(true);
   }
 
-  function handleCloseDrawer() {
-    if (busy) return;
+  function closeDrawer(force = false) {
+    if (busy && !force) return;
     setIsDrawerOpen(false);
     setEditingId(null);
+    originalFormRef.current = null;
     setForm(blankForm);
     setFormError('');
+    setImagePreviewError(false);
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -190,21 +194,35 @@ export function ProductsPage() {
     if (!token) return;
 
     const price = Number(form.base_price_usd);
+    const cleanName = form.name.trim();
+    const cleanImage = form.image.trim();
+
+    if (!categories.some(category => category.id === form.category_id)) {
+      setFormError('Choose an active or existing category for this drink.');
+      return;
+    }
+    if (!cleanName || cleanName.length > 120) {
+      setFormError('Enter a drink name between 1 and 120 characters.');
+      return;
+    }
     if (
-      !categories.some(category => category.id === form.category_id) ||
-      !form.name.trim() ||
-      form.name.trim().length > 120 ||
       !Number.isFinite(price) ||
       price <= 0 ||
       price > 9999999.99 ||
-      Math.abs(Math.round(price * 100) - price * 100) > 1e-6 ||
-      form.description.length > 1000 ||
-      form.image.length > 2048 ||
-      (form.image.trim() !== '' && !/^https:\/\/[^\s/]+(?:\/|$)/i.test(form.image.trim()))
+      Math.abs(Math.round(price * 100) - price * 100) > 1e-6
     ) {
-      setFormError(
-        'Choose a category, enter a name and a positive USD price with at most two decimals.',
-      );
+      setFormError('Enter a positive USD price with at most two decimal places.');
+      return;
+    }
+    if (form.description.length > 1000) {
+      setFormError('Description must be 1,000 characters or fewer.');
+      return;
+    }
+    if (
+      cleanImage.length > 2048 ||
+      (cleanImage !== '' && !/^https:\/\/[^\s/]+(?:\/|$)/i.test(cleanImage))
+    ) {
+      setFormError('Image URL must start with https:// and be 2,048 characters or fewer.');
       return;
     }
 
@@ -212,11 +230,14 @@ export function ProductsPage() {
     setFormError('');
 
     try {
-      const body: Pick<Product, 'category_id' | 'name' | 'description' | 'image' | 'base_price_usd' | 'is_available'> = {
+      const body: Pick<
+        Product,
+        'category_id' | 'name' | 'description' | 'image' | 'base_price_usd' | 'is_available'
+      > = {
         category_id: form.category_id,
-        name: form.name.trim(),
+        name: cleanName,
         description: form.description.trim() || null,
-        image: form.image.trim() || null,
+        image: cleanImage || null,
         base_price_usd: price,
         is_available: form.is_available,
       };
@@ -224,20 +245,26 @@ export function ProductsPage() {
       if (editingId) {
         const original = originalFormRef.current;
         const changes: Partial<typeof body> = {};
-        if (!original || form.category_id !== original.category_id) changes.category_id = body.category_id;
+        if (!original || form.category_id !== original.category_id)
+          changes.category_id = body.category_id;
         if (!original || form.name !== original.name) changes.name = body.name;
-        if (!original || form.description !== original.description) changes.description = body.description;
+        if (!original || form.description !== original.description)
+          changes.description = body.description;
         if (!original || form.image !== original.image) changes.image = body.image;
-        if (!original || form.base_price_usd !== original.base_price_usd) changes.base_price_usd = body.base_price_usd;
-        if (!original || form.is_available !== original.is_available) changes.is_available = body.is_available;
-        if (Object.keys(changes).length > 0) await updateProduct(token, editingId, changes);
+        if (!original || form.base_price_usd !== original.base_price_usd)
+          changes.base_price_usd = body.base_price_usd;
+        if (!original || form.is_available !== original.is_available)
+          changes.is_available = body.is_available;
+        if (Object.keys(changes).length > 0) {
+          await updateProduct(token, editingId, changes);
+          notify({ tone: 'success', message: `Drink "${cleanName}" updated.` });
+        }
       } else {
         await createProduct(token, body);
+        notify({ tone: 'success', message: `Drink "${cleanName}" added to menu.` });
       }
 
-      setIsDrawerOpen(false);
-      setEditingId(null);
-      originalFormRef.current = null;
+      closeDrawer(true);
       reload();
     } catch (cause) {
       setFormError(cause instanceof Error ? cause.message : 'Could not save product.');
@@ -253,16 +280,21 @@ export function ProductsPage() {
     try {
       if (confirm.action === 'delete') {
         await deleteProduct(token, confirm.id);
+        notify({ tone: 'success', message: `Drink "${confirm.name}" deleted.` });
       } else {
         await updateProduct(token, confirm.id, { is_available: false });
+        notify({ tone: 'success', message: `Drink "${confirm.name}" marked unavailable.` });
       }
       if (editingId === confirm.id) {
-        handleCloseDrawer();
+        closeDrawer(true);
       }
       setConfirm(null);
       reload();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not change product.');
+      const msg = cause instanceof Error ? cause.message : 'Could not change product.';
+      setError(msg);
+      notify({ tone: 'error', message: msg });
+      setConfirm(null);
     } finally {
       setBusy(false);
     }
@@ -276,9 +308,12 @@ export function ProductsPage() {
       setBusy(true);
       try {
         await updateProduct(token, product.id, { is_available: true });
+        notify({ tone: 'success', message: `Drink "${product.name}" is now available.` });
         reload();
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'Could not activate product.');
+        const msg = cause instanceof Error ? cause.message : 'Could not activate product.';
+        setError(msg);
+        notify({ tone: 'error', message: msg });
       } finally {
         setBusy(false);
       }
@@ -307,6 +342,20 @@ export function ProductsPage() {
           <span>Add Drink</span>
         </button>
       </div>
+
+      {!loading && !error && categories.length === 0 && (
+        <div
+          role="status"
+          className="p-4 rounded-xl border border-amber-300 bg-amber-50 text-amber-950 text-xs font-semibold flex items-center justify-between gap-3 flex-wrap"
+        >
+          <span>
+            No drink categories exist yet. Create a category before adding drinks to the menu.
+          </span>
+          <Link to="/admin/categories" className="button-secondary text-xs font-bold">
+            Create Category First
+          </Link>
+        </div>
+      )}
 
       {/* Quick Statistics Row */}
       {!loading && !error && (
@@ -352,7 +401,7 @@ export function ProductsPage() {
 
       {/* Main Catalog Section */}
       <section className="panel">
-        <div className="page-toolbar catalog-toolbar">
+        <search className="page-toolbar catalog-toolbar">
           <div className="toolbar-controls">
             <label className="sr-only" htmlFor="product-search">
               Search drinks
@@ -360,9 +409,14 @@ export function ProductsPage() {
             <div className="search-input-wrapper">
               <input
                 id="product-search"
+                name="product_search"
+                type="search"
                 className="text-input search-input catalog-search"
                 aria-label="Search products"
                 placeholder="Search drinks…"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
                 value={search}
                 onChange={event => setSearch(event.target.value)}
               />
@@ -374,6 +428,7 @@ export function ProductsPage() {
             </label>
             <select
               id="category-filter"
+              name="category_filter"
               className="text-input filter-select catalog-select"
               aria-label="Filter by category"
               value={categoryFilter}
@@ -392,6 +447,7 @@ export function ProductsPage() {
             </label>
             <select
               id="availability-filter"
+              name="availability_filter"
               className="text-input filter-select catalog-select"
               aria-label="Filter by availability"
               value={availabilityFilter}
@@ -429,7 +485,7 @@ export function ProductsPage() {
               <RotateCcw size={16} aria-hidden="true" />
             </button>
           </div>
-        </div>
+        </search>
 
         {loading ? (
           <LoadingState label="Loading product catalog…" />
@@ -445,7 +501,12 @@ export function ProductsPage() {
             }
           />
         ) : (
-          <div className="table-scroll">
+          <div
+            className="table-scroll"
+            tabIndex={0}
+            role="region"
+            aria-label="Café Drink Catalog"
+          >
             <table>
               <caption className="sr-only">Café Drink Catalog</caption>
               <thead>
@@ -467,9 +528,16 @@ export function ProductsPage() {
                         <div className="thumbnail-box" aria-hidden="true">
                           <img
                             key={product.image}
-                            src={productThumbnailUrl(product.image?.trim(), 160) || DRINK_THUMBNAIL_FALLBACK}
+                            src={
+                              productThumbnailUrl(product.image?.trim(), 160) ||
+                              DRINK_THUMBNAIL_FALLBACK
+                            }
                             alt=""
-                            className={isCloudinaryProductImage(product.image) ? 'cloudinary-product-image' : undefined}
+                            className={
+                              isCloudinaryProductImage(product.image)
+                                ? 'cloudinary-product-image'
+                                : undefined
+                            }
                             onError={e => {
                               const target = e.currentTarget as HTMLImageElement;
                               if (!target.dataset.fallback) {
@@ -544,7 +612,7 @@ export function ProductsPage() {
       {/* Responsive Edit/Create Drawer */}
       <Drawer
         isOpen={isDrawerOpen}
-        onClose={handleCloseDrawer}
+        onClose={() => closeDrawer(false)}
         eyebrow="PRODUCT EDITOR"
         title={editingId ? 'Edit Drink' : 'Add New Drink'}
         description={
@@ -558,7 +626,7 @@ export function ProductsPage() {
             <button
               type="button"
               className="button-secondary"
-              onClick={handleCloseDrawer}
+              onClick={() => closeDrawer(false)}
               disabled={busy}
             >
               Cancel
@@ -578,6 +646,7 @@ export function ProductsPage() {
           <label className="flex flex-col gap-1.5 font-bold text-xs text-slate-800">
             Drink name
             <input
+              name="name"
               className="text-input"
               required
               maxLength={120}
@@ -590,6 +659,7 @@ export function ProductsPage() {
           <label className="flex flex-col gap-1.5 font-bold text-xs text-slate-800">
             Category
             <select
+              name="category_id"
               className="text-input"
               required
               value={form.category_id || ''}
@@ -609,8 +679,10 @@ export function ProductsPage() {
             Base price (USD)
             <div className="relative">
               <input
+                name="base_price_usd"
                 className="text-input"
                 type="number"
+                inputMode="decimal"
                 min="0.01"
                 max="9999999.99"
                 step="0.01"
@@ -625,6 +697,7 @@ export function ProductsPage() {
           <label className="flex flex-col gap-1.5 font-bold text-xs text-slate-800">
             Description (Optional)
             <textarea
+              name="description"
               className="text-input"
               style={{ minHeight: '80px', padding: '10px 14px' }}
               maxLength={1000}
@@ -637,9 +710,13 @@ export function ProductsPage() {
           <label className="flex flex-col gap-1.5 font-bold text-xs text-slate-800">
             Image URL (Optional)
             <input
+              name="image"
               className="text-input"
               type="url"
               pattern="https://.*"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
               maxLength={2048}
               placeholder="https://example.com/drinks/milk-tea.webp"
               value={form.image}
@@ -671,6 +748,7 @@ export function ProductsPage() {
 
           <label className="check-field mt-2 flex items-center gap-2 cursor-pointer font-bold text-xs text-slate-800">
             <input
+              name="is_available"
               type="checkbox"
               checked={form.is_available}
               onChange={event => setForm({ ...form, is_available: event.target.checked })}
@@ -697,6 +775,8 @@ export function ProductsPage() {
               : 'This stops new customer orders for this drink.'
           }
           busy={busy}
+          confirmLabel={confirm.action === 'delete' ? 'Delete' : 'Deactivate'}
+          tone={confirm.action === 'delete' ? 'danger' : 'primary'}
           onCancel={() => setConfirm(null)}
           onConfirm={handleConfirmAction}
         />

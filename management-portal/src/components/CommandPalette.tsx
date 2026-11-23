@@ -4,6 +4,7 @@ import {
   BarChart3,
   Check,
   Clock,
+  Coffee,
   FolderTree,
   LayoutDashboard,
   Package,
@@ -71,6 +72,15 @@ export function CommandPalette() {
         icon: ShoppingBag,
         keywords: ['queue', 'drinks', 'settlement', 'kitchen'],
         action: () => navigate('/admin/orders'),
+      },
+      {
+        id: 'nav-kds',
+        title: 'Kitchen Board (KDS)',
+        subtitle: 'Live barista Kanban board and thermal ticket printing',
+        category: 'Navigation',
+        icon: Coffee,
+        keywords: ['kds', 'kitchen', 'barista', 'kanban', 'board', 'tickets'],
+        action: () => navigate('/admin/orders?view=kds'),
       },
       {
         id: 'nav-pending-orders',

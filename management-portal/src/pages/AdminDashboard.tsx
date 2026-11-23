@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   ArrowRight,
@@ -122,10 +122,16 @@ export function OperationsCenterPanel({
             </p>
           </div>
         </div>
-        <Link to="/admin/orders" className="button-secondary operations-all-clear-btn">
-          <span>View All Orders</span>
-          <ArrowRight size={14} aria-hidden="true" />
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link to="/admin/orders?view=kds" className="button-secondary operations-all-clear-btn">
+            <Coffee size={14} aria-hidden="true" />
+            <span>Open Kitchen Board</span>
+          </Link>
+          <Link to="/admin/orders" className="button-secondary operations-all-clear-btn">
+            <span>View All Orders</span>
+            <ArrowRight size={14} aria-hidden="true" />
+          </Link>
+        </div>
       </div>
     );
   }
@@ -141,9 +147,14 @@ export function OperationsCenterPanel({
           <span className="live-dot" aria-hidden="true" />
           <span className="eyebrow">CAFÉ OPERATIONS CENTER</span>
         </div>
-        <span className="operations-status-pill">
-          {totalActionable} {totalActionable === 1 ? 'active order' : 'active orders'} in progress
-        </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="operations-status-pill">
+            {totalActionable} {totalActionable === 1 ? 'active order' : 'active orders'} in progress
+          </span>
+          <Link to="/admin/orders?view=kds" className="text-link text-xs font-bold">
+            Open Kitchen Board →
+          </Link>
+        </div>
       </div>
 
       <div className="operations-stages-grid">
@@ -905,13 +916,19 @@ export function AdminDashboard() {
     categoriesCount: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const hasLoadedRef = useRef(false);
 
   const retry = useCallback(() => {
     setError('');
-    setLoading(true);
+    if (!hasLoadedRef.current) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
     setRevision(value => value + 1);
   }, []);
 
@@ -927,6 +944,7 @@ export function AdminDashboard() {
     ])
       .then(([summaryData, ordersData, productsData, categoriesData]) => {
         if (active) {
+          hasLoadedRef.current = true;
           setSummary(summaryData);
           if (ordersData) {
             setOrderList(ordersData);
@@ -941,12 +959,14 @@ export function AdminDashboard() {
           }
           setLastRefreshed(new Date());
           setLoading(false);
+          setRefreshing(false);
         }
       })
       .catch(cause => {
         if (active) {
           setError(cause instanceof Error ? cause.message : 'Unable to load dashboard overview.');
           setLoading(false);
+          setRefreshing(false);
         }
       });
 
@@ -1035,10 +1055,11 @@ export function AdminDashboard() {
             type="button"
             className="icon-button"
             onClick={retry}
+            disabled={loading || refreshing}
             aria-label="Refresh café overview"
             title="Refresh café overview"
           >
-            <RotateCcw size={15} aria-hidden="true" />
+            <RotateCcw size={15} className={refreshing ? 'animate-spin' : ''} aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -1164,9 +1185,9 @@ export function AdminDashboard() {
                           >
                             <td>
                               <Link
-                                to="/admin/orders"
+                                to={`/admin/orders?orderId=${order.id}`}
                                 className="text-link font-bold hover:underline"
-                                title="Open order queue"
+                                title={`Open ${order.order_number} details`}
                               >
                                 {order.order_number}
                               </Link>

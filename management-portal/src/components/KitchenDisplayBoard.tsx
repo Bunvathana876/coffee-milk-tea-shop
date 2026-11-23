@@ -41,23 +41,23 @@ export const KitchenDisplayBoard: React.FC<KitchenDisplayBoardProps> = ({
 }) => {
   const pendingOrders = useMemo(
     () =>
-      [...orders.filter(o => o.order_status === 'pending')].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-      ),
+      orders
+        .filter(o => o.order_status === 'pending')
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
     [orders],
   );
   const preparingOrders = useMemo(
     () =>
-      [...orders.filter(o => o.order_status === 'preparing')].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-      ),
+      orders
+        .filter(o => o.order_status === 'preparing')
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
     [orders],
   );
   const readyOrders = useMemo(
     () =>
-      [...orders.filter(o => o.order_status === 'ready')].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-      ),
+      orders
+        .filter(o => o.order_status === 'ready')
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
     [orders],
   );
 

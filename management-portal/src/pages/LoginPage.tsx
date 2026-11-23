@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import {
   AlertCircle,
   ArrowRight,
@@ -23,6 +23,8 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
 
   if (status === 'loading') return <LoadingState label="Checking your session…" />;
   if (status === 'ready')
@@ -32,10 +34,13 @@ export function LoginPage() {
     event.preventDefault();
     if (!email.trim() || !password) {
       setError('Enter your email and password.');
+      if (!email.trim()) emailRef.current?.focus();
+      else passwordRef.current?.focus();
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setError('Enter a valid work email address.');
+      emailRef.current?.focus();
       return;
     }
     setError('');
@@ -133,10 +138,17 @@ export function LoginPage() {
               Work email
             </label>
             <input
+              ref={emailRef}
               id="email"
+              name="email"
               className="text-input"
               type="email"
               autoComplete="username"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              enterKeyHint="next"
+              aria-invalid={Boolean(error)}
               value={email}
               onChange={event => setEmail(event.target.value)}
               placeholder="admin@cafe.com"
@@ -149,10 +161,14 @@ export function LoginPage() {
             </label>
             <div className="password-wrap">
               <input
+                ref={passwordRef}
                 id="password"
+                name="password"
                 className="text-input"
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
+                enterKeyHint="done"
+                aria-invalid={Boolean(error)}
                 value={password}
                 onChange={event => setPassword(event.target.value)}
                 placeholder="Enter your password"
@@ -163,6 +179,7 @@ export function LoginPage() {
                 type="button"
                 className="password-toggle"
                 onClick={() => setShowPassword(value => !value)}
+                aria-pressed={showPassword}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
                 disabled={submitting}
               >

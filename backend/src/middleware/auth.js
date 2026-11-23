@@ -20,7 +20,7 @@ export function createToken(payload, expiresIn = config.jwtExpiresIn) {
 export function verifyToken(token) {
   try {
     return jwt.verify(token, config.jwtSecret);
-  } catch (err) {
+  } catch {
     return null;
   }
 }

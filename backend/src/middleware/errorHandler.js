@@ -1,4 +1,4 @@
-export function errorHandler(err, req, res, next) {
+export function errorHandler(err, req, res, _next) {
   if (err.type === 'entity.parse.failed') {
     return res.status(400).json({ detail: 'Malformed JSON body.' });
   }
