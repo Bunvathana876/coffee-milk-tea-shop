@@ -3,6 +3,10 @@ import { dbQuery, withTransaction } from '../../db/database.js';
 import { authenticateStaff, requireAdmin } from '../../middleware/auth.js';
 import { validId } from '../../utils/adminCatalogValidation.js';
 import { recordCashSettlement, SettlementError } from '../../utils/cashSettlement.js';
+import {
+  createOrderReadyNotification,
+  resolveOrderReadyNotifications,
+} from '../../utils/notificationHub.js';
 
 const router = Router();
 router.use(authenticateStaff);
@@ -200,14 +204,44 @@ router.patch('/:id/status', requireAdmin, async (req, res, next) => {
           detail: 'Paid orders require a verified refund workflow before cancellation.',
         };
       }
-      if (current.order_status !== nextStatus) {
+      const previousStatus = current.order_status;
+      const customerId = current.customer_id == null ? null : Number(current.customer_id);
+      if (previousStatus !== nextStatus) {
         await query('UPDATE orders SET order_status = $1 WHERE id = $2', [nextStatus, orderId]);
       }
       const updated = await query('SELECT * FROM orders WHERE id = $1', [orderId]);
-      return { order: await formatOrderWithItems(updated.rows[0], query) };
+      return {
+        order: await formatOrderWithItems(updated.rows[0], query),
+        previousStatus,
+        customerId,
+      };
     });
     if (result.status) return res.status(result.status).json({ detail: result.detail });
-    res.json(result.order);
+
+    let customerNotified = false;
+    if (result.customerId != null) {
+      try {
+        if (result.previousStatus !== 'ready' && nextStatus === 'ready') {
+          const createdNotification = await createOrderReadyNotification(
+            result.order,
+            result.customerId,
+          );
+          customerNotified = Boolean(createdNotification);
+        } else if (
+          result.previousStatus !== nextStatus &&
+          (nextStatus === 'completed' || nextStatus === 'cancelled')
+        ) {
+          await resolveOrderReadyNotifications(result.order.id, result.customerId, nextStatus);
+        }
+      } catch (notifyErr) {
+        console.error('[notifications] Failed to dispatch customer notification:', notifyErr);
+      }
+    }
+
+    res.json({
+      ...result.order,
+      customer_notified: customerNotified,
+    });
   } catch (err) {
     next(err);
   }

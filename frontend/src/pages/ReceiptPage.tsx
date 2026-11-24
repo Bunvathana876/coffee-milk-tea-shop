@@ -7,6 +7,7 @@ import {
   Clock,
   Loader2,
   AlertCircle,
+  BellRing,
   HelpCircle,
   CheckCircle2,
   RotateCcw,
@@ -14,6 +15,7 @@ import {
 import { Button } from '../components/common/Button';
 import { formatUsd, formatKhr, usdToKhr } from '../config/currency';
 import { getOrderById } from '../services/orderService';
+import { useNotifications } from '../features/notifications/useNotifications';
 import { AbaKhqrPayment } from '../components/payment';
 import { downloadReceiptPdf } from '../utils/receiptPdfGenerator';
 import { isRecordedPaid } from '../utils/paymentStatus';
@@ -25,6 +27,7 @@ import confetti from 'canvas-confetti';
 export const ReceiptPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const location = useLocation();
+  const { lastOrderEventAt } = useNotifications();
 
   const stateOrder = (location.state as { order?: Order } | null)?.order;
   const isInvalidId = !orderId || isNaN(Number(orderId));
@@ -83,6 +86,22 @@ export const ReceiptPage: React.FC = () => {
   }, [orderId, isInvalidId, stateOrder]);
 
   const currentOrderStatus = order?.order_status;
+
+  // Immediate refresh when a live drink-ready/completed notification event arrives.
+  useEffect(() => {
+    if (lastOrderEventAt <= 0 || isInvalidId || !orderId) return;
+    let isMounted = true;
+    getOrderById(Number(orderId))
+      .then(data => {
+        if (isMounted) setOrder(data);
+      })
+      .catch(() => {
+        // Keep current receipt on transient network error.
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [lastOrderEventAt, orderId, isInvalidId]);
 
   // Real-time polling for active kitchen order updates (Pending -> Preparing -> Ready -> Completed)
   useEffect(() => {
@@ -298,6 +317,30 @@ export const ReceiptPage: React.FC = () => {
             </p>
           </div>
         </div>
+        {/* Prominent Ready-for-Pickup Inline Alert Banner (Hidden on print) */}
+        {order.order_status?.toLowerCase() === 'ready' && (
+          <div
+            role="status"
+            className="print:hidden rounded-2xl border-2 border-emerald-400 bg-emerald-50 p-4 sm:p-5 flex items-start gap-3.5 shadow-sm"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <BellRing className="w-5 h-5" aria-hidden="true" />
+            </div>
+            <div className="space-y-1 flex-1 min-w-0">
+              <div className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-emerald-800">
+                <span>Drink Ready for Pickup</span>
+              </div>
+              <h2 className="text-base sm:text-lg font-serif font-black text-emerald-950">
+                Your drink is ready at the counter!
+              </h2>
+              <p className="text-xs sm:text-sm text-emerald-900 leading-relaxed">
+                Please come to the pickup counter and show order{' '}
+                <strong className="font-mono">#{order.order_number}</strong> to collect your drinks.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Live Kitchen Status Card (Screen interactive; Hidden on print) */}
         <div className="print:hidden">
           <OrderBrewTimeline status={order.order_status} variant="detailed" />

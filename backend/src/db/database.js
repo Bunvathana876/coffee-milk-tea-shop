@@ -24,6 +24,7 @@ class MemoryPgDb {
       security_audit_logs: 1,
       stores: 1,
       seller_store_assignments: 1,
+      customer_notifications: 1,
     };
     this.tables = {
       categories: [],
@@ -37,6 +38,7 @@ class MemoryPgDb {
       security_audit_logs: [],
       stores: [],
       seller_store_assignments: [],
+      customer_notifications: [],
     };
     this.transactionQueue = Promise.resolve();
   }
@@ -310,6 +312,18 @@ class MemoryPgDb {
           reference: String(params[2]),
           amount_usd: Number(params[3]),
           recorded_at: new Date().toISOString(),
+        };
+      } else if (tableName === 'customer_notifications') {
+        row = {
+          ...row,
+          customer_id: Number(params[0]),
+          order_id: params[1] == null ? null : Number(params[1]),
+          order_number: String(params[2]),
+          type: String(params[3] || 'order_ready'),
+          title: String(params[4]),
+          message: String(params[5]),
+          is_read: false,
+          read_at: null,
         };
       }
 
@@ -974,6 +988,70 @@ class MemoryPgDb {
       }
       return Promise.resolve({ rows: store ? [store] : [], rowCount: store ? 1 : 0 });
     }
+    // SELECT FROM customer_notifications
+    if (/^SELECT/i.test(cleanSql) && /FROM customer_notifications/i.test(cleanSql)) {
+      let rows = [...(this.tables.customer_notifications || [])];
+      if (/customer_id = \$1/i.test(cleanSql)) {
+        rows = rows.filter(r => r.customer_id === Number(params[0]));
+      }
+      if (/is_read = FALSE/i.test(cleanSql)) {
+        rows = rows.filter(r => !r.is_read);
+      }
+      if (/COUNT\(\*\)/i.test(cleanSql)) {
+        return Promise.resolve({ rows: [{ count: rows.length }], rowCount: 1 });
+      }
+      rows.sort((a, b) => b.id - a.id);
+      const limitMatch = cleanSql.match(/LIMIT \$(\d+)/i);
+      if (limitMatch) {
+        const limitVal = Number(params[Number(limitMatch[1]) - 1]);
+        rows = rows.slice(0, limitVal);
+      }
+      return Promise.resolve({ rows, rowCount: rows.length });
+    }
+
+    // UPDATE customer_notifications
+    if (/^UPDATE customer_notifications/i.test(cleanSql)) {
+      const table = this.tables.customer_notifications || [];
+      const now = new Date().toISOString();
+      if (/WHERE id = \$1 AND customer_id = \$2/i.test(cleanSql)) {
+        const target = table.find(
+          r => r.id === Number(params[0]) && r.customer_id === Number(params[1]),
+        );
+        if (!target) return Promise.resolve({ rows: [], rowCount: 0 });
+        target.is_read = true;
+        target.read_at = target.read_at || now;
+        return Promise.resolve({ rows: [target], rowCount: 1 });
+      }
+      if (/WHERE order_id = \$1 AND customer_id = \$2/i.test(cleanSql)) {
+        let updated = 0;
+        for (const r of table) {
+          if (
+            r.order_id === Number(params[0]) &&
+            r.customer_id === Number(params[1]) &&
+            r.type === 'order_ready' &&
+            !r.is_read
+          ) {
+            r.is_read = true;
+            r.read_at = now;
+            updated += 1;
+          }
+        }
+        return Promise.resolve({ rows: [], rowCount: updated });
+      }
+      if (/WHERE customer_id = \$1 AND is_read = FALSE/i.test(cleanSql)) {
+        let updated = 0;
+        for (const r of table) {
+          if (r.customer_id === Number(params[0]) && !r.is_read) {
+            r.is_read = true;
+            r.read_at = now;
+            updated += 1;
+          }
+        }
+        return Promise.resolve({ rows: [], rowCount: updated });
+      }
+      return Promise.resolve({ rows: [], rowCount: 0 });
+    }
+
     // SELECT FROM payment_settlements
     if (/^SELECT/i.test(cleanSql) && /FROM payment_settlements/i.test(cleanSql)) {
       let rows = [...(this.tables.payment_settlements || [])];
@@ -1322,6 +1400,19 @@ export async function initSchema(db) {
       CONSTRAINT uq_seller_store UNIQUE (seller_id, store_id)
     );
 
+    CREATE TABLE IF NOT EXISTS customer_notifications (
+      id SERIAL PRIMARY KEY,
+      customer_id INTEGER NOT NULL REFERENCES customer_users(id) ON DELETE CASCADE,
+      order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+      order_number VARCHAR(100) NOT NULL,
+      type VARCHAR(50) NOT NULL DEFAULT 'order_ready',
+      title VARCHAR(200) NOT NULL,
+      message TEXT NOT NULL,
+      is_read BOOLEAN NOT NULL DEFAULT FALSE,
+      read_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_id INTEGER REFERENCES stores(id) ON DELETE RESTRICT;
 
     CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
@@ -1335,6 +1426,8 @@ export async function initSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_seller_assignments_store ON seller_store_assignments(store_id);
     CREATE INDEX IF NOT EXISTS idx_audit_actor ON security_audit_logs(actor_id);
     CREATE INDEX IF NOT EXISTS idx_audit_action ON security_audit_logs(action);
+    CREATE INDEX IF NOT EXISTS idx_customer_notifications_customer ON customer_notifications(customer_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_customer_notifications_unread ON customer_notifications(customer_id, is_read);
   `;
 
   if (isConnectedToPostgres && db) {

@@ -294,7 +294,10 @@ export function OrdersPage() {
       const updated = await updateOrderStatus(token, orderId, nextStatus);
       notify({
         tone: 'success',
-        message: `Order ${updated.order_number} moved to ${nextStatus}.`,
+        message:
+          nextStatus === 'ready' && updated.customer_notified
+            ? `Order ${updated.order_number} is Ready — pickup alert sent to ${updated.customer_name}.`
+            : `Order ${updated.order_number} moved to ${nextStatus}.`,
       });
       reload(true);
     } catch (cause) {
@@ -316,7 +319,10 @@ export function OrdersPage() {
       setConfirmStatus(null);
       notify({
         tone: 'success',
-        message: `Order ${updated.order_number} updated to ${updated.order_status}.`,
+        message:
+          updated.order_status === 'ready' && updated.customer_notified
+            ? `Order ${updated.order_number} is Ready — pickup alert sent to ${updated.customer_name}.`
+            : `Order ${updated.order_number} updated to ${updated.order_status}.`,
       });
       reload(true);
     } catch (cause) {
@@ -957,9 +963,19 @@ export function OrdersPage() {
       {confirmStatus && selected && (
         <ConfirmAction
           title={`${confirmStatus === 'cancelled' ? 'Cancel' : 'Update'} ${selected.order_number}?`}
-          detail={`Move this order from ${selected.order_status} to ${confirmStatus}. Payment status will not change.`}
+          detail={
+            confirmStatus === 'ready'
+              ? `Move this order from ${selected.order_status} to ready and send a pickup notification alert to ${selected.customer_name}. Payment status will not change.`
+              : `Move this order from ${selected.order_status} to ${confirmStatus}. Payment status will not change.`
+          }
           busy={busy}
-          confirmLabel={confirmStatus === 'cancelled' ? 'Cancel order' : 'Confirm'}
+          confirmLabel={
+            confirmStatus === 'cancelled'
+              ? 'Cancel order'
+              : confirmStatus === 'ready'
+                ? 'Mark Ready & Notify'
+                : 'Confirm'
+          }
           tone={confirmStatus === 'cancelled' ? 'danger' : 'primary'}
           onCancel={() => setConfirmStatus(null)}
           onConfirm={handleStatusChange}

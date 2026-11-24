@@ -9,6 +9,7 @@ import { StoreSelectorModal } from './StoreSelectorModal';
 import { STORES, type StoreLocation } from '../../config/stores';
 import { SearchModal } from './SearchModal';
 import { MiniCartDrawer } from './MiniCartDrawer';
+import { NotificationBell } from '../notifications/NotificationBell';
 import { CustomizationModal } from '../product/CustomizationModal';
 import type { Product, DrinkCustomization } from '../../types';
 
@@ -141,6 +142,7 @@ export const Navbar: React.FC = () => {
             >
               <Search size={19} />
             </button>
+            {isAuthenticated && user && <NotificationBell />}
             {isAuthenticated && user ? (
               <Link to="/profile" className="nav-account" aria-label="Open your profile">
                 <User size={18} />

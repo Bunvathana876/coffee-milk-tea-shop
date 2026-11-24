@@ -136,6 +136,29 @@ export interface HealthCheckResponse {
   environment: string;
 }
 
+export interface CustomerNotification {
+  id: number;
+  customer_id: number;
+  order_id: number | null;
+  order_number: string;
+  type: 'order_ready' | string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+}
+
+export interface NotificationListResponse {
+  items: CustomerNotification[];
+  unread_count: number;
+}
+
+export interface NotificationSyncEvent {
+  order_id: number;
+  order_status: string;
+}
+
 export {
   OPENAPI_ENDPOINTS,
   type AdminOrderListResponse as OpenApiAdminOrderListResponse,

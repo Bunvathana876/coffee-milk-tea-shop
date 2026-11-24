@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "jiti src/features/cart/cart.test.ts && jiti src/utils/paymentStatus.test.ts && jiti src/utils/orderStatusBadge.test.ts && jiti src/features/auth/auth.test.ts && jiti src/utils/receiptPdfGenerator.test.ts && jiti src/services/apiResilience.test.ts && jiti src/services/storefront-backend.integration.test.ts",
+    "test": "jiti src/features/cart/cart.test.ts && jiti src/utils/paymentStatus.test.ts && jiti src/utils/orderStatusBadge.test.ts && jiti src/features/auth/auth.test.ts && jiti src/features/notifications/notifications.test.ts && jiti src/utils/receiptPdfGenerator.test.ts && jiti src/services/apiResilience.test.ts && jiti src/services/storefront-backend.integration.test.ts",
     "generate:api": "../backend/venv/bin/python ../backend/scripts/generate_openapi_clients.py",
     "preview": "vite preview",
     "test:storefront": "npm run build && node scripts/verify-storefront.mjs"

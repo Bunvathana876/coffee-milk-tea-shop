@@ -48,6 +48,11 @@ import {
   getMyOrders,
   getOrdersByPhone,
 } from './orderService';
+import {
+  connectNotificationStream,
+  getMyNotifications,
+  markNotificationRead,
+} from './notificationService';
 
 let server: any;
 let baseUrl: string;
@@ -432,4 +437,127 @@ test('7. Checkout Reliability: Multiple rapid concurrent checkout taps collapse 
   assert.equal(afterRetryOrders.length, 1);
   const afterRetryProfile = await getCustomerProfile(reg.access_token);
   assert.equal(afterRetryProfile.loyalty_stamps, 1);
+});
+
+test('8. Customer Pickup Notifications: Management portal marking drink Ready alerts customer in real time and persists unread notification', async () => {
+  const adminToken = createToken({ sub: 1, role: 'admin' });
+  const uniquePhone = `077${Math.floor(100000 + Math.random() * 900000)}`;
+
+  const reg = await registerCustomer({
+    full_name: 'Pickup Alert Customer',
+    phone: uniquePhone,
+    password: 'Password123!',
+  });
+  storage.set('coffee_customer_token', reg.access_token);
+
+  const products = await getProducts();
+  const drink = products[0];
+
+  const order = await createOrder(
+    {
+      customer_name: 'Pickup Alert Customer',
+      customer_phone: uniquePhone,
+      payment_method: 'cash',
+      items: [
+        {
+          product_id: drink.id,
+          product_name: drink.name,
+          quantity: 1,
+          unit_price_usd: drink.base_price_usd,
+          subtotal_usd: drink.base_price_usd,
+          size: 'Medium',
+          sugar_level: '50%',
+          ice_level: 'Normal Ice',
+          toppings: [],
+        },
+      ],
+    },
+    `notif-e2e-${randomUUID()}`,
+  );
+
+  // Connect live SSE notification stream as the signed-in customer
+  const controller = new AbortController();
+  let connectedResolve!: () => void;
+  let readyNotifResolve!: (n: any) => void;
+  let syncResolve!: (e: any) => void;
+
+  const connectedPromise = new Promise<void>(resolve => {
+    connectedResolve = resolve;
+  });
+  const readyNotifPromise = new Promise<any>(resolve => {
+    readyNotifResolve = resolve;
+  });
+  const syncPromise = new Promise<any>(resolve => {
+    syncResolve = resolve;
+  });
+
+  const streamTask = connectNotificationStream({
+    token: reg.access_token,
+    signal: controller.signal,
+    onConnected: () => connectedResolve(),
+    onNotification: n => readyNotifResolve(n),
+    onSync: e => syncResolve(e),
+  }).catch(() => {});
+
+  try {
+    await connectedPromise;
+
+    // Management portal moves pending -> preparing (no ready alert yet)
+    const prepRes = await fetch(`${baseUrl}/api/admin/orders/${order.id}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({ order_status: 'preparing' }),
+    });
+    assert.equal(prepRes.status, 200);
+
+    // Management portal marks drink READY -> triggers live customer alert
+    const readyRes = await fetch(`${baseUrl}/api/admin/orders/${order.id}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({ order_status: 'ready' }),
+    });
+    assert.equal(readyRes.status, 200);
+    const readyBody = (await readyRes.json()) as { order_status: string; customer_notified: boolean };
+    assert.equal(readyBody.order_status, 'ready');
+    assert.equal(readyBody.customer_notified, true);
+
+    const pushed = await readyNotifPromise;
+    assert.equal(pushed.order_id, order.id);
+    assert.equal(pushed.order_number, order.order_number);
+    assert.equal(pushed.type, 'order_ready');
+    assert.equal(pushed.is_read, false);
+
+    // Persisted notifications API confirms unread alert
+    const list = await getMyNotifications({ token: reg.access_token });
+    assert.equal(list.unread_count, 1);
+    assert.equal(list.items[0].order_number, order.order_number);
+
+    // Customer marks alert read
+    const readRes = await markNotificationRead(pushed.id, reg.access_token);
+    assert.equal(readRes.notification.is_read, true);
+    assert.equal(readRes.unread_count, 0);
+
+    // Management portal completes order -> SSE sync fires
+    const compRes = await fetch(`${baseUrl}/api/admin/orders/${order.id}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({ order_status: 'completed' }),
+    });
+    assert.equal(compRes.status, 200);
+    const syncEvent = await syncPromise;
+    assert.equal(syncEvent.order_id, order.id);
+    assert.equal(syncEvent.order_status, 'completed');
+  } finally {
+    controller.abort();
+    await streamTask;
+  }
 });

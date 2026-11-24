@@ -3796,8 +3796,442 @@ section[id] {
   .category-row,
   .drink-card,
   .marquee-content,
-  .about-hero-illustration {
+  .about-hero-illustration,
+  .nav-notif-trigger,
+  .notif-popover-panel,
+  .drink-alert-region,
+  .drink-alert-card {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* ==========================================================================
+   Accessible Utilities & Customer Drink-Ready Notifications
+   ========================================================================== */
+
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+.nav-notif-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-notif-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 42px;
+  min-block-size: 42px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--color-line);
+  background: var(--color-cream-card);
+  color: var(--color-ink);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.nav-notif-trigger:hover {
+  background: var(--color-cobalt-light);
+  border-color: var(--color-cobalt);
+  color: var(--color-cobalt);
+  transform: translateY(-1px);
+}
+
+.nav-notif-trigger.has-ready-alert {
+  background: #ecfdf5;
+  border-color: #10b981;
+  color: #065f46;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.16);
+}
+
+.nav-notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding-inline: 5px;
+  border-radius: 9999px;
+  background: #059669;
+  color: #ffffff;
+  border: 2px solid var(--color-cream);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notif-popover-panel {
+  width: min(370px, calc(100vw - 24px));
+  max-height: min(520px, calc(100dvh - 108px));
+  flex-direction: column;
+  padding: 0;
+  border-radius: 20px;
+  border: 1.5px solid var(--color-line-dark);
+  background: var(--color-cream-card);
+  color: var(--color-ink);
+  box-shadow: 0 20px 44px rgba(13, 26, 51, 0.18);
+  overflow: hidden;
+  z-index: 60;
+}
+
+.notif-popover-panel:not(:popover-open):not(.\:popover-open):not(.is-open-fallback) {
+  display: none;
+}
+
+.notif-popover-panel:is(:popover-open, .\:popover-open, .is-open-fallback) {
+  display: flex;
+}
+
+@supports (position-area: block-end) {
+  .notif-popover-panel[popover] {
+    inset: auto;
+    margin: 10px 0 0 0;
+    position-area: block-end span-inline-start;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+  }
+}
+
+@supports not (position-area: block-end) {
+  .notif-popover-panel {
+    position: fixed;
+    inset: calc(var(--cafe-nav-height) + 8px) 16px auto auto;
+    margin: 0;
+  }
+}
+
+.notif-popover-panel.is-open-fallback {
+  position: fixed;
+  inset: calc(var(--cafe-nav-height) + 8px) 16px auto auto;
+  margin: 0;
+}
+
+.notif-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-cream);
+}
+
+.notif-panel-prefs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-cream-card);
+}
+
+.notif-pref-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-block-size: 30px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--color-line-dark);
+  background: #ffffff;
+  color: var(--color-ink);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.notif-pref-btn:hover {
+  background: var(--color-cobalt-light);
+  border-color: var(--color-cobalt);
+  color: var(--color-cobalt);
+}
+
+.notif-pref-btn-accent {
+  background: var(--color-cobalt);
+  border-color: var(--color-cobalt);
+  color: #ffffff;
+}
+
+.notif-pref-btn-accent:hover {
+  background: var(--color-cobalt-dark);
+  color: #ffffff;
+}
+
+.notif-pref-status {
+  font-size: 11px;
+  font-weight: 700;
+  color: #065f46;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 3px 9px;
+  border-radius: 9999px;
+}
+
+.notif-panel-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 12px;
+}
+
+.notif-empty {
+  text-align: center;
+  padding: 24px 14px;
+}
+
+.notif-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.notif-item {
+  border-radius: 14px;
+  border: 1px solid var(--color-line);
+  background: #ffffff;
+  padding: 12px;
+}
+
+.notif-item.is-unread {
+  border-color: #6ee7b7;
+  background: #f0fdf4;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.08);
+}
+
+.notif-panel-footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-line);
+  background: var(--color-cream);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Persistent Drink-Ready Alert Overlay (Top Layer popover="manual" with fallback) */
+.drink-alert-region {
+  position: fixed;
+  inset: auto 18px 18px auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  width: min(410px, calc(100vw - 24px));
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 80;
+  pointer-events: none;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease,
+    display 220ms ease,
+    overlay 220ms ease;
+  transition-behavior: allow-discrete;
+}
+
+.drink-alert-region.is-empty {
+  display: none;
+}
+
+.drink-alert-region[popover]:not(:popover-open):not(.\:popover-open) {
+  display: none;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.drink-alert-region[popover]:is(:popover-open, .\:popover-open) {
+  display: flex;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@starting-style {
+  .drink-alert-region[popover]:is(:popover-open, .\:popover-open) {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.drink-alert-card {
+  pointer-events: auto;
+  border-radius: 20px;
+  border: 2px solid #10b981;
+  background: #ffffff;
+  color: var(--color-ink);
+  padding: 16px;
+  box-shadow:
+    0 18px 40px rgba(6, 78, 59, 0.2),
+    0 0 0 4px rgba(16, 185, 129, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.drink-alert-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.drink-alert-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #059669;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.drink-alert-pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #065f46;
+  background: #d1fae5;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.drink-alert-title {
+  margin: 4px 0 0;
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #064e3b;
+}
+
+.drink-alert-message {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.drink-alert-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 36px;
+  min-block-size: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--color-line);
+  background: var(--color-cream-card);
+  color: var(--color-ink-soft);
+  flex-shrink: 0;
+}
+
+.drink-alert-close:hover {
+  background: var(--color-cream-deep);
+  color: var(--color-ink);
+}
+
+.drink-alert-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.drink-alert-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-block-size: 38px;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  background: var(--color-cobalt);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  flex: 1 1 auto;
+}
+
+.drink-alert-primary:hover {
+  background: var(--color-cobalt-dark);
+}
+
+.drink-alert-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-block-size: 38px;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--color-line-dark);
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.drink-alert-secondary:hover {
+  background: var(--color-butter);
+}
+
+@media (max-width: 480px) {
+  .drink-alert-region {
+    inset: auto 12px 12px 12px;
+    width: auto;
+  }
+
+  @supports not (position-area: block-end) {
+    .notif-popover-panel {
+      inset: calc(var(--cafe-nav-height) + 6px) 12px auto 12px;
+      width: auto;
+    }
+  }
+
+  .notif-popover-panel.is-open-fallback {
+    inset: calc(var(--cafe-nav-height) + 6px) 12px auto 12px;
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-notif-trigger,
+  .nav-notif-trigger:hover,
+  .notif-popover-panel,
+  .drink-alert-region,
+  .drink-alert-card {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
   }
 }

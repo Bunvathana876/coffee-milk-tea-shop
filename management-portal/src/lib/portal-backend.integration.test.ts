@@ -383,7 +383,21 @@ test('8. Management Portal Integration: Staff/Admin CRUD, Cash Settlement Audit,
   const placedOrder = (await orderRes.json()) as { id: number; total_usd: number };
 
   await updateOrderStatus(adminToken, placedOrder.id, 'preparing');
-  await updateOrderStatus(adminToken, placedOrder.id, 'ready');
+  const readyOrder = await updateOrderStatus(adminToken, placedOrder.id, 'ready');
+  assert.equal(readyOrder.order_status, 'ready');
+  assert.equal(readyOrder.customer_notified, true);
+
+  const notifRes = await fetch(`${baseUrl}/api/notifications`, {
+    headers: { Authorization: `Bearer ${regData.access_token}` },
+  });
+  assert.equal(notifRes.status, 200);
+  const notifBody = (await notifRes.json()) as {
+    items: { order_id: number; type: string; is_read: boolean }[];
+    unread_count: number;
+  };
+  assert.equal(notifBody.unread_count, 1);
+  assert.equal(notifBody.items[0].order_id, placedOrder.id);
+  assert.equal(notifBody.items[0].type, 'order_ready');
   const settlement = await settleCash(adminToken, placedOrder.id, `POS-REG-${stamp}`);
   assert.ok(settlement.id > 0);
 

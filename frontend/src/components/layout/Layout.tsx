@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Navbar } from './Navbar';
 import { Footer } from './Footer';
+import { DrinkReadyAlertHost } from '../notifications/DrinkReadyAlertHost';
 
 export const Layout: React.FC = () => {
   const { pathname } = useLocation();
@@ -33,6 +34,7 @@ export const Layout: React.FC = () => {
         </Suspense>
       </main>
       <div className="print:hidden">
+        <DrinkReadyAlertHost />
         <Footer />
       </div>
     </div>

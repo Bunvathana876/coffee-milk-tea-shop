@@ -218,7 +218,7 @@ export async function request<T>(endpoint: string, options?: ApiRequestOptions):
   if (fetchOptions.body !== undefined && fetchOptions.body !== null && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
-  if (cleanEndpoint.startsWith('/api/orders')) {
+  if (cleanEndpoint.startsWith('/api/orders') || cleanEndpoint.startsWith('/api/notifications')) {
     const token =
       typeof localStorage !== 'undefined' ? localStorage.getItem('coffee_customer_token') : null;
     if (token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);

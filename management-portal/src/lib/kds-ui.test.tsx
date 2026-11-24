@@ -201,6 +201,7 @@ test('KitchenDisplayBoard renders stage-specific action buttons for status advan
 
   // Stage 3: Ready -> Completed
   assert.ok(html.includes('Complete Order'), 'Ready tickets must offer "Complete Order" action');
+  assert.ok(html.includes('Alert sent'), 'Ready tickets must display customer pickup alert indicator');
   assert.ok(
     html.includes('data-testid="advance-103"'),
     'Ready ticket must have advance-103 test ID',

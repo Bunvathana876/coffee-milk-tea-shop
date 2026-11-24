@@ -99,6 +99,8 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const calls = [];
 let failCatalog = false;
 let failOrders = false;
+let activeNotificationStreamController = null;
+const mockNotifications = [];
 const user = {
   id: 990001,
   full_name: 'DOM QA user',
@@ -159,6 +161,48 @@ globalThis.fetch = async (url, options = {}) => {
     return failOrders
       ? response({ detail: 'Orders unavailable for isolated test' }, 503)
       : response([fixtureOrder]);
+  if (parsed.pathname === '/api/notifications' && method === 'GET')
+    return response({
+      items: mockNotifications,
+      unread_count: mockNotifications.filter((n) => !n.is_read).length,
+    });
+  if (parsed.pathname === '/api/notifications/stream' && method === 'GET') {
+    const stream = new ReadableStream({
+      start(controller) {
+        activeNotificationStreamController = controller;
+        controller.enqueue(
+          new TextEncoder().encode('event: connected\ndata: {"status":"connected"}\n\n'),
+        );
+        options.signal?.addEventListener('abort', () => {
+          if (activeNotificationStreamController === controller) {
+            activeNotificationStreamController = null;
+          }
+          try {
+            controller.close();
+          } catch {
+            // ignore already closed stream
+          }
+        });
+      },
+    });
+    return new Response(stream, {
+      status: 200,
+      headers: { 'Content-Type': 'text/event-stream; charset=utf-8' },
+    });
+  }
+  if (parsed.pathname.match(/^\/api\/notifications\/\d+\/read$/) && method === 'PATCH') {
+    const id = Number(parsed.pathname.split('/')[3]);
+    const target = mockNotifications.find((n) => n.id === id);
+    if (target) target.is_read = true;
+    return response({
+      notification: target || { id, is_read: true },
+      unread_count: mockNotifications.filter((n) => !n.is_read).length,
+    });
+  }
+  if (parsed.pathname === '/api/notifications/read-all' && method === 'PATCH') {
+    for (const n of mockNotifications) n.is_read = true;
+    return response({ updated_count: mockNotifications.length, unread_count: 0 });
+  }
   throw new Error(
     'Unexpected application request in isolated test: ' +
       method +
@@ -427,6 +471,66 @@ try {
   assert.equal(
     document.querySelector('.order-history-card a').getAttribute('href'),
     '/receipt/990001',
+  );
+  // Inline ready-for-pickup banner appears on ready orders
+  assert(
+    document.body.textContent.includes('Your drink is ready at the counter!'),
+    'Ready order card must render inline pickup alert banner',
+  );
+  // Real-time drink-ready notification pushed via SSE updates bell badge & persistent alert overlay
+  const bellTrigger = document.querySelector('.nav-notif-trigger');
+  assert(bellTrigger, 'Signed-in customer navbar must display notification bell');
+  assert.equal(bellTrigger.getAttribute('aria-haspopup'), null);
+  const pushedAlert = {
+    id: 501,
+    customer_id: user.id,
+    order_id: fixtureOrder.id,
+    order_number: fixtureOrder.order_number,
+    type: 'order_ready',
+    title: 'Your drink is ready for pickup!',
+    message: `Order ${fixtureOrder.order_number} (1× Classic Milk Tea) is ready at the counter. Please come get your drink!`,
+    is_read: false,
+    read_at: null,
+    created_at: new Date().toISOString(),
+  };
+  mockNotifications.unshift(pushedAlert);
+  if (activeNotificationStreamController) {
+    await act(async () => {
+      activeNotificationStreamController.enqueue(
+        new TextEncoder().encode(
+          `event: notification\ndata: ${JSON.stringify(pushedAlert)}\n\n`,
+        ),
+      );
+    });
+  }
+  await waitFor(
+    () => document.querySelector('.drink-alert-card') !== null,
+    'live drink-ready pickup alert overlay',
+  );
+  assert(
+    document.querySelector('.drink-alert-region')?.getAttribute('role') === 'region',
+    'Alert host must expose landmark region role',
+  );
+  assert(
+    document.querySelector('.drink-alert-card')?.textContent?.includes('Your drink is ready for pickup!'),
+    'Alert card must show drink-ready title',
+  );
+  assert.equal(
+    document.querySelector('.nav-notif-badge')?.textContent?.trim(),
+    '1',
+    'Notification bell badge must show unread count 1',
+  );
+  await click(document.querySelector('.drink-alert-close'));
+  await waitFor(
+    () => document.querySelector('.drink-alert-card') === null,
+    'dismissed drink-ready pickup alert',
+  );
+  assert(
+    calls.some((c) => c.path === '/api/notifications/501/read' && c.method === 'PATCH'),
+    'Dismissing alert must persist read state to backend',
+  );
+  results.push(
+    'Real-time drink-ready notification SSE alert, bell badge, inline ready banner, and read dismissal',
   );
   failOrders = true;
   await click(byText('button', 'Refresh orders'));

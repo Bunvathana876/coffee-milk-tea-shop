@@ -9,6 +9,8 @@ import categoriesRouter from './routes/categories.js';
 import productsRouter from './routes/products.js';
 import ordersRouter from './routes/orders.js';
 import customerAuthRouter from './routes/customerAuth.js';
+import notificationsRouter from './routes/notifications.js';
+import { closeAllNotificationStreams } from './utils/notificationHub.js';
 
 import adminAuthRouter from './routes/admin/auth.js';
 import adminCategoriesRouter from './routes/admin/categories.js';
@@ -86,6 +88,7 @@ app.use('/api/categories', categoriesRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/auth', customerAuthRouter);
+app.use('/api/notifications', notificationsRouter);
 
 // Mount Admin Routes
 app.use('/api/admin/auth', adminAuthRouter);
@@ -134,6 +137,7 @@ if (process.argv[1] && process.argv[1].endsWith('server.js')) {
       const shutdown = () => {
         if (stopping) return;
         stopping = true;
+        closeAllNotificationStreams();
         const deadline = setTimeout(() => process.exit(1), 10000);
         deadline.unref();
         server.close(async () => {

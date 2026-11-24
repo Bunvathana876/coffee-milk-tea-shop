@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import {
+  BellRing,
   Clock,
   Coffee,
   CheckCircle2,
@@ -171,9 +172,20 @@ export const KitchenDisplayBoard: React.FC<KitchenDisplayBoardProps> = ({
                     </div>
 
                     {/* Customer Info */}
-                    <div className="text-xs">
-                      <strong className="text-slate-900 block truncate">{order.customer_name}</strong>
-                      <span className="text-[11px] text-slate-500">{order.customer_phone}</span>
+                    <div className="text-xs flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <strong className="text-slate-900 block truncate">{order.customer_name}</strong>
+                        <span className="text-[11px] text-slate-500">{order.customer_phone}</span>
+                      </div>
+                      {col.status === 'ready' && (
+                        <span
+                          className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                          title="Customer pickup notification active"
+                        >
+                          <BellRing size={10} aria-hidden="true" />
+                          <span>Alert sent</span>
+                        </span>
+                      )}
                     </div>
 
                     {/* Order Items with Customization Tags */}

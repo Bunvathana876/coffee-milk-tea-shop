@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, RefreshCw, ShoppingBag, Clock, ShieldCheck } from 'lucide-react';
+import { ArrowUpRight, BellRing, RefreshCw, ShoppingBag, Clock, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../features/auth/useAuth';
+import { useNotifications } from '../features/notifications/useNotifications';
 import { getOrdersByPhone } from '../services/api';
 import { formatUsd } from '../config/currency';
 import { ErrorState } from '../components/common/ErrorState';
@@ -10,6 +11,7 @@ import { OrderBrewTimeline } from '../components/order/OrderBrewTimeline';
 import type { Order } from '../types';
 
 function OrderHistory({ phone }: { phone: string }) {
+  const { lastOrderEventAt } = useNotifications();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +21,22 @@ function OrderHistory({ phone }: { phone: string }) {
     setError(null);
     setRefresh(value => value + 1);
   };
+
+  // Immediately refresh orders when a live notification event arrives (e.g. barista marks Ready).
+  useEffect(() => {
+    if (lastOrderEventAt <= 0) return;
+    let active = true;
+    getOrdersByPhone(phone)
+      .then(result => {
+        if (active) setOrders(result);
+      })
+      .catch(() => {
+        // Keep existing list on transient error.
+      });
+    return () => {
+      active = false;
+    };
+  }, [phone, lastOrderEventAt]);
 
   useEffect(() => {
     let active = true;
@@ -156,6 +174,20 @@ function OrderHistory({ phone }: { phone: string }) {
                   <p className="text-xs text-ink-soft/80 bg-cream/70 p-2.5 rounded-xl border border-line/60">
                     <span className="font-semibold text-ink">Instructions:</span> {order.notes}
                   </p>
+                )}
+
+                {/* Prominent inline banner when drink is ready for pickup */}
+                {order.order_status.toLowerCase() === 'ready' && (
+                  <div
+                    role="status"
+                    className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 text-xs font-bold"
+                  >
+                    <BellRing className="w-4 h-4 text-emerald-700 shrink-0" aria-hidden="true" />
+                    <span>
+                      Your drink is ready at the counter! Please show{' '}
+                      <strong className="font-mono">#{order.order_number}</strong> to pick it up.
+                    </span>
+                  </div>
                 )}
 
                 {/* Live Brewing Progress Stepper */}

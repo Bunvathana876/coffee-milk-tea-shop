@@ -82,6 +82,7 @@ export interface AdminOrder {
   notes?: string | null;
   created_at: string;
   items: OrderItem[];
+  customer_notified?: boolean;
 }
 
 export interface OrderList {
